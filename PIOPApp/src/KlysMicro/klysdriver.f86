@@ -1,0 +1,887 @@
+$ COMPACT(EXPORTS KLYSERROR_TASK)
+        SUBROUTINE KLYSDRIVER
+C
+C       **MEMBER**=SLCRMX:KLYSLIB
+C       **CMS**=RMX_KLYS
+C
+C=======================================================================
+C
+C This is the main task for support of the KLYSTRONS and SUB-BOOSTERS.
+C
+C                                               kj 2/83
+C
+C-----------------------------------------------------------------------
+C
+C  Mod: 17-Dec-2002, Tony Gromme (TEG):
+C           Call KLYSprocnearads to get near pointers to procedures in
+C           known list, because if a procedure is used as an actual
+C           argument in any call then the Intel FTN386 compiler demands
+C           that that procedure be declared as a far procedure.
+C           Definitions herein (14 of them) of subscripts into array of
+C           near pointers to external procedures must agree with
+C           sequence of list compiled into KLYSprocnearads.
+C           Also change format of message that loads non-FTP ppbitmaps.
+C       23-Apr-1998, Robert C. Sass (RCS):
+C           Add MSG_MAIL arg to get_request.
+C       27-Mar-1998, Ken Underwood (KKU):
+C          Fix async usage by always calling SET_FCN_STATS.
+C       14-May-1993, Tony Gromme (TEG):
+C          Eliminated load-time initialization of labelled common
+C          blocks.  Straightened out KLYSIPL.INC mess.  Eliminated INIT
+C          arg from KLYS_RECV_IMG.
+C       26-Apr-1993, Tony Gromme (TEG):
+C          Added code to support function code KLYS_SEND_PPBITMAPS.
+C          Eliminated KLYS_CHCK_FTP.
+C       19-Sep-1991, Tony Gromme (TEG):
+C          Call MSG_INIT1 and MICRO_MBX1 instead of MSG_INIT and
+C          MICRO_MBX.  Include MSGMAILKLY.INC instead of MSGMAIL.INC.
+C          Change name to KLYSDRIVER instead of just DRIVER.
+C       12-Dec-1990, R. Hall (RDH):
+C          Added the reporting of performance statistics for the
+C          VAX trim phase function (KLYS_TRIM_PHASE).
+C       07-Sep-1990, S. Castillo (SCC):
+C          Modifications for iRMXIII:  Call LOC48 instead of LOC for
+C          SEQ2 1st arg for USE32 COMPACT.  Create semaphore for
+C          KLYS_LOCK.
+C       27-Nov-1989, T. Lahey (TEL):
+C          Add new argument to METER_DBSEND call.
+C       03-Aug-1989, R. Hall
+C          Added processing for new function codes to clear and
+C          return counters.  These counters are used to determine
+C          which secondaries, drifting bits in secondary STAT, and
+C          units are associated with significant changes, which
+C          cause database updating during asynchronous cycling.
+C       05-Jul-1989, M. Flores
+C          Allocate memory for PIOP image at startup time without
+C          waiting for the download message.  If, at PIOP IPL request,
+C          there is no PIOP image in memory, send back KLYS_IPLNOIMG
+C          error code instead KLYS_ERR.  The VAX will then send an image
+C          and the PIOP(s) will be IPL'd.
+C       21-Apr-1989, R. Hall
+C          Reorganized to reduce the number of subroutine calls in
+C          order to save space.
+C       17-Feb-1989, R. Hall
+C          Added new function code for SYSVOLTS FTP.  This was done
+C          so that processing can be speeded up by having a special
+C          coroutine handle this type of processing.
+C       17-Jan-1989, R. Hall
+C          Changed to allow asynchronous database update cycles.
+C          Also changed to allow using  a database secondaries list for
+C          secondaries that may be modified by subprograms KLYSTATUS
+C          or PIOPDATA.
+C       13-Jan-1989, M. Flores
+C          Change sleep time for SYSVOLTS FTP during a check function
+C          from 200 ms to 100 ms.  It was raised to 200 ms in hopes of
+C          reducing CAMAC error rates.  Instead, the STAT_BADCAMAC bit
+C          is preset in KLYS_PIOP_DATA to ignore FTPB CAMAC errors, as
+C          is done in KLYSFTP for ordinary FTPs.
+C       20-Dec-1988, Tony Gromme
+C          Eliminated BLOCKDATA; made that module into no-op
+C          subroutine KLYSBLKDAT which we call here.
+C       16-Dec-1988, M. Flores
+C          Do not do a PIOP SYSVOLTS FTP for terse checks.
+C       20-Jan-1988, RKJ
+C          Added call to update SBI from database following any SLED
+C          tune action.  Delete use of debug flag, and change some
+C          100 ms timeouts to 200 ms.
+C
+C=======================================================================
+C
+        IMPLICIT NONE
+
+$ LIST
+$ NOLIST  INCLUDE(SLCRMXI:MSGFUNC.INC)
+$ LIST
+$ NOLIST  INCLUDE(SLCRMXI:KLYSFUNC.INC)
+$ LIST
+$ NOLIST  INCLUDE(SLCRMXI:PIOPFUNC.INC)
+$ LIST
+$ NOLIST  INCLUDE(SLCRMXI:KLYSDEF.INC)
+$ LIST
+$ NOLIST  INCLUDE(SLCRMXI:KDBDEF.INC)
+$ LIST
+$ INCLUDE(SLCRMXI:MSGMAILKLY.INC)
+C
+$ INCLUDE(SLCRMXI:FUNC2.INC)
+C
+$ INCLUDE(SLCRMXI:KLYSDATA.INC)
+C
+$ NOLIST  INCLUDE(SLCRMXI:CTLWBITS.INC)
+$ LIST
+$ INCLUDE(SLCRMXI:KLYSIPL.INC)
+C
+$ INCLUDE(SLCRMXI:KLYSUNITS.INC)
+C
+$ INCLUDE(SLCRMXI:KLYSMAIL.INC)
+C
+$ INCLUDE(SLCRMXI:KLYSDBUFF.INC)
+C
+$ NOLIST INCLUDE(SLCRMXI:KLYSTATUS.INC)
+$ LIST
+$ INCLUDE(SLCRMXI:KLYSAUTOIPL.INC)
+C
+C  General Declarations:
+C
+        INTEGER*4  ISS
+        LOGICAL    ILL
+        EQUIVALENCE (ISS,ILL)
+        INTEGER*2  IPPX, IUX
+C
+C  Length of message buffer for the return of significant change
+C  counters.
+C
+        INTEGER*2 COUNTER_MMSG_LEN
+C
+C  Time to wait before waking, in hundreds of a second, if no VAX
+C  request arrives.
+C
+        INTEGER*2 TIMEOUT
+C
+C  Function to retrieve the time to wait before the next
+C  asynchronous function cycle.
+C
+        INTEGER*2 GET_CYCLE_TIME
+C
+C  Name of the function being performed.
+C
+        INTEGER*4 FCN_NAME
+C
+C  The time just before processing a function.
+C
+        INTEGER*4 BGN_FCN_TSTAMP(2)
+C
+C  Function to initialize cycling.
+C
+        INTEGER*4 CYCLE_INIT
+C
+C  Function to obtain the type of request to be performed (VAX request
+C  or cycling function).
+C
+        INTEGER*4 GET_REQUEST
+C
+C  Function used to gather statistics about a function.
+C
+        INTEGER*4 SET_FCN_STATS
+        INTEGER*4 CTLW, I4A, I4B,
+     >            MICRO_MBX1, MSG_INIT1, MMSG_SEND, MICRO_DBSEND,
+     >            DBLPUT, KLYS_ASYNC_INIT, METER_DBSEND,
+     >            IMAGE_SEG
+        INTEGER*2 IMAGE_SEG2
+        EQUIVALENCE (IMAGE_SEG,IMAGE_SEG2)
+        DATA      IMAGE_SEG/0/
+        INTEGER*4 STR_VAX, STR_FCHK, STR_TCHK, STR_TRMP
+        DATA      STR_VAX /4HVAX /,  STR_FCHK /4HFCHK/,
+     >            STR_TCHK /4HTCHK/, STR_TRMP /4HTRMP/
+
+        INTEGER*4 MSG_PRIM_NAME, MSG_UNIT_NAME, DUMMY
+C
+C  For a function that may be asynchronous, a flag indicating
+C  whether the VAX database needs to be updated.
+C
+        LOGICAL*1 DB_UPDATE_REQUIRED
+C
+C  Flag indicating whether the function being processed is
+C  generic.  A function is said to be generic if the processing
+C  for it is similar to the processing for several other
+C  functions.
+C
+        LOGICAL*1 GENERIC
+C
+C  For generic functions, a flag indicating whether the micro database
+C  needs to be updated with NEW_D_LIST and the OLD_D_LIST needs to be
+C  updated.
+C
+        LOGICAL*1 UPDATE_DB_LISTS
+C
+C  For generic functions, a flag indicating whether the VAX database
+C  needs to be updated.
+C
+        LOGICAL*1 UPDATE_VAX_DB
+C
+C  Flag to (not) force METER_DBSEND to do a database update.
+C
+        LOGICAL*1 NO_FORCED_UPDATE
+        PARAMETER (NO_FORCED_UPDATE = .FALSE.)
+C
+C  Parameters in calling sequence to SEQ2 (used for generic functions):
+C
+        INTEGER*4 CO_ROUTINE_PX, SLEEP_INTERVAL
+        INTEGER*2 CO_ROUT_ARG, TRIES, RESP_DATA_LEN
+        LOGICAL*2 TWO_PART
+C
+        DATA      CO_ROUTINE_PX/15/
+C
+C  External functions:
+C
+        INTEGER*4 SEND_PPBITMAP, KLYSERROR_TASK, NET_GET_TIME,
+     >            ERR_SEND0, ERR_SEND1, ERR_SEND2
+        INTEGER*2 IRMX_EXCEP, RQCREATESEGMENT, RQCREATESEMAPHORE
+        INTEGER*1 ERROR_TASK_PRIO, RQGETPRIORITY
+        EXTERNAL  KLYSERROR_TASK
+C
+C  Array of 14 near pointers to procedures, and definitions of constant
+C  subscripts thereinto.  See REF_RMX_KLYS:KLYSPROCNEARADS.C86.
+C
+        INTEGER*4 NEARADS_AP(15)
+        DATA      NEARADS_AP(15) /0/
+        INTEGER*2 KLYSTATUS_PX,     UPDATEKLYS_PX, SETSTATBIT_PX,
+     >            KLYS_IPL_PIOP_PX, KLYS_RESET_PX, TRIM_PHASE_PX,
+     >            FOX_HOME_PX,   SET_UPDATE_BIT_PX, SLED_TRIM_PX,
+     >            KLYSFTP_PX,    PERTURB_PHASE_PX, KLYS_PIOP_DATA_PX,
+     >            SBI_PX,        KLYSYSVOLTFTP_PX
+        PARAMETER (KLYSTATUS_PX = 1,       UPDATEKLYS_PX = 2,
+     >             SETSTATBIT_PX = 3,      KLYS_IPL_PIOP_PX = 4,
+     >             KLYS_RESET_PX = 5,      TRIM_PHASE_PX = 6,
+     >             FOX_HOME_PX = 7,        SET_UPDATE_BIT_PX = 8,
+     >             SLED_TRIM_PX = 9,       KLYSFTP_PX = 10,
+     >             PERTURB_PHASE_PX = 11,  KLYS_PIOP_DATA_PX = 12,
+     >             SBI_PX = 13,            KLYSYSVOLTFTP_PX = 14)
+C
+C  For KLYS_LOCK and KLYS_UNLOCK:
+C
+        INTEGER*2 KLSEMAPHORE
+        COMMON /KL_SEMAPHORE/ KLSEMAPHORE
+C
+C  For debugging:
+C
+        CHARACTER KLSEMNAMC*11
+        DATA      KLSEMNAMC/'KLYSlocksem'/
+        LOGICAL   DBKILL, KLYSERROR_FLAG, DEBUG
+        DATA      DBKILL/.TRUE./, KLYSERROR_FLAG /.TRUE./, DEBUG/.TRUE./
+
+        INTEGER*4 TRIMTIME, FOXTIME, SLEDTIME, PIOP_UPDATE_SLEEP,
+     >            FTP_TIME, PIOP_DATA_TIME
+        INTEGER*2 TRIM_TRIES, FOX_TRIES, SLED_TRIES, FTP_TRIES
+        DATA      TRIMTIME/4000/,  FOXTIME/10000/,  SLEDTIME/10000/,
+     >            FTP_TIME/500/,   TRIM_TRIES/2/,   FOX_TRIES/2/,
+     >            SLED_TRIES/1/,   FTP_TRIES/100/,
+     >            PIOP_DATA_TIME/100/,   PIOP_UPDATE_SLEEP/200/
+C
+C  Stuff for phase knobs:
+C
+        REAL*4 DELTA_KPHR
+C
+C
+C=======================================================================
+C
+C  Initializations.
+C
+C=======================================================================
+C
+C  Initialize message service.
+C
+        ISS = MSG_INIT1(TASK_ID, FUNC_KLYS/256, 4HKLYS)
+C
+C  Initialize labelled commons and database buffers.  Fill array of near
+C  pointers to procedures.
+C
+        CALL KLYSBLKDAT
+        CALL KLYSprocnearads(NEARADS_AP)
+C
+C  Establish the mutex lock with KLYS_ERRORTASK.
+C
+        KLSEMAPHORE = RQCREATESEMAPHORE(%VAL(1), %VAL(1), %VAL(0),
+     >                                  IRMX_EXCEP)
+        CALL ROOT_CATALOG(KLSEMAPHORE, KLSEMNAMC)
+        CALL KLYS_LOCK
+C
+C  Determine how many klystrons and sub-boosters there are here.
+C
+        STATUS_SUMMARY = KLYS_OKOK
+        CALL UPDATEKLYSUNITS(7)
+
+        IF (.NOT. LSTATUS_SUMMARY) THEN
+           ISS = ERR_SEND0(KLYS_INIT)
+           ISS = ERR_SEND2(KLYS_DB, 4H DB , 4HINIT)
+           CALL STOP(KLYS_DB)
+        ENDIF
+C
+C  Initialize PIOP image receiver and allocate memory.
+C
+        GOOD_IMAGE = .FALSE.
+        GOOD_PPSTRING = .FALSE.
+        FRST_PIOP_IPL = .TRUE.
+        IF (NUM_UNITS .GT. 0) THEN
+           IMAGE_SEG2 = RQCREATESEGMENT(
+     >                  %VAL(IMG_BLOCK_WC*2*IMG_MAX_BLOCKS), IRMX_EXCEP)
+           IF (IRMX_EXCEP .NE. 0) THEN
+              CALL ERRCHK('No memory for PIOP image', IRMX_EXCEP)
+              IMAGE_SEG2 = 0
+           ENDIF
+        ENDIF
+C
+C  Start error recovery routine at the same priority as this task.
+C
+        IF (NUM_UNITS .GT. 0 .AND. KLYSERROR_FLAG) THEN
+           ERROR_TASK_PRIO = RQGETPRIORITY(%VAL(0), IRMX_EXCEP)
+           CALL CREATE_TASK(ERROR_TASK_PRIO, KLYSERROR_TASK, 'KLYS_ERR')
+        ENDIF
+C
+C  Initialize old values, new values, and tolerances for
+C  asynchronous update cycles.
+C
+        ISS = KLYS_ASYNC_INIT()
+C
+C  Initialize cycling for the Klystron job.
+C
+        ISS = CYCLE_INIT(4HKLYS)
+C
+C=======================================================================
+C
+C Top of forever loop.
+C
+C Each function code represents a unique function.
+C In general, "terse" is not supported.
+C For each received request message, we call either SEQ2 or SEQALL, each
+C of which calls SEQ.
+C
+C=======================================================================
+C
+C  First see if we had a data base error.
+C
+   10   IF ((STATUS_SUMMARY .GE. KLYS_DB) .AND. DBKILL) THEN
+           CALL STOP(KLYS_DB)
+        ENDIF
+C
+C  Get the time to wait before performing the next asynchronous
+C  function cycle.
+C
+        TIMEOUT = GET_CYCLE_TIME(4HKLYS)
+C
+C  Wait for new message, or until timeout.
+C
+        CALL KLYS_UNLOCK
+        ISS = MICRO_MBX1(TASK_ID, TIMEOUT)
+        CALL KLYS_LOCK
+C
+C  Set up the initializations necessary for processing the message.
+C
+        STATUS_SUMMARY = KLYS_OKOK
+        MSG_PRIM_NAME = I4_MSGDATA(1)
+        PRIM_NAME = MSG_PRIM_NAME
+        MSG_UNIT_NAME = I4_MSGDATA(2)
+        UNIT_NAME = MSG_UNIT_NAME
+C
+C  Determine whether this is a VAX request and, if it is not,
+C  the name of the asynchronous cycling function and whether
+C  a database update is needed because it has been a long time
+C  since the last update.
+C
+        ISS = GET_REQUEST(MSG_MAIL, FCN_NAME, DB_UPDATE_REQUIRED)
+        IF (.NOT. ILL) GOTO 9000
+        IF (FCN_NAME .EQ. STR_FCHK) THEN
+           FUNC = KLYS_CHCK_STATUS
+        ELSEIF (FCN_NAME .EQ. STR_TCHK) THEN
+           FUNC = KLYS_CHCK_STATUS .OR. TERSE
+        ELSEIF (FCN_NAME .EQ. STR_TRMP) THEN
+           FUNC = KLYS_ASYNC_TRMP
+        ENDIF
+
+        GENERIC = .FALSE.
+C
+C  Initialize the AUTO-IPL flag for no IPL.
+C
+        AUTO_IPL_NEEDED = .FALSE.
+C
+C  Test for no klystrons.
+C
+        IF (NUM_UNITS.EQ.0) THEN
+
+           ISS = NET_GET_TIME(BGN_FCN_TSTAMP)
+           ISS = SET_FCN_STATS(FCN_NAME, BGN_FCN_TSTAMP)
+
+           IF (FCN_NAME .EQ. STR_VAX) THEN
+              I4_MMSGDATA(1) = KLYS_NOUNITS
+              ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+           ENDIF
+C
+C  Test for functions:
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF ((FUNC .AND. .NOT. TERSE) .EQ. KLYS_CHCK_STATUS) THEN
+C
+C  Function code KLYS_CHCK_STATUS:
+C  Note: "TERSE" option is supported.
+C
+C  Initially indicate that no value has changed significantly
+C  (functions KLYSTATUS and PIOPDATA will set the VALUE_CHANGED
+C  flag if a value has changed significantly).  Then check
+C  whether this is a VAX request and, if so, indicate that the
+C  VAX database is to be updated.
+C
+           VALUE_CHANGED = .FALSE.
+           VAX_CMD = .FALSE.
+           IF (FCN_NAME .EQ. STR_VAX) THEN
+              VAX_CMD = .TRUE.
+              IF ((FUNC .AND. TERSE) .EQ. 0) THEN
+                 FCN_NAME = STR_FCHK    
+              ELSE
+                 FCN_NAME = STR_TCHK
+              ENDIF
+              DB_UPDATE_REQUIRED = .TRUE.
+           ENDIF
+C
+C  Get the current time, before processing the function.
+C
+           ISS = NET_GET_TIME(BGN_FCN_TSTAMP)
+
+           CALL SEQALL(%VAL(NEARADS_AP(KLYSTATUS_PX)), FUNC, 1,
+     >                 .FALSE., DUMMY)
+           IF ((FUNC .AND. TERSE) .EQ. 0) THEN
+              CALL SEQALL(%VAL(NEARADS_AP(KLYS_PIOP_DATA_PX)), FUNC, 3,
+     >                    .TRUE., PIOP_DATA_TIME)
+           ENDIF
+C
+C  Update the micro database with the new values.
+C
+           NEW_D_LIST(2) = ADB_LIST_LEN - 2
+           ISS = DBLPUT(NEW_D_LIST, D_LLIST)
+C
+C  Send out an update command to all units with a new PDES or
+C  a new golden number.  If IPL was attempted above, the
+C  following function has already been performed by the
+C  UPDATEKLYS call.
+C
+           CALL SEQALL(%VAL(NEARADS_AP(SET_UPDATE_BIT_PX)),
+     >                 KLYS_UPDATE_PIOP_PADONLY, 1, .FALSE., DUMMY)
+C
+C  Gather statistics about the function just processed.
+C
+           ISS = SET_FCN_STATS(FCN_NAME, BGN_FCN_TSTAMP)
+C
+C  Update the VAX database if this is a VAX request, a long
+C  time has passed since the last VAX database update, or
+C  a value updated in the micro database has changed
+C  significantly.  Also copy the new database values into
+C  the old values.
+C
+           IF (DB_UPDATE_REQUIRED .OR. VALUE_CHANGED) THEN
+              ISS = METER_DBSEND(FCN_NAME, NO_FORCED_UPDATE)
+              CALL COPYW(ADB_LIST_LEN, NEW_D_LIST, OLD_D_LIST)
+           ENDIF
+C
+C  Send a reply if this is a VAX command was processed.
+C
+           IF (VAX_CMD) THEN
+              I4_MMSGDATA(1) = STATUS_SUMMARY
+              ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+           ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF ((FUNC .EQ. KLYS_UPDATE_PIOP_PADONLY).OR.
+     >          (FUNC .EQ. KLYS_UPDATE_PIOP_MK2ONLY).OR.
+     >          (FUNC .EQ. KLYS_UPDATE_PIOP)) THEN
+C
+C  Update Some or ALL* units.
+C
+           GENERIC = .TRUE.
+           CO_ROUTINE_PX = UPDATEKLYS_PX
+           CO_ROUT_ARG = FUNC
+           TRIES = 1
+           IF (FUNC .EQ. KLYS_UPDATE_PIOP) THEN
+              TWO_PART = .TRUE.
+              SLEEP_INTERVAL = PIOP_UPDATE_SLEEP
+           ELSE
+              TWO_PART = .FALSE.
+              SLEEP_INTERVAL = 0
+           ENDIF
+           RESP_DATA_LEN = 0
+           UPDATE_DB_LISTS = .FALSE.
+           UPDATE_VAX_DB = .TRUE.
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF ((FUNC .EQ. KLYS_CHCK_SYSV) .OR.
+     >          (FUNC .EQ. KLYS_FTP)) THEN
+C
+C  Ordinary FTP or System Volt FTP (with or without a database
+C  check).
+C
+           GENERIC = .TRUE.
+           IF (FUNC .EQ. KLYS_FTP) THEN
+              CO_ROUTINE_PX = KLYSFTP_PX
+              UPDATE_DB_LISTS = .FALSE.
+              UPDATE_VAX_DB = .FALSE.
+           ELSEIF (FUNC .EQ. KLYS_CHCK_SYSV) THEN
+              CO_ROUTINE_PX = KLYSYSVOLTFTP_PX
+              UPDATE_DB_LISTS = .TRUE.
+              UPDATE_VAX_DB = .TRUE.
+           ENDIF
+
+           CO_ROUT_ARG = FUNC
+           TRIES = FTP_TRIES
+           TWO_PART = .TRUE.
+           SLEEP_INTERVAL = FTP_TIME
+           RESP_DATA_LEN = 67
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_SEND_IMG) THEN
+C
+C  Accept a new IPL program.
+C
+           IF (IMAGE_SEG .EQ. 0) THEN
+              IMAGE_SEG2 = RQCREATESEGMENT(
+     >                     %VAL(IMG_BLOCK_WC*2*IMG_MAX_BLOCKS),
+     >                     IRMX_EXCEP)
+              IF (IRMX_EXCEP .NE. 0) THEN
+                 CALL ERRCHK('No memory for PIOP image', IRMX_EXCEP)
+                 IMAGE_SEG2 = 0
+              ENDIF
+           ENDIF
+C
+C  Fail as needed.
+C
+           IF (IMAGE_SEG2 .EQ. 0) THEN
+              I4_MMSGDATA(1) = KLYS_ERR
+           ELSE
+              CALL KLYS_RECV_IMG(%VAL(IMAGE_SEG), %VAL(0))
+              I4_MMSGDATA(1) = STATUS_SUMMARY
+           ENDIF
+           ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+C
+C  Schedule a IPL of all (any) existing units.
+C
+           IF (GOOD_IMAGE .AND. GOOD_PPSTRING) THEN
+              CALL SEQALL(%VAL(NEARADS_AP(KLYS_IPL_PIOP_PX)),
+     >                    %VAL(IMAGE_SEG), %VAL(0), 1, .FALSE., DUMMY)
+              CALL SEQALL(%VAL(NEARADS_AP(UPDATEKLYS_PX)),
+     >                    KLYS_UPDATE_PIOP, 1, .TRUE.,
+     >                    PIOP_UPDATE_SLEEP)
+              FRST_PIOP_IPL = .FALSE.
+              ISS = MICRO_DBSEND(0)
+           ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_SEND_PPBITMAPS) THEN
+C
+C  Accept new "one-beam" PP bitmap, and transmit to specified PIOP's.
+C  Be sure PLOC and HSTA are correct for KLYS_ONLINE and PIOP_BLOCK.
+C  
+           I4_MMSGDATA(1) = KLYS_OKOK
+           IPPX = 5
+           DO 134 IUX = 1, NUM_UNITS
+              IF (I4_MSGDATA(1).EQ.ALL .OR.
+     >            (I4_MSGDATA(1).EQ.KSD_PRIM_NAME(IUX) .AND.
+     >             (I4_MSGDATA(2).EQ.ALL .OR.
+     >              I4_MSGDATA(2).EQ.KSD_UNITS(IUX)))) THEN
+                 PLOC = KSD_PLOC(IUX)
+                 HSTA = KSD_HSTA(IUX)
+                 ISS = SEND_PPBITMAP(%VAL(PIOP_CBLK_TKBITMAP),
+     >                               I2_MSGDATA(IPPX), %VAL(IUX))
+                 IF (.NOT.ILL) I4_MMSGDATA(1) = ISS
+                 IPPX = IPPX + 15
+              ENDIF
+  134         CONTINUE
+           IF ((I4_MMSGDATA(1).AND.1).NE.0) GOOD_PPSTRING = .TRUE.
+           ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+C
+C  If first time after micro bootup, then schedule an IPL of all (any)
+C  existing units.
+C
+           IF (GOOD_IMAGE .AND. GOOD_PPSTRING .AND. FRST_PIOP_IPL) THEN
+              CALL SEQALL(%VAL(NEARADS_AP(KLYS_IPL_PIOP_PX)),
+     >                    %VAL(IMAGE_SEG), %VAL(0), 1, .FALSE., DUMMY)
+              CALL SEQALL(%VAL(NEARADS_AP(UPDATEKLYS_PX)),
+     >                    KLYS_UPDATE_PIOP, 1, .TRUE.,
+     >                    PIOP_UPDATE_SLEEP)
+              FRST_PIOP_IPL = .FALSE.
+              ISS = MICRO_DBSEND(0)
+           ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_IPL_START) THEN
+C
+C  IPL a PIOP.
+C
+           CALL SEQ2(%VAL(NEARADS_AP(SETSTATBIT_PX)), STAT_IPL, 1,
+     >               .FALSE., DUMMY, 0)
+           IF (GOOD_IMAGE .AND. GOOD_PPSTRING) THEN
+              CALL SEQALL(%VAL(NEARADS_AP(KLYS_IPL_PIOP_PX)),
+     >                    %VAL(IMAGE_SEG), %VAL(0), 1, .FALSE., DUMMY)
+              CALL SEQALL(%VAL(NEARADS_AP(UPDATEKLYS_PX)),
+     >                    KLYS_UPDATE_PIOP, 1, .TRUE.,
+     >                    PIOP_UPDATE_SLEEP)
+              ISS = MICRO_DBSEND(0)
+           ELSE
+              ISS = ERR_SEND0(KLYS_IPLNOIMG)
+              STATUS_SUMMARY = KLYS_IPLNOIMG
+           ENDIF
+           I4_MMSGDATA(1) = STATUS_SUMMARY
+           ISS = MMSG_SEND(FUNC, RESP, SEQ_MMSG_LEN, MMSG_BUF,
+     >                     MSG_MAIL)
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_PTRB_PHASE) THEN
+C
+C  Perturb phase request.
+C
+           GENERIC = .TRUE.
+           CO_ROUTINE_PX = PERTURB_PHASE_PX
+           CO_ROUT_ARG = FUNC
+           TRIES = 1
+           TWO_PART = .FALSE.
+           SLEEP_INTERVAL = 0
+           RESP_DATA_LEN = 0
+           UPDATE_DB_LISTS = .FALSE.
+           UPDATE_VAX_DB = .TRUE.
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_TRIM_PHASE) THEN
+C
+C  Trim phase.  First, clean up old delta phases.
+C
+C  Initially indicate that no value has changed significantly
+C  (the flag VALUE_CHANGED will be set to a value of "true"
+C  in KLYSTATUS [called from TRIM_PHASE] if a value has
+C  changed significantly).  Then check whether this is a
+C  VAX request and, if so, indicate that the VAX database
+C  is to be updated.
+C
+           VALUE_CHANGED = .FALSE.
+           VAX_CMD = .FALSE.
+           IF (FCN_NAME .EQ. STR_VAX) THEN
+              VAX_CMD = .TRUE.
+              FCN_NAME = STR_TRMP
+              DB_UPDATE_REQUIRED = .TRUE.
+           END IF
+
+           ISS = NET_GET_TIME(BGN_FCN_TSTAMP)
+
+           CALL FILLDW(0.00, NUM_UNITS, KSD_MSTR_DELTAPHASE)
+           CALL SEQ2(%VAL(NEARADS_AP(TRIM_PHASE_PX)), FUNC, TRIM_TRIES,
+     >               .TRUE., TRIMTIME, 0)
+C
+C  Update the micro database with the new values.
+C
+           NEW_D_LIST(2) = ADB_LIST_LEN - 2
+           ISS = DBLPUT(NEW_D_LIST, D_LLIST)
+C
+C  Gather statistics about the function just processed.
+C
+           ISS = SET_FCN_STATS(FCN_NAME, BGN_FCN_TSTAMP)
+C
+C  Update the VAX database if this is a VAX request, a long
+C  time has passed since the last VAX database update, or
+C  a value updated in the micro database has changed
+C  significantly.  Also copy the new database values into
+C  the old values.
+C
+           IF (DB_UPDATE_REQUIRED .OR. VALUE_CHANGED) THEN
+              ISS = METER_DBSEND(FCN_NAME, NO_FORCED_UPDATE)
+              CALL COPYW(ADB_LIST_LEN, NEW_D_LIST, OLD_D_LIST)
+           ENDIF
+C
+C  Send a reply if this is a VAX command was processed.
+C
+           IF (VAX_CMD) THEN
+              I4_MMSGDATA(1) = STATUS_SUMMARY
+              ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+           ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_ASYNC_TRMP) THEN
+C
+C  Asynchronous trim phase.
+C
+C  Initially indicate that no value has changed significantly
+C  (the flag VALUE_CHANGED will be set to a value of "true"
+C  in KLYSTATUS [called from TRIM_PHASE] if a value has
+C  changed significantly).
+C
+           VALUE_CHANGED = .FALSE.
+           VAX_CMD = .FALSE.
+                                       
+           ISS = NET_GET_TIME(BGN_FCN_TSTAMP)
+           CALL FILLDW(0.00, NUM_UNITS, KSD_MSTR_DELTAPHASE)
+           CALL SEQALL(%VAL(NEARADS_AP(TRIM_PHASE_PX)), FUNC,
+     >                 TRIM_TRIES, .TRUE., TRIMTIME)
+C
+C  Update the micro database with the new values.
+C
+           NEW_D_LIST(2) = ADB_LIST_LEN - 2
+           ISS = DBLPUT(NEW_D_LIST, D_LLIST)
+C
+C  Gather statistics about the function just processed.
+C
+           ISS = SET_FCN_STATS(FCN_NAME, BGN_FCN_TSTAMP)
+C
+C  Update the VAX database if this is a VAX request, a long
+C  time has passed since the last VAX database update, or
+C  a value updated in the micro database has changed
+C  significantly.  Also copy the new database values into
+C  the old values.
+C
+           IF (DB_UPDATE_REQUIRED .OR. VALUE_CHANGED) THEN
+              ISS = METER_DBSEND(FCN_NAME, NO_FORCED_UPDATE)
+              CALL COPYW(ADB_LIST_LEN, NEW_D_LIST, OLD_D_LIST)
+           ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_FOXHOME) THEN
+C
+C  Home Fox Phase Shifter.
+C
+           GENERIC = .TRUE.
+           CO_ROUTINE_PX = FOX_HOME_PX
+           CO_ROUT_ARG = FUNC
+           TRIES = FOX_TRIES
+           TWO_PART = .TRUE.
+           SLEEP_INTERVAL = FOXTIME
+           RESP_DATA_LEN = 0
+           UPDATE_DB_LISTS = .TRUE.
+           UPDATE_VAX_DB = .TRUE.
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_TRIM_SLED) THEN
+C
+C  Tune or detune SLED cavities.  Additionally, force a SBI update,
+C  to inform the SBI that the PSK state has been changed, if this
+C  has a solid-state subbooster.
+C
+           CALL SEQ2(%VAL(NEARADS_AP(SLED_TRIM_PX)), FUNC, SLED_TRIES,
+     >               .TRUE., SLEDTIME, 0)
+           GENERIC = .TRUE.
+           CO_ROUTINE_PX = SBI_PX
+           CO_ROUT_ARG = FUNC
+           TRIES = 1
+           TWO_PART = .FALSE.
+           SLEEP_INTERVAL = 0
+           RESP_DATA_LEN = 0
+           UPDATE_DB_LISTS = .TRUE.
+           UPDATE_VAX_DB = .TRUE.
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF ((FUNC .EQ. KLYS_CRATE_RESET) .OR.
+     >          (FUNC .EQ. KLYS_CRATE_RESET_Z)) THEN
+C
+C  Receive a message from the CRATE WATCH.
+C
+           CALL SEQALL(%VAL(NEARADS_AP(KLYS_RESET_PX)), FUNC, 1,
+     >                 .FALSE., DUMMY)
+           IF (GOOD_IMAGE .AND. GOOD_PPSTRING) THEN
+              CALL SEQALL(%VAL(NEARADS_AP(KLYS_IPL_PIOP_PX)),
+     >                    %VAL(IMAGE_SEG), %VAL(0), 1, .FALSE., DUMMY)
+           ENDIF
+
+           CALL SEQALL(%VAL(NEARADS_AP(UPDATEKLYS_PX)),
+     >                 KLYS_UPDATE_PIOP, 1, .TRUE., PIOP_UPDATE_SLEEP)
+
+           ISS = MICRO_DBSEND(0)
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_CLR_CNTRS) THEN
+C
+C  Clear significant change counters.
+C
+           CALL FILLW(0, N_VALUES, VALUE_COUNT)
+           CALL FILLW(0, MAX_UNITS, UNIT_COUNT)
+           I4_MMSGDATA(1) = STATUS_SUMMARY
+           ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSEIF (FUNC .EQ. KLYS_RET_CNTRS) THEN
+C
+C  Return significant change counters to the VAX after copying
+C  them to the output message buffer.
+C
+           I4_MMSGDATA(1) = STATUS_SUMMARY
+           CALL COPYW(N_VALUES, VALUE_COUNT,
+     >        MMSG_BUF(NETHEADERLEN + 3) )
+           CALL COPYW(MAX_UNITS, UNIT_COUNT,
+     >        MMSG_BUF(NETHEADERLEN + 3 + N_VALUES) )
+           COUNTER_MMSG_LEN = 2 + N_VALUES + MAX_UNITS
+           ISS = MMSG_SEND(FUNC, RESP, COUNTER_MMSG_LEN,
+     >                     MMSG_BUF, MSG_MAIL)
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        ELSE
+C
+C  Unrecognized function code:
+C
+           IF (FCN_NAME .EQ. STR_VAX) THEN
+              I4A = FUNC
+              ISS = ERR_SEND1(KLYS_UNDEFINED_FUNC, I4A)
+              I4_MMSGDATA(1) = KLYS_ERR
+              ISS = MMSG_SEND(FUNC, RESP, 2, MMSG_BUF, MSG_MAIL)
+           ENDIF
+
+        ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+        IF (GENERIC) THEN
+C
+C  This section processes generic functions (functions that
+C  are processed similarily to other functions).
+C
+           CALL SEQ2(%VAL(NEARADS_AP(CO_ROUTINE_PX)), CO_ROUT_ARG,
+     >               TRIES, TWO_PART, SLEEP_INTERVAL, RESP_DATA_LEN)
+
+           IF (UPDATE_DB_LISTS) THEN
+C
+C  Update the micro database with the new values.
+C
+              NEW_D_LIST(2) = ADB_LIST_LEN - 2
+              ISS = DBLPUT(NEW_D_LIST, D_LLIST)
+           ENDIF
+
+           IF (UPDATE_VAX_DB) THEN
+C
+C  Update the VAX database.
+C
+              ISS = MICRO_DBSEND(0)
+           ENDIF
+
+           IF (UPDATE_DB_LISTS) THEN
+              CALL COPYW(ADB_LIST_LEN, NEW_D_LIST, OLD_D_LIST)
+           ENDIF
+C
+C  Send a return message back to the VAX.
+C
+           I4_MMSGDATA(1) = STATUS_SUMMARY
+           ISS = MMSG_SEND(FUNC, RESP, SEQ_MMSG_LEN, MMSG_BUF,
+     >                     MSG_MAIL)
+        ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+C  Check whether any PIOPs need to be IPL'd.  The AUTO_IPL_NEEDED flag
+C  is set in KLYSTATUS.
+C
+        IF (AUTO_IPL_NEEDED .AND. GOOD_IMAGE .AND. GOOD_PPSTRING) THEN
+           CALL SEQALL(%VAL(NEARADS_AP(KLYS_IPL_PIOP_PX)),
+     >                 %VAL(IMAGE_SEG), %VAL(0), 1, .FALSE., DUMMY)
+           CALL SEQALL(%VAL(NEARADS_AP(UPDATEKLYS_PX)),
+     >                 KLYS_UPDATE_PIOP, 1, .TRUE., PIOP_UPDATE_SLEEP)
+        ENDIF
+C
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C                       <<<<<<<<<<<<<<<>>>>>>>>>>>>>>>
+C
+C  Corrupt FUNC and I4_MMSGDATA(1).
+C
+ 9000   FUNC = FUNC .OR. #400H
+        I4_MMSGDATA(1) = I4_MMSGDATA(1) .OR. #40000000H
+C                                
+C  Bottom of forever loop - go back to top.
+C
+        GOTO 10
+C
+        END
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               

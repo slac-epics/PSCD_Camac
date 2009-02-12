@@ -1,0 +1,12 @@
+# provide definitions such as
+# Include external dbds if required
+#device(ai,		VME_IO,devAiPSCD,"PSCD")
+#device(ao,		VME_IO,devAoPSCD,"PSCD")
+#device(bo,		VME_IO,devBoPSCD,"PSCD")
+#device(longin,		VME_IO,devLiPSCD,"PSCD")
+#device(longout,		VME_IO,devLoPSCD,"PSCD")
+#device(mbbiDirect,	VME_IO,devMiDPSCD,"PSCD")
+#device(waveform,	VME_IO,devWfPSCD,"PSCD")
+
+#registrar(myRegistrar)
+#variable(myVariable)

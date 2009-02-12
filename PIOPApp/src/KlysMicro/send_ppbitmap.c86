@@ -1,0 +1,196 @@
+/*     **MEMBER**=SLCRMX:KLYSLIB
+       **CMS**=RMX_KLYS
+ 
+================================================================================
+ 
+  Abs:  Maintain PP bitmaps for selective data collection by PIOP's.
+ 
+  Name: SENDPPBITM (module)
+        SEND_PPBITMAP            Save & transmit to given PIOP the given PP
+                                 bitmap if different from last time.
+        REFRESH_PPBITMAP         Send "hsta_1beam" PP bitmap after IPL'ing PIOP.
+ 
+  Rem:
+ 
+  Proto: slcrmxi:klys_intrajob_proto.hm.
+ 
+  Side: Load PP bitmaps into PIOP's.
+ 
+  Auth: 22-Apr-1993, Tony Gromme (TEG)
+  Revw:
+ 
+--------------------------------------------------------------------------------
+ 
+  Mod:  16-Dec-2002, Tony Gromme (TEG):
+            Change format of PIOP PP bitmap to allow specifying up to 3 base
+            beamcodes.
+ 
+==============================================================================*/
+ 
+ 
+#include <rmxc.h>                       /* iRMX types; rqsleep.               */
+#include <string.h>                     /* memset, memcmp, memcpy.            */
+#include "slctxt:slc_macros.hc"         /* vmsstat_t.                         */
+#include "slctxt:slcparm.hc"            /* N_BEAMS.                           */
+#include "slctxt:piopfunc.hc"           /* PIOP_CBLK_FTBITMAP,                */
+                                        /*  PIOP_CBLK_TKBITMAP.               */
+#include "slctxt:piopmksu_reqmsg_struc.hc" /* piop_base_ppbitmap_ts,          */
+                                           /*  PPBITMAP_BASEPPS_MAXN.         */
+#include "slctxt:klystatus.hc"          /* STAT_IPL.                          */
+#include "slcrmxi:klys_shrdat_struc.hm" /* MAX_UNITS, klysunits_ts,           */
+                                        /*  klysdata_ts, klys_pp_map_ts,      */
+                                        /*  piop_reqmsg_ppbitmap_ts,          */
+                                        /*  piop_cblk_ppbitmap_ts,            */
+                                        /*  PPMAPENT_FLG_HAVECOPY,            */
+                                        /*  PPMAPENT_FLG_SENTOK.              */
+#include "slcrmxi:klys_intrajob_proto.hm"  /* (Self), PIOP_BLOCK, KLYS_ONLINE.*/
+#include "slcrmxi:err_proto.hm"         /* err_send0.                         */
+#include "slctxt:klysdef.hc"            /* KLYS_OKOK,...                      */
+ 
+ extern klysdata_ts KLYSDATA;
+ 
+ extern klysunits_ts KLYSUNITS;
+ 
+ extern klys_pp_map_ts KLYS_PP_MAP;
+ 
+ 
+ static klys_pp_map_ts *klys_pp_map_debug_p;
+ 
+ static const vmsstat_t klys_pplistnon_erc = KLYS_PPLISTNON;
+ 
+ 
+ 
+ 
+ /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<::>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+ 
+ 
+ 
+ 
+     /*********************************************************************/
+     /*                                                                   */
+     /* Abs:  Specify beam pulses on which given PIOP is to collect data. */
+     /* Name: SEND_PPBITMAP.                                              */
+     /* Scop: Public;  called only from KLYSDRIVER and KLYSFTP.           */
+     /* Rem:  We store given piop_cblk_ppbitmap_ts into public structure  */
+     /*       KLYS_PP_MAP, and transmit to given PIOP unless identical to */
+     /*       bitmap most recently transmitted to given destination in    */
+     /*       given PIOP.  Arg cblkfunc must be either PIOP_CBLK_FTBITMAP */
+     /*       (for conditioning subsequent FTP's) or PIOP_CBLK_TKBITMAP   */
+     /*       (for conditioning non-FTP data collection (hsta_1beam)).    */
+     /* Args: cblkfunc           PIOP CBLK func code telling PIOP where   */
+     /*                          bitmap is to be copied to.               */
+     /*       strng_p            Pointer to bytestring containing at most */
+     /*                          three base PP values, followed by bitmap */
+     /*                          of substitute PP's.                      */
+     /*       unitx              Biased subscript of PIOP unit in arrays  */
+     /*                          in structure KLYSUNITS.                  */
+     /* Ret:  KLYS_OKOK (we always consider camac operation to PIOP to    */
+     /*       have been successful).                                      */
+     /*                                                                   */
+     /*********************************************************************/
+ 
+ /**procedure**/
+ vmsstat_t SEND_PPBITMAP(unsigned short cblkfunc, const piop_base_ppbitmap_ts *strng_p,
+                         unsigned short unitx)
+ {   piop_cblk_ppbitmap_ts  piop_cblk_s;
+     piop_pp_map_ent_ts    *mapent_mem_p;
+     unsigned short         rqexc;
+     vmsstat_t              iss, issx;
+ 
+               /*----------------------------------------------*/
+ 
+     iss = KLYS_OKOK;
+     memcpy(&piop_cblk_s.strng, strng_p, sizeof(piop_cblk_s.strng));
+     piop_cblk_s.func = cblkfunc;
+ 
+     /* For one of two possible destinations (usages) in PIOP (FTP, non-FTP), */
+     /* if we have no copy yet in KLYS_PP_MAP or if the new bitmap differs    */
+     /* from the old one, then we copy the bitmap into KLYS_PP_MAP and        */
+     /* indicate that we now have a copy but that it has not yet been sent    */
+     /* successfully.  Then maybe we try (again) to send it.                  */
+ 
+     mapent_mem_p = &KLYS_PP_MAP.ents[unitx-1][cblkfunc == PIOP_CBLK_FTBITMAP ? 0 : 1];
+ 
+     if (!(mapent_mem_p->done_flgs & PPMAPENT_FLG_HAVECOPY) ||
+         piop_cblk_s.strng.base_pp[0] != mapent_mem_p->cblk.strng.base_pp[0] ||
+         piop_cblk_s.strng.base_pp[0] < N_BEAMS &&
+         (piop_cblk_s.strng.base_pp[1] != mapent_mem_p->cblk.strng.base_pp[1] ||
+          piop_cblk_s.strng.base_pp[2] != mapent_mem_p->cblk.strng.base_pp[2]) ||
+         memcmp(piop_cblk_s.strng.bitmapb, mapent_mem_p->cblk.strng.bitmapb,
+                sizeof(piop_cblk_s.strng.bitmapb)))
+     {
+         memcpy(&mapent_mem_p->cblk, &piop_cblk_s, sizeof(KLYS_PP_MAP.ents[0][0].cblk));
+         mapent_mem_p->done_flgs = PPMAPENT_FLG_HAVECOPY;
+     }
+ 
+     /* Note:  STAT_IPL bit means PIOP needs to be re-IPL'ed. */
+ 
+     if (cblkfunc == PIOP_CBLK_FTBITMAP ? !(mapent_mem_p->done_flgs & PPMAPENT_FLG_SENTOK) :
+         !(KLYSUNITS.ksd_stat[unitx-1] & STAT_IPL) && KLYS_ONLINE() & 1)
+     {
+         /* Note that ppbitmap CBLK message to PIOP has no room for checksum. */
+         /* Note that in CBLK case PIOP_BLOCK sleeps before calling camgo,    */
+         /* not after.                                                        */
+ 
+         if (SUCCESS(issx = PIOP_BLOCK(&KLYSDATA.cblk, NULL, (unsigned short *) &piop_cblk_s)))
+         {
+             mapent_mem_p->done_flgs |= PPMAPENT_FLG_SENTOK;
+             rqsleep(5, &rqexc);
+         }
+     }
+     return iss;
+ }                                                      /* End SEND_PPBITMAP. */
+ 
+ 
+ 
+ 
+          /**********************************************************/
+          /*                                                        */
+          /* Abs:  Send non-FTP beamcode bitmap after IPL'ing PIOP. */
+          /* Name: REFRESH_PPBITMAP.                                */
+          /* Scop: Public;  called only from KLYS_IPL_PIOP.         */
+          /* Note: We assume the needed bitmap has been stored in   */
+          /*       structure KLYS_PP_MAP.                           */
+          /* Arg:  unitx               Biased subscript of PIOP     */
+          /*                           unit in arrays in structure  */
+          /*                           KLYSUNITS.                   */
+          /* Ret:  KLYS_OKOK if successful;  else KLYS_PPLISTNON if */
+          /*       we have no CTL block image to send, or possible  */
+          /*       bad return from PIOP_BLOCK.                      */
+          /*                                                        */
+          /**********************************************************/
+ 
+ /**procedure**/
+ vmsstat_t REFRESH_PPBITMAP(unsigned short unitx)
+ {   piop_pp_map_ent_ts *mapent_mem_p;
+     unsigned short      rqexc;
+     vmsstat_t           iss, issx;
+ 
+               /*----------------------------------------------*/
+ 
+     iss = KLYS_OKOK;
+     mapent_mem_p = &KLYS_PP_MAP.ents[unitx-1][1];
+     if (mapent_mem_p->done_flgs & PPMAPENT_FLG_HAVECOPY)
+     {
+         /* Note that ppbitmap CBLK message to PIOP has no room for checksum. */
+         /* Note that in CBLK case PIOP_BLOCK sleeps before calling camgo,    */
+         /* not after.                                                        */
+ 
+         if (SUCCESS(issx = PIOP_BLOCK(&KLYSDATA.cblk, NULL,
+                                       (unsigned short *) &mapent_mem_p->cblk)))
+         {
+             mapent_mem_p->done_flgs |= PPMAPENT_FLG_SENTOK;
+             rqsleep(5, &rqexc);
+         }
+         else
+         {
+             iss = issx;
+         }
+     }
+     else
+     {
+         iss = err_send0(&klys_pplistnon_erc);
+     }
+     return iss;
+ }                                                   /* End REFRESH_PPBITMAP. */
+                                                                                                                                                                           

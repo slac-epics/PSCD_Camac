@@ -1,0 +1,961 @@
+        INTEGER*4 FUNCTION KLYSTATUS (FUNC)
+C
+C       **MEMBER**=SLCRMX:KLYSLIB
+C       **CMS**=RMX_KLYS
+C       **ONLY**=80386
+C
+C=======================================================================
+C
+C Subroutine checks the status of the specified unit.
+C
+C Expects /KLYSDATA/ to contain valid information about the unit.
+C
+C If the STAT_BADCAMAC bit is set, an attempt will be made to read the
+C status_block.  Iff successfull, the bit will be cleared.
+C
+C If the FUNC is TERSE flavored, only the STAT, SWRD, DSTA, PRAW,
+C PPAD, PHAS, AMPL, AJTN, and PJTN secondaries will be updated
+C (if necessary)
+C
+C If the TERSE bit is not set, the status block will be completly
+C decoded and the database will be updated. NOTE::
+C
+C If the FUNC is of the value "KLYS_FOXHOME" (and not terse), then
+C the readback of the KPHR location is respected.
+C
+C  FUNC         is I2 raw /MSGMAIL/ function code
+C
+C-----------------------------------------------------------------------
+C
+C Modifications:
+C
+C       12-Sep-1991, D. Van Olst (VANOLST)
+C          Trigger an AUTO-IPL for an additional condition:
+C          that we have been unable to complete the CAMAC
+C          transaction that reads the PIOP SBLK in 'many' tries.
+C
+C       10-SEP-1991, T. Gromme
+C          Change call to KLYS_TRACE for USE32 COMPACT.
+C
+C       25-JAN-1991, D. Van Olst
+C          Under various conditions we want to force the secondaries
+C          AMPL, BCUR, and BVLT to zero, rather that letting them
+C          stay at whatever value they are at. These conditions
+C          are: Klystron not in (MAINT or ONLINE); crate status bad;
+C          bad PIOP<->PAD link; bad PIOP camac response to micro.
+C          This keeps history plots from possibly showing "normal"
+C          readings when something is (possibly) seriously wrong
+C          with the klystron. (This solves CATER 10572). 
+C
+C       31-OCT-1990, R. Hall
+C          Fixed the problem of the current channel number not
+C          being set in array WRITE_STAT_DATA before the CAMGO
+C          call.  This is needed for the solid-state phase shifter
+C          capability.
+C
+C       05-JUL-1990, R. Hall
+C          Fixed the problem of ADC error bits being set and
+C          never cleared for klystrons due to momentary faulty
+C          data from the PIOP.  The solution entailed storing the
+C          micro DSTA bits (DSTA_PHASE_CHANGE, DSTA_ADC_READ_ERROR,
+C          and DSTA_ADC_OUT_TOL) for each unit and adding them
+C          to the PIOP DSTA bits.
+C
+C       26-JUN-1990, R. Hall
+C          Fixed the problem of the DSTA part of the I2NEW_D_LIST
+C          array not being initialized before being used.  This
+C          problem could cause ADC error bits to be set and never
+C          cleared for klystrons.
+C
+C       01-MAY-1990, R. Hall
+C          Changed to not perform foxhome actions if the klystron
+C          has a solid-state phase shifter.  Changed to read the
+C          SAM for a solid-state phase shifter.  Also made
+C          modifications to set an informational DSTA bit instead
+C          of indicating a phase mean error if a klystron is
+C          out of tolerance due to a KLYS KPHR or upstream phase
+C          source (e.g., SBST PDES) recent change before a trim.
+C
+C       03-AUG-1989, R. Hall
+C          Changed to increment significant value counters.
+C
+C       05-JUL-1989, M. Flores
+C          If STATUS block data is stale, then set the STAT_DMTO
+C          and STAT_IPL bits.
+C
+C       12-JAN-1989, R. Hall
+C          Replaced database gets and puts with references to
+C          the new value array, which was previously initialized,
+C          updated by this routine and PIOPDATA, and is later
+C          put to the database by routine DRIVER.  Also changed
+C          the position of the terse exit so that terse will also
+C          include secondaries PRAW, PPAD, PHAS, AMPL, AJTN, and PJTN.
+C
+C       16-DEC-1988, M. Flores
+C          Compute phase error state as part of a "terse" function.
+C
+C       xx-MAR-1987, RKJ
+C          Compute phase error state locally.
+C
+C       xx-DEC-1986, RKJ
+C          Add sensitivity to KPHR home status, use of PHASE_VALID.
+C
+C       xx-NOV-1985, KAT
+C          Get BVLT and BCUR from status block.
+C
+C       xx-NOV-1985, KAT
+C          Always update STAT and SWRD if not terse FUNC.
+C
+C=======================================================================
+
+         IMPLICIT NONE
+
+$ NOLIST  INCLUDE (SLCRMXI:KLYSDEF.INC)
+$ LIST
+$ NOLIST  INCLUDE (SLCRMXI:KDBDEF.INC)
+$ LIST
+$ NOLIST  INCLUDE (SLCRMXI:MSGFUNC.INC)
+$ LIST
+$ NOLIST  INCLUDE (SLCRMXI:KLYSFUNC.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:PIOPUNITS.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSUNITS.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSDBUFF.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSTATUS.INC) 
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSDATA.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSAUTOIPL.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYS_HDSC.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:CTLWBITS.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:KLYSDSTA.INC)
+$ LIST
+$         INCLUDE (SLCRMXI:CSTRDBS.INC)
+$ LIST
+
+        INTEGER*2 FUNC
+
+        INTEGER*4 CNAFBITS
+        PARAMETER (CNAFBITS = # 1FFFFFH)
+        INTEGER*2 ADCL_LIST_LEN
+        PARAMETER (ADCL_LIST_LEN = 2 + (MAXADC * 2) )
+        INTEGER*2 DL_ADCL(ADCL_LIST_LEN)
+        INTEGER*2 NCHAN_PER_SAM
+        PARAMETER (NCHAN_PER_SAM = 32)
+        INTEGER*4 CAMALO
+        INTEGER*4 CAMADD
+        INTEGER*4 CAMGO
+        INTEGER*4 CTLW
+        INTEGER*4 ADCL(MAXADC)
+        INTEGER*4 OLD_DSTA(2)
+        INTEGER*4 NEW_DSTA(2)
+        INTEGER*4 MICRO_DSTA_MASK
+        INTEGER*4 MICRO_DSTA_BITS(MAX_UNITS)
+        INTEGER*4 I4_PIOP_DSTA_BITS(2)
+
+        INTEGER*2 ICHNL(MAX_UNITS)
+        INTEGER*2 ISAM
+        INTEGER*2 ADC_PTR(MAX_UNITS)
+        INTEGER*2 WRITE_STAT_DATA(4)
+        INTEGER*2 READ_STAT_DATA(4)
+        INTEGER*2 I2_PIOP_DSTA_BITS(4)
+
+        INTEGER*2 BLOCK (32)
+
+        INTEGER*2 I_DLIST
+        INTEGER*2 I_DLIST_PRAW
+        INTEGER*2 I_DLIST_PPAD
+        INTEGER*2 I_DLIST_PHAS
+        INTEGER*2 MASK
+        INTEGER*2 OLD_AFTER_MASK
+        INTEGER*2 NEW_AFTER_MASK
+
+        LOGICAL*1 SAM_VALID
+        LOGICAL*1 ADC_READ_ERROR
+        LOGICAL*1 ADC_OUT_OF_TOL
+        LOGICAL*1 KPHR_WAS_CHANGED
+        LOGICAL*1 MSTR_PHASE_WAS_CHANGED
+        LOGICAL*1 PHASE_CHANGE
+
+        LOGICAL*2 KLYS_ONLINE, CAMAC_OK, PHASE_VALID, L_1
+        LOGICAL*2 FIRST
+        LOGICAL*2 CAMAC_ERROR(MAX_UNITS)
+        LOGICAL*2 DSTA_INIT(MAX_UNITS)
+
+C       Indicate that AMPL, BVLT, and BCUR need to be zeroed.
+
+        LOGICAL*2 ZEROING_REQUIRED
+
+        INTEGER*4 ISS, CAMAC_ISS
+        LOGICAL   ILL
+        EQUIVALENCE (ISS,ILL)
+C
+        INTEGER*4 GOLDMSTR, PIOP_BLOCK, KLYS_POLY,
+     >            KLYS_UPDATE_CK, KLYSRECENTCHNG,
+     >            DBGET, DBPUT
+
+        REAL*4 R4, KLYS_MOD
+        REAL*4 DIVR, CURR
+        REAL*4 ADC_VALUE
+        REAL*4 SAM_TOL
+
+        INTEGER*2 CLIST (6)
+
+        DATA CLIST (1) /6/
+        DATA FIRST /.TRUE./
+        DATA ADC_PTR /MAX_UNITS * 0/
+        DATA CAMAC_ERROR /MAX_UNITS * .FALSE./
+        DATA DSTA_INIT   /MAX_UNITS * .FALSE./
+        DATA MICRO_DSTA_BITS /MAX_UNITS * 0/
+        DATA SAM_TOL /0.2/
+        DATA KPHR_WAS_CHANGED /.FALSE./
+        DATA MSTR_PHASE_WAS_CHANGED /.FALSE./
+
+        EQUIVALENCE (CAMAC_OK, CAMAC_ISS)
+        EQUIVALENCE (ADCL(1), DL_ADCL(3))
+        EQUIVALENCE (ADC_VALUE, READ_STAT_DATA(3))
+        EQUIVALENCE (I4_PIOP_DSTA_BITS(1), I2_PIOP_DSTA_BITS(1))
+
+        EXTERNAL SAM_VALID
+C
+C
+C=======================================================================
+C
+C       Initialize.
+C
+        KLYSTATUS = KLYS_SEQ_OK
+        ILL = .TRUE.
+        ZEROING_REQUIRED = .FALSE.
+C
+C       Trap offline case(s).
+C
+        IF (.NOT. KLYS_ONLINE()) THEN
+           SWRD = 0
+C 
+C          Set BVLT, BCUR, AMPL to zero in the database.
+C
+           ZEROING_REQUIRED = .TRUE.
+
+           IF ((HSTA .AND. HSTA_DEAD) .NE. 0) THEN
+              STAT = STAT .OR. STAT_DEAD
+           ELSE
+              STAT = STAT .OR. STAT_BADCAMAC .OR. STAT_SICK
+           ENDIF
+           GOTO 1111
+        ENDIF
+C
+C       Read the STATUS block from the PIOP.
+C
+        CAMAC_ISS = PIOP_BLOCK (SBLK, READ, BLOCK)
+        SWRD = BLOCK (4)
+C
+C       Turn off STAT bits.  Leave on update required, ipl req,
+C       and bad fox home bits.
+C
+        STAT = STAT .AND. (STAT_UPDATE + STAT_IPL + STAT_BADFOX)
+C
+C       See if the CAMAC transfer was bad.
+C
+        IF (.NOT. CAMAC_OK) THEN
+C 
+C          Set BVLT, BCUR, AMPL to zero in the database.
+C
+           ZEROING_REQUIRED = .TRUE.
+
+           STAT = STAT .OR. (STAT_SICK + STAT_BADCAMAC)
+           SWRD = 0
+C
+C          If the PIOP crashed, then set the IPL and DMTO bits.  If the
+C          IPL bit is not currently set then signal for an auto-IPL
+C          attempt.  If the bit is set, then some previous IPL attempt
+C          has failed, so forget it.  AUTO_IPL_NEEDED is cleared
+C          in DRIVER.
+C
+C          (The first condition, KLYS_PIOP_DEAD, represents
+C          the situation where camac transactions with the
+C          PIOP complete, but the status block is not changing.
+C
+C          The second condition, KLYS_NOCAMAC_SBLK, represents
+C          the situation where we have not been able to complete
+C          the camac transaction that reads the SBLK in 'many'
+C          tries.  This is a software fix for what seems to be an
+C          unidentified PIOP hardware problem, where the
+C          PIOP is still working but unable to talk to
+C          the outside world via CAMAC.  IPLing always seems
+C          to fix it. See CATER 18403.)
+
+           IF ((CAMAC_ISS .EQ. KLYS_PIOP_DEAD) .OR.
+     >         (CAMAC_ISS .EQ. KLYS_NOCAMAC_SBLK)) THEN
+              AUTO_IPL_NEEDED = AUTO_IPL_NEEDED .OR.
+     >                          ((STAT .AND. STAT_IPL) .EQ. 0)
+              IF (AUTO_IPL_NEEDED) THEN
+                 CALL ERR_SEND2( KLYS_AUTOIPL, PRIM_NAME, UNIT_NAME)
+              END IF
+              STAT = STAT .OR. (STAT_IPL + STAT_DMTO)
+           ENDIF
+
+C
+C       Check for poor SWRD.  nb.  The sub-booster is considered healthy
+C       if there are no triggers.
+C
+        ELSEIF (PRIMARY .EQ. KDB_SBST .AND.
+     >          (SWRD .AND. (SWRD_SICK_MASK .AND. .NOT. SWRD_NOTRIG))
+     >          .NE. 0) THEN
+           STAT = STAT .OR. (STAT_SICK + STAT_SWRDBITS)
+
+        ELSEIF (PRIMARY .NE. KDB_SBST .AND.
+     >          (SWRD .AND. SWRD_SICK_MASK) .NE. 0) THEN
+           STAT = STAT .OR. (STAT_SICK + STAT_SWRDBITS)
+C
+C       Check for OKOK SWRD.  The no-trigger bit counts as a SWRD bit
+C       even for subboosters.
+C
+        ELSEIF ((SWRD .AND. (SWRD_GOOD_MASK .OR. SWRD_NOTRIG)) .NE. 0)
+     >     THEN
+           STAT = STAT .OR. (STAT_SWRDBITS)
+        ENDIF
+C
+C       Finally trap STAT_OK.
+C
+        IF ((HSTA .AND. HSTA_OK) .NE. 0) THEN
+           STAT = STAT .OR. STAT_OK
+        ENDIF
+C 
+C          If bad PIOP<->PAD link,
+C          set BVLT, BCUR, AMPL to zero in the database.
+C
+        IF ((SWRD .AND.  SWRD_BADCABLE) .NE. 0) THEN
+           ZEROING_REQUIRED = .TRUE.
+        ENDIF    
+
+C
+C       Return if CAMAC errors or DMTO.
+C
+        IF ((STAT .AND. (STAT_DMTO + STAT_BADCAMAC)) .NE. 0) THEN
+           GOTO 1111
+        ENDIF
+C
+C Get phase goodies.
+C
+C Phase now:
+C
+        PHASE_CHANGE = .FALSE.
+        I_DLIST_PRAW = ((DL_OFFSET(IS_PRAW) / 2) * NUM_UNITS)
+     >     + KSD_ENTRY
+        I_DLIST_PPAD = ((DL_OFFSET(IS_PPAD) / 2) * NUM_UNITS)
+     >     + KSD_ENTRY
+        I_DLIST_PHAS = ((DL_OFFSET(IS_PHAS) / 2) * NUM_UNITS)
+     >     + KSD_ENTRY
+        IF ((BLOCK (10) .AND. 1) .EQ. 0) THEN
+C
+C          Load all with a large number.
+C
+           R4NEW_D_LIST(I_DLIST_PRAW) = -1.0E+4
+           R4NEW_D_LIST(I_DLIST_PPAD) = -1.0E+4
+           R4NEW_D_LIST(I_DLIST_PHAS) = -1.0E+4
+           L_1 = PHASE_VALID (R4NEW_D_LIST(I_DLIST_PRAW),
+     >       BLOCK (10))
+           STAT = STAT .OR. (STAT_SICK + STAT_PHASE_MEAN)
+
+        ELSE
+
+           R4NEW_D_LIST(I_DLIST_PRAW) =
+     >        KLYS_MOD (PHASE_CONSTANT * BLOCK (10), 360.)
+           L_1 = PHASE_VALID (R4NEW_D_LIST(I_DLIST_PRAW), BLOCK (10))
+C
+C          PPAD = f(PRAW).
+C
+           ISS = KLYS_POLY (R4NEW_D_LIST(I_DLIST_PRAW),
+     >        R4NEW_D_LIST(I_DLIST_PPAD), 4HPAD )
+           L_1 = PHASE_VALID (R4NEW_D_LIST(I_DLIST_PPAD), BLOCK (10))
+C
+C          PHAS = PPAD - GOLDMSTR.
+C
+           IF (ILL) ISS = GOLDMSTR (R4)
+           R4NEW_D_LIST(I_DLIST_PHAS) =
+     >        KLYS_MOD (R4NEW_D_LIST(I_DLIST_PPAD) - R4, 360.)
+           L_1 = PHASE_VALID (R4NEW_D_LIST(I_DLIST_PHAS), BLOCK (10))
+C
+C          Get the PDES and PMET from the database to compute the stat.
+C
+           D_LIST (2) = 0
+           IF (ILL) ISS = DBGET (D_LIST, PRIMARY, SELF, UNIT, KDB_PDES)
+           IF (ILL) ISS = DBGET (D_LIST, PRIMARY, SELF, UNIT, KDB_PMET)
+        
+C
+C          For klystrons, determine whether the KLYS KPHR or upstream
+C          phase source has changed recently. (Question: is this
+C          relevent for subboosters?)
+C
+           IF ((HSTA .AND. HSTA_MKSU) .NE. 0) THEN
+              IF (ILL) ISS = KLYSRECENTCHNG(KDB_KPHR, 
+     >           KPHR_WAS_CHANGED)
+              IF (ILL) ISS = KLYSRECENTCHNG(KDB_MSTR,
+     >           MSTR_PHASE_WAS_CHANGED)
+           END IF
+C
+C          Look quick.  We want MOD(PHAS-PDES) < PMET.
+C                           
+           IF (ABS (KLYS_MOD (R4NEW_D_LIST(I_DLIST_PHAS) -
+     >        R4D_LIST (1), 360.)) .GE. R4D_LIST (2)) THEN
+C
+C             If the KLYS KPHR or upstream phase source has
+C             changed recently, set the informational
+C             DSTA_PHASE_CHANGE bit rather than indicating
+C             a phase mean error.  This will allow time for
+C             a trim to occur before signaling an error.
+C
+              IF ((HSTA .AND. HSTA_MKSU) .NE. 0) THEN
+
+                 IF (KPHR_WAS_CHANGED .OR.
+     >                 MSTR_PHASE_WAS_CHANGED) THEN
+                    PHASE_CHANGE = .TRUE.
+                 ELSE
+                    STAT = STAT .OR. (STAT_SICK + STAT_PHASE_MEAN)
+                 END IF
+
+              ELSE
+                 STAT = STAT .OR. (STAT_SICK + STAT_PHASE_MEAN)
+              END IF
+           ENDIF
+        ENDIF
+C
+        IF ((HSTA .AND. HSTA_MKSU) .NE. 0) THEN
+           I_DLIST = (DL_OFFSET(IS_DSTA) * NUM_UNITS) +
+     >        ((KSD_ENTRY - 1) * 4) + 1
+C
+C          If the DSTA part of the I2NEW_D_LIST array has not
+C          been initialized, fill it with PIOP data.
+C
+           IF (.NOT. DSTA_INIT(KSD_ENTRY)) THEN
+              DSTA_INIT(KSD_ENTRY) = .TRUE.
+              CALL COPYW(4, BLOCK(13), I2NEW_D_LIST(I_DLIST))
+           END IF
+C
+C          If the DSTA_PHASE_CHANGE bit is different than before,
+C          update the latest DSTA information.
+C
+           CALL COPYW(4, I2NEW_D_LIST(I_DLIST),
+     >        NEW_DSTA)
+           CALL COPYW(4, I2NEW_D_LIST(I_DLIST),
+     >        OLD_DSTA)
+           IF (PHASE_CHANGE) THEN
+              NEW_DSTA(1) = OLD_DSTA(1) .OR. DSTA_PHASE_CHANGE
+              MICRO_DSTA_BITS(KSD_ENTRY) =
+     >           MICRO_DSTA_BITS(KSD_ENTRY) .OR. DSTA_PHASE_CHANGE
+           ELSE
+              NEW_DSTA(1) = OLD_DSTA(1) .AND.
+     >           (.NOT. DSTA_PHASE_CHANGE)
+              MICRO_DSTA_BITS(KSD_ENTRY) =
+     >           MICRO_DSTA_BITS(KSD_ENTRY) .AND.
+     >           (.NOT. DSTA_PHASE_CHANGE)
+           END IF
+           IF (NEW_DSTA(1) .NE. OLD_DSTA(1)) THEN
+              IF (.NOT. VAX_CMD) THEN
+                 VALUE_CHANGED = .TRUE.
+                 SECN_CHANGED = IS_DSTA
+                 UNIT_CHANGED = KSD_ENTRY
+                 CALL KLYS_SIG_CHANGE( )
+                 CALL NET_GET_TIME(TIME_CHANGED)
+                 CALL COPYW(4, OLD_DSTA,
+     >              OLDVAL_CHANGED(1))
+                 CALL COPYW(4, NEW_DSTA, NEWVAL_CHANGED(1))
+              ENDIF
+              CALL COPYW (4, NEW_DSTA,
+     >           I2NEW_D_LIST(I_DLIST))
+           END IF
+
+C
+C          For the digital status bits (DSTA), update the new value
+C          array and indicate that the VAX database should be updated
+C          if it is different.
+C
+C          Compare the PIOP retrieved DSTA information with the
+C          micro DSTA bits masked out from the current DSTA in
+C          I2NEW_D_LIST(I_DLIST).
+C          If the comparison did not result in a match, copy the
+C          PIOP retrieved DSTA bits into the current DSTA and "or"
+C          back in the DSTA bits set by the micro.
+C
+
+C
+C          KLUDGE NOTE: The upper byte of the 3rd word will not be
+C          used to determine whether a significant change has occurred.
+C          This is because of a hardware problem causing two bits
+C          in this word (bits 1100, in hex) to slowly oscillate.
+C          These bits cause the PIOP data display to show (or not
+C          show) the messages "Mod Interlocks Complete" and
+C          "Mod HV ON".
+C
+           CALL COPYW(4, I2NEW_D_LIST(I_DLIST), I4_PIOP_DSTA_BITS)
+           MICRO_DSTA_MASK = (DSTA_PHASE_CHANGE +
+     >        DSTA_ADC_READ_ERROR + DSTA_ADC_OUT_TOL)
+           I4_PIOP_DSTA_BITS(1) = I4_PIOP_DSTA_BITS(1) .AND.
+     >        (.NOT. MICRO_DSTA_MASK)
+           IF (ILL .AND.
+     >         (BLOCK (13) .NE. I2_PIOP_DSTA_BITS(1) .OR.
+     >          BLOCK (14) .NE. I2_PIOP_DSTA_BITS(2) .OR.
+     >          (BLOCK (15) .AND. #00FFH) .NE.
+     >             (I2_PIOP_DSTA_BITS(3) .AND. #00FFH) .OR.
+     >          BLOCK (16) .NE. I2_PIOP_DSTA_BITS(4))) THEN
+              CALL COPYW(4, BLOCK(13), NEW_DSTA)
+              NEW_DSTA(1) = NEW_DSTA(1) .OR.
+     >          MICRO_DSTA_BITS(KSD_ENTRY)
+              IF (.NOT. VAX_CMD) THEN
+                 VALUE_CHANGED = .TRUE.
+                 SECN_CHANGED = IS_DSTA
+                 UNIT_CHANGED = KSD_ENTRY
+                 CALL KLYS_SIG_CHANGE( )
+                 CALL NET_GET_TIME(TIME_CHANGED)
+                 CALL COPYW(4, I2NEW_D_LIST(I_DLIST),
+     >              OLDVAL_CHANGED(1))
+                 CALL COPYW(4, NEW_DSTA, NEWVAL_CHANGED(1))
+              ENDIF
+              CALL COPYW (4, NEW_DSTA, I2NEW_D_LIST(I_DLIST))
+           ENDIF
+        ELSE
+C
+C          If the DSTA part of the I2NEW_D_LIST array has not
+C          been initialized, fill it with zeros for devices
+C          not having a MKSU.
+C
+           IF (.NOT. DSTA_INIT(KSD_ENTRY)) THEN
+              DSTA_INIT(KSD_ENTRY) = .TRUE.
+              I_DLIST = (DL_OFFSET(IS_DSTA) * NUM_UNITS) +
+     >           ((KSD_ENTRY - 1) * 4) + 1
+              I2NEW_D_LIST(I_DLIST) = 0
+              I2NEW_D_LIST(I_DLIST + 1) = 0
+              I2NEW_D_LIST(I_DLIST + 2) = 0
+              I2NEW_D_LIST(I_DLIST + 3) = 0
+           END IF
+        ENDIF
+        IF (.NOT. ILL) CALL KLYS_TRACE (4HKst1, %VAL(0), %VAL(0))
+
+C
+C       Check whether secondary PHAS has changed significantly
+C       enough to cause the VAX database to be updated
+C
+        ISS = KLYS_UPDATE_CK(IS_PHAS)
+        IF (.NOT. ILL) CALL KLYS_TRACE (4HKst2, %VAL(0), %VAL(0))
+C
+C       Read the entire status block into the data-base.  This will
+C       be different for SBST and KLYS's.
+C
+C       Load amplitude goodies.
+C
+        I_DLIST = ((DL_OFFSET(IS_AMPL) / 2) * NUM_UNITS) + KSD_ENTRY
+        R4NEW_D_LIST(I_DLIST) = BLOCK (8) * AMP_CONSTANT
+C
+C       Check whether secondary AMPL has changed significantly
+C       enough to cause the VAX database to be updated
+C
+        IF (ILL) ISS = KLYS_UPDATE_CK(IS_AMPL)
+
+        R4 = BLOCK (9)
+        IF (R4 .LT. 0.) THEN                     
+           R4 = R4 + 65536.
+        ENDIF
+
+        I_DLIST = ((DL_OFFSET(IS_AJTN) / 2) * NUM_UNITS) + KSD_ENTRY
+        IF (R4 .LT. 65534.) THEN
+           R4NEW_D_LIST(I_DLIST) = SQRT (R4) * AMP_CONSTANT
+        ELSE
+           R4NEW_D_LIST(I_DLIST) = -999.
+        ENDIF
+C
+C       Check whether secondary AJTN has changed significantly
+C       enough to cause the VAX database to be updated
+C
+        IF (ILL) ISS = KLYS_UPDATE_CK(IS_AJTN)
+
+        IF (.NOT. ILL) CALL KLYS_TRACE (4HKst3, %VAL(0), %VAL(0))
+C
+C       Phase jitter:
+C
+        R4 = BLOCK (11)
+        IF (R4 .LT. 0.) THEN
+           R4 = R4 + 65536.
+        ENDIF
+
+        I_DLIST = ((DL_OFFSET(IS_PJTN) / 2) * NUM_UNITS) + KSD_ENTRY
+        IF (R4 .LT. 65534.) THEN
+C
+C          The following factor of 4. allows jitters in the range of
+C          13 < jitter < 0.05 degrees to be reported.
+C
+           R4NEW_D_LIST(I_DLIST) = 4. * PHASE_CONSTANT * SQRT (R4)
+        ELSE
+           R4NEW_D_LIST(I_DLIST) = -999.
+        ENDIF
+C
+C       Check whether secondary PJTN has changed significantly
+C       enough to cause the VAX database to be updated
+C
+        IF (ILL) ISS = KLYS_UPDATE_CK(IS_PJTN)
+
+C
+C       Return if terse.
+C
+        IF ((FUNC .AND. TERSE) .NE. 0) THEN
+           GOTO 1111
+        ENDIF
+
+C
+C       Software / hardware id's.
+C
+        I_DLIST = (DL_OFFSET(IS_SID) * NUM_UNITS) +
+     >     ( (KSD_ENTRY - 1) * 3) + 1
+        IF (ILL .AND.
+     >     ((BLOCK(1) .NE. I2NEW_D_LIST(I_DLIST)) .OR.
+     >     (BLOCK(2) .NE. I2NEW_D_LIST(I_DLIST + 1)) .OR.
+     >     (BLOCK(17) .NE. I2NEW_D_LIST(I_DLIST + 2)) ) ) THEN
+           IF (.NOT. VAX_CMD) THEN
+              VALUE_CHANGED = .TRUE.
+              SECN_CHANGED = IS_SID
+              UNIT_CHANGED = KSD_ENTRY
+              CALL KLYS_SIG_CHANGE( )
+              CALL NET_GET_TIME(TIME_CHANGED)
+              CALL COPYW(3, I2NEW_D_LIST(I_DLIST),
+     >           OLDVAL_CHANGED(1))
+              NEWVAL_CHANGED(1) = BLOCK(1)
+              NEWVAL_CHANGED(2) = BLOCK(2)
+              NEWVAL_CHANGED(3) = BLOCK(17)
+           END IF
+           I2NEW_D_LIST(I_DLIST) = BLOCK(1)
+           I2NEW_D_LIST(I_DLIST + 1) = BLOCK(2)
+           I2NEW_D_LIST(I_DLIST + 2) = BLOCK(17)
+        END IF
+
+        IF ( (KSD_HDSC(KSD_ENTRY) .AND.
+     >     HDSC_SS_PHASE_SHIFT) .NE. 0) THEN
+C
+C          A solid-state phase shifter is associated with this
+C          subbooster or klystron.  If we have not done so
+C          previously, first retrieve the CNAF (channel, module,
+C          address, and function) for each SAM.
+C
+           IF (FIRST) THEN
+              FIRST = .FALSE.
+              DL_ADCL(1) = ADCL_LIST_LEN
+              DL_ADCL(2) = 0
+              IF (ILL) ISS = DBGET (DL_ADCL, CSTR_CSTR, SELF,
+     >           1, CSTR_ADCL)                         
+           END IF
+
+           IF (ADC_PTR(KSD_ENTRY) .EQ. 0) THEN
+C
+C             A CAMAC package block has not yet been allocated
+C             for the current unit.  First, calculate the
+C             channel number and SAM (ADC) index for the current
+C             unit.
+C
+              ICHNL(KSD_ENTRY) = MOD(KSD_ADCP(KSD_ENTRY),
+     >           NCHAN_PER_SAM)
+              ISAM = (KSD_ADCP(KSD_ENTRY)  /
+     >           NCHAN_PER_SAM) + 1
+C
+C             Allocate/initialize a CAMAC package block for the
+C             curent unit.  Then select the channel we want to
+C             read from with a CAMAC write packet.  Finally,
+C             read from the channel with a CAMAC read packet.
+C             The read will give us the SAM value.
+C
+              CAMAC_ISS = CAMALO(0, 2, ADC_PTR(KSD_ENTRY))
+              CTLW = (ADCL(ISAM) .AND. CNAFBITS) + F16 + F1
+              WRITE_STAT_DATA(3) = ICHNL(KSD_ENTRY)
+              IF (CAMAC_OK) CAMAC_ISS = CAMADD(CTLW, WRITE_STAT_DATA,
+     >           2, #F0F0H, ADC_PTR(KSD_ENTRY))
+              CTLW = ADCL(ISAM) .OR. QM2             
+              IF (CAMAC_OK) CAMAC_ISS = CAMADD(CTLW, READ_STAT_DATA,
+     >           4, #F1F1H, ADC_PTR(KSD_ENTRY))
+              IF (.NOT. CAMAC_OK) THEN
+                 CAMAC_ERROR(KSD_ENTRY) = .TRUE.
+              END IF
+           END IF
+
+           IF (.NOT. CAMAC_ERROR(KSD_ENTRY)) THEN
+C                
+C             Send the CAMAC packets to get the SAM value for
+C             the current unit.  Check to make sure that the
+C             return status from CAMGO is OK and the read SAM
+C             value is valid.  If the read SAM (ADC) value is
+C             the same as the DAC value last written (to within
+C             the same SAM readback tolerance that is used in the
+C             PIOP data display), clear the DSTA ADC out of
+C             tolerance bit.  If the read SAM value is not
+C             within tolerance, set the DSTA ADC out of tolerance
+C             bit.
+C
+              ADC_READ_ERROR = .FALSE.
+              ADC_OUT_OF_TOL = .FALSE.
+              WRITE_STAT_DATA(3) = ICHNL(KSD_ENTRY)
+              CAMAC_ISS = CAMGO(ADC_PTR(KSD_ENTRY))
+              IF (CAMAC_OK .AND. SAM_VALID(ADC_VALUE)) THEN
+                 D_LIST(2) = 0
+                 ISS = DBGET(D_LIST, PRIMARY, SELF, UNIT,
+     >              KDB_DACV)
+                 IF (ILL) THEN
+                    IF (ABS(ADC_VALUE - R4D_LIST(1)) .GT. SAM_TOL) THEN
+                       ADC_OUT_OF_TOL = .TRUE.
+                    END IF
+                 END IF
+              ELSE
+                 ADC_READ_ERROR = .TRUE.
+              END IF
+C
+C             Find the index into the I2NEW_D_LIST array
+C             for the current unit's DSTA value.
+C
+              I_DLIST = (DL_OFFSET(IS_DSTA) * NUM_UNITS) +
+     >           ((KSD_ENTRY - 1) * 4) + 1
+              CALL COPYW(4, I2NEW_D_LIST(I_DLIST),
+     >           OLD_DSTA)
+              CALL COPYW(4, I2NEW_D_LIST(I_DLIST),
+     >           NEW_DSTA)
+C
+              IF (ADC_READ_ERROR) THEN
+C
+C                Set the DSTA_ADC_READ_ERROR bit to indicate
+C                that an error occurred.  Clear the
+C                DSTA_ADC_OUT_TOL bit too.
+C
+                 NEW_DSTA(1) = NEW_DSTA(1) .OR.
+     >              DSTA_ADC_READ_ERROR
+                 MICRO_DSTA_BITS(KSD_ENTRY) =
+     >              MICRO_DSTA_BITS(KSD_ENTRY) .OR. DSTA_ADC_READ_ERROR
+                 NEW_DSTA(1) = NEW_DSTA(1) .AND.
+     >              (.NOT. DSTA_ADC_OUT_TOL)
+                 MICRO_DSTA_BITS(KSD_ENTRY) =
+     >              MICRO_DSTA_BITS(KSD_ENTRY) .AND.
+     >              (.NOT. DSTA_ADC_OUT_TOL)
+              ELSE
+C
+C                Clear the DSTA_ADC_READ_ERROR bit to indicate
+C                that no error occurred.  Set or clear the
+C                DSTA_ADC_OUT_TOL bit depending on whether the
+C                read SAM (ADC) value is out of tolerance.  Then
+C                put the SAM readback value into the VACT secondary
+C                of the database.
+C
+                 NEW_DSTA(1) = NEW_DSTA(1) .AND.
+     >              (.NOT. DSTA_ADC_READ_ERROR)
+                 MICRO_DSTA_BITS(KSD_ENTRY) =
+     >              MICRO_DSTA_BITS(KSD_ENTRY) .AND.
+     >              (.NOT. DSTA_ADC_READ_ERROR)
+                 IF (ADC_OUT_OF_TOL) THEN
+                    NEW_DSTA(1) = NEW_DSTA(1) .OR.
+     >                 DSTA_ADC_OUT_TOL
+                    MICRO_DSTA_BITS(KSD_ENTRY) =
+     >                 MICRO_DSTA_BITS(KSD_ENTRY) .OR. DSTA_ADC_OUT_TOL
+                 ELSE
+                    NEW_DSTA(1) = NEW_DSTA(1) .AND.
+     >                 (.NOT. DSTA_ADC_OUT_TOL)
+                    MICRO_DSTA_BITS(KSD_ENTRY) =
+     >                 MICRO_DSTA_BITS(KSD_ENTRY) .AND.
+     >                 (.NOT. DSTA_ADC_OUT_TOL)
+                 END IF
+                 D_LIST(2) = 2
+                 R4D_LIST(1) = ADC_VALUE
+                 IF (ILL) ISS = DBPUT(D_LIST, PRIMARY, SELF, UNIT,
+     >              KDB_VACT)
+              END IF                           
+C
+C             If the new DSTA value (after the DSTA_ADC_READ_ERROR
+C             and/or DSTA_ADC_OUT_TOL bit was set or cleared) is
+C             different than the old value, update the new value array
+C             and indicate that the VAX database should be updated.
+C             Also save information about the asynchronous update for
+C             any desired performance analysis.
+C
+              IF (NEW_DSTA(1) .NE. OLD_DSTA(1)) THEN
+                 IF (.NOT. VAX_CMD) THEN
+                    VALUE_CHANGED = .TRUE.
+                    SECN_CHANGED = IS_DSTA
+                    UNIT_CHANGED = KSD_ENTRY
+                    CALL KLYS_SIG_CHANGE( )
+                    CALL NET_GET_TIME(TIME_CHANGED)
+                    CALL COPYW(4, OLD_DSTA,
+     >                 OLDVAL_CHANGED(1))
+                    CALL COPYW(4, NEW_DSTA, NEWVAL_CHANGED(1))
+                 ENDIF
+                 CALL COPYW (4, NEW_DSTA,
+     >              I2NEW_D_LIST(I_DLIST))
+              END IF
+           END IF
+        END IF
+
+C
+C       BVLT, and BCUR goodies.
+C
+        IF ((HSTA .AND. HSTA_MKSU) .EQ. 0) THEN
+
+           STAT = STAT .AND. (.NOT. STAT_BADFOX)
+
+        ELSE
+C
+C          Phase shifter request: -- note: MKSU only and
+C          no solid-state phase shifter.
+C          This is also modified by SS_PHASE_SHIFT.
+C          "2" bit is "bad fox home" state.
+C
+           IF ((FUNC .EQ. KLYS_FOXHOME) .AND.
+     >        ((KSD_HDSC(KSD_ENTRY) .AND.
+     >           HDSC_SS_PHASE_SHIFT) .EQ. 0) ) THEN
+
+              R4D_LIST (1) = PHASE_CONSTANT * BLOCK (12)
+              L_1 = PHASE_VALID (R4D_LIST (1), BLOCK (12))
+                                             
+              IF ((BLOCK (12) .AND. 2) .NE. 0) THEN
+                 STAT = STAT .OR. STAT_BADFOX
+C
+C (in principle, this value should be corrupted beyond reconigition)
+C**                 R4D_LIST(1) = -1.0E+4
+C**                 L_1 = PHASE_VALID(R4D_LIST(1), BLOCK(12))
+C
+              ELSE
+                 STAT = STAT .AND. (.NOT. STAT_BADFOX)
+              ENDIF
+              D_LIST (2) = 2
+              IF (ILL) ISS = DBPUT (D_LIST, PRIMARY, SELF, UNIT,
+     >                              KDB_KPHR)
+           ENDIF
+
+           D_LIST (2) = 0   
+           IF (ILL) ISS = DBGET (D_LIST, PRIMARY, SELF, UNIT,
+     >                            KDB_DIVR)
+           IF (ILL) ISS = DBGET (D_LIST, PRIMARY, SELF, UNIT,
+     >                            KDB_CURR)
+
+           DIVR = R4D_LIST (1)
+           CURR = R4D_LIST (2)
+
+           I_DLIST = ((DL_OFFSET(IS_BVLT) / 2) * NUM_UNITS) + KSD_ENTRY
+           R4NEW_D_LIST(I_DLIST) = BLOCK (6) * DIVR * 10. *
+     >        VOLT_CONSTANT
+C
+C          Check whether secondary BVLT has changed significantly
+C          enough to cause the VAX database to be updated
+C
+           IF (ILL) ISS = KLYS_UPDATE_CK(IS_BVLT)
+
+
+           I_DLIST = ((DL_OFFSET(IS_BCUR) / 2) * NUM_UNITS) + KSD_ENTRY
+           R4NEW_D_LIST(I_DLIST) = BLOCK (7) * CURR * VOLT_CONSTANT
+C
+C          Check whether secondary BCUR has changed significantly
+C          enough to cause the VAX database to be updated
+C
+           IF (ILL) ISS = KLYS_UPDATE_CK(IS_BCUR)
+
+           IF (.NOT. ILL) CALL KLYS_TRACE (4HKst4, %VAL(0), %VAL(0))
+        ENDIF
+
+1111    CONTINUE
+
+C       If any of the following conditions are true, force
+C       BCUR, BVLT, and AMPL to zero. Then check whether each of these
+C       has changed enough to cause the VAX database to be updated.
+C         - Klystron not (in MAINT or ONLINE)               
+C         - Crate status bad                                    
+C         - Bad PIOP camac response.                            
+C         - Bad PIOP <-> PAD link.                                
+
+        IF (ZEROING_REQUIRED) THEN                      
+
+C          Set BCUR, AMPL, and BVLT spaces in common block to zero.
+        
+           I_DLIST = ((DL_OFFSET(IS_BVLT) / 2) * NUM_UNITS) + KSD_ENTRY
+           R4NEW_D_LIST(I_DLIST) = 0.0
+
+           I_DLIST = ((DL_OFFSET(IS_BCUR) / 2) * NUM_UNITS) + KSD_ENTRY
+           R4NEW_D_LIST(I_DLIST) = 0.0
+
+           I_DLIST = ((DL_OFFSET(IS_AMPL) / 2) * NUM_UNITS) + KSD_ENTRY
+           R4NEW_D_LIST(I_DLIST) = 0.0
+
+C          Update VAX database if required.
+
+           ISS = KLYS_UPDATE_CK(IS_BVLT)
+
+           ISS = KLYS_UPDATE_CK(IS_BCUR)
+
+           ISS = KLYS_UPDATE_CK(IS_AMPL)
+
+        ENDIF
+C
+C       Assert some more STAT bits, and clean up.
+C
+        IF ((STAT .AND. STAT_BADFOX) .NE. 0) THEN
+           STAT = STAT .OR. STAT_SICK
+        ENDIF
+C
+C       Clean up STAT.
+C
+        IF     ((STAT .AND. STAT_DEAD) .NE. 0) THEN
+           STAT = STAT .AND. (#FFF0H .OR. STAT_DEAD)
+
+        ELSEIF ((STAT .AND. STAT_OK)   .NE. 0) THEN
+           STAT = STAT .AND. (#FFF0H .OR. STAT_OK)
+
+        ELSEIF ((STAT .AND. STAT_SICK) .NE. 0) THEN
+           STAT = STAT .AND. (#FFF0H .OR. STAT_SICK)
+
+        ELSE
+           STAT = (STAT .AND. #FFF0H) .OR. STAT_GOOD
+        ENDIF
+C
+C       Update STAT if it has changed and indicate that the
+C       VAX database should be updated
+C
+        I_DLIST = (DL_OFFSET(IS_STAT) * NUM_UNITS) + KSD_ENTRY
+        IF (STAT .NE. I2NEW_D_LIST(I_DLIST) ) THEN
+           IF (.NOT. VAX_CMD) THEN
+              VALUE_CHANGED = .TRUE.
+              SECN_CHANGED = IS_STAT
+              UNIT_CHANGED = KSD_ENTRY
+              CALL KLYS_SIG_CHANGE( )
+              CALL NET_GET_TIME(TIME_CHANGED)
+              OLDVAL_CHANGED(1) = I2NEW_D_LIST(I_DLIST)
+              NEWVAL_CHANGED(1) = STAT
+           ENDIF
+           I2NEW_D_LIST(I_DLIST) = STAT
+        ENDIF
+C
+C       Update SWRD if it has changed.  If the SWRD has changed in
+C       any bit position other than those associated with phase
+C       jitter, phase mean, amplitude jitter, or amplitude mean,
+C       indicate that the VAX database should be updated
+C
+        I_DLIST = (DL_OFFSET(IS_SWRD) * NUM_UNITS) + KSD_ENTRY
+        IF (SWRD .NE. I2NEW_D_LIST(I_DLIST) ) THEN
+           MASK = (SWRD_PHASE_JITT + SWRD_PHASE_MEAN +
+     >        SWRD_AMP_JITT + SWRD_AMP_MEAN)
+           OLD_AFTER_MASK = I2NEW_D_LIST(I_DLIST) .AND. (.NOT. MASK)
+           NEW_AFTER_MASK = SWRD .AND. (.NOT. MASK)
+           IF ((NEW_AFTER_MASK .NE. OLD_AFTER_MASK) .AND.
+     >        (.NOT. VAX_CMD) ) THEN
+              VALUE_CHANGED = .TRUE.
+              SECN_CHANGED = IS_SWRD
+              UNIT_CHANGED = KSD_ENTRY
+              CALL KLYS_SIG_CHANGE( )
+              CALL NET_GET_TIME(TIME_CHANGED)
+              OLDVAL_CHANGED(1) = I2NEW_D_LIST(I_DLIST)
+              NEWVAL_CHANGED(1) = SWRD
+           ENDIF
+           I2NEW_D_LIST(I_DLIST) = SWRD
+        ENDIF
+
+        IF (.NOT. ILL) THEN
+           STATUS_SUMMARY = MAX0(KLYS_DB, STATUS_SUMMARY)
+           KLYSTATUS = KLYS_SEQ_GIVEUP
+           CALL KLYS_TRACE (4HKst9, %VAL(0), %VAL(0))
+        ENDIF
+
+        END
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       

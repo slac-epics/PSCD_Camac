@@ -1,0 +1,4 @@
+# provide definitions such as
+driver(drvPSCD)
+#registrar(myRegistrar)
+#variable(myVariable)

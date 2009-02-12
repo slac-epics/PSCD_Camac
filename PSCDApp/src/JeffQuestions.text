@@ -1,0 +1,5 @@
+1) Make xfer count a short
+2) Repeated read of status causes system hang. It looks like if I read it at all
+ before it's written things hang.
+3) byte/word moves from dual-port memory to user memory don't work correctly. Longword (32 bit) moves at least by word work OK.
+

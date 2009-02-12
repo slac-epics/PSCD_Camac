@@ -1,0 +1,277 @@
+      INTEGER*4 FUNCTION KLYS_ASYNC_INIT( )
+
+C     **MEMBER**=SLCRMX:KLYSLIB
+C
+C====================================================================
+C
+C Abs:  This routine performs initialization for asynchronous
+C       database update cycles.
+C
+C Name: KLYS_ASYNC_INIT
+C
+C Args: None
+C
+C Rem:  This function performs three main initialization functions
+C       for asynchronous database update cycling.  First, a database
+C       list is made for all secondaries that may be updated during
+C       an asynchronous database update cycle.  This list is used
+C       for the second main initialization function this routine
+C       performs, initializing the old and new value arrays, and for
+C       puting the new value array into the micro database.  The third
+C       main function is to initialize the TOLERANCE array, which
+C       contains a tolerance for each analog secondary that may be
+C       updated during an asynchronous database update cycle.  These
+C       tolerances are used to determine whether a new analog value
+C       for a secondary has changed significantly enough from the
+C       old VAX database value to possibly cause the VAX database to
+C       be updated.
+C
+C Side: This function initializes the following KLYSDBUFF common blocK
+C       arrays:
+C         D_LLIST - a database list of pointers for all units of
+C           secondaries that may be updated during an asynchronous
+C           database update cycle
+C         NEW_D_LIST - an array containing the new value for each
+C           secondary that may be updated during an asynchronous
+C           database update cycle
+C         OLD_D_LIST - an array containing the old VAX database value
+C           for each value that may be updated during an asynchronous
+C           database update cycle
+C         TOLERANCE - an array containing a tolerance for each analog
+C           secondary that may be updated during an asynchronous
+C           database update cycle
+C
+C Ret:  If successful, I*4 KLYS_OKOK
+C       Otherwise, an error code returned by database routines
+C       DBLIST, DBLGET, and DBGET.
+C
+C Auth: 18-JAN-1989, R. Hall
+C Rev:  10-MAR-1989, M. Flores
+C
+C----------------------------------------------------------------------
+C
+C Mod:
+C       02-apr-1992, D. Van Olst (VANOLST) add a tolerance for     
+C                                    XTRA (delta KPHR for autotrim)
+C       27-NOV-1989, R. Hall (RDH)  To increase the asynchronous
+C                                    tolerance for secondary PHAS
+C                                    in order to decrease the number
+C                                    of significant changes.  The
+C                                    multiplication factor for the
+C                                    average of the phase database
+C                                    tolerances was increased from
+C                                    0.25 to 0.5.
+C       03-AUG-1989, R. Hall (RDH)  To initialize the new value and
+C                                    unit counters to zero.
+C       11-APR-1989, R. Hall (RDH)  To exit if there are no subboosters
+C                                    or klystrons.
+C
+C======================================================================
+      IMPLICIT INTEGER*2 (A-Z)
+
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSDEF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KDBDEF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSUNITS.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSDBUFF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSDATA.INC)
+
+C*****local variables and arrays
+C
+C     primary number index
+C
+      INTEGER*2 PNUM
+C
+C     secondary number index
+C
+      INTEGER*2 ISECN
+C
+C     unit number index
+C
+      INTEGER*2 IUNIT
+C
+C     variable to hold the offset to a data array for a secondary
+C
+      INTEGER*2 OFFSET
+C
+C     data array index
+C
+      INTEGER*2 I_DLIST
+C
+C     index for analog secondaries that have corresponding tolerances
+C     in the database
+C
+      INTEGER*2 ITOL
+C
+C     array containing the indexes for the analog secondaries that
+C     have corresponding tolerances in the database
+C                                                                  
+      INTEGER*2 TOLERANCE_IS(4)
+C
+C     array to hold the database tolerances for all units of
+C     a secondary
+C
+      INTEGER*2 TOL_D_LIST(2 + (MAX_UNITS * 2))
+C
+C     array of asynchronous update secondary codes.  The order
+C     of the codes in the array are important.
+C
+      INTEGER*4 SECN(N_ASYNC_SECN)
+C
+C     array of tolerance database indexes
+C
+      INTEGER*4 TOLERANCE_KDB(4)
+C
+C     variable to hold the sum of real values
+C
+      REAL*4 SUM
+C
+C     real*4 array equivalences to the tolerance values in
+C     array TOL_D_LIST
+C
+      REAL*4 R4TOL_D_LIST(MAX_UNITS)
+
+      EQUIVALENCE (TOL_D_LIST(3), R4TOL_D_LIST(1))
+
+      DATA SECN /KDB_PRAW, KDB_PPAD, KDB_PHAS, KDB_AMPL, KDB_AJTN
+     1          ,KDB_PJTN, KDB_BVLT, KDB_BCUR, KDB_TPAD, KDB_TMK
+     2          ,KDB_DRPK, KDB_FEPK, KDB_REPK, KDB_FMON, KDB_KVAC
+     3          ,KDB_WVAC, KDB_KDT,  KDB_KIT,  KDB_RFMG, KDB_RFAP
+     4          ,KDB_BV,   KDB_BC,   KDB_XTRA, KDB_PERV, KDB_DSTA
+     5          ,KDB_ARAT, KDB_MRAT, KDB_LRAT, KDB_SWRD, KDB_STAT
+     6          ,KDB_SID /
+      DATA TOLERANCE_IS  / IS_PHAS,  IS_AMPL,  IS_AJTN,  IS_PJTN  /
+      DATA TOLERANCE_KDB / KDB_PMET, KDB_AMET, KDB_AJTT, KDB_PJTT /
+ 
+      INTEGER*4 ISS
+      LOGICAL   ILL
+      EQUIVALENCE (ISS, ILL)
+ 
+      INTEGER*4 DBLIST, DBLGET, DBGET
+C
+C*****logic begins
+C
+      ISS = KLYS_OKOK
+C
+C     handle the case where there are no subboosters or klystrons
+C
+      IF (NUM_UNITS .EQ. 0) THEN
+        GO TO 9000
+      END IF
+C
+C     initialize the counters indicating which secondaries, drifting
+C     bits in secondary STAT, and units are associated with significant
+C     changes during asynchronous cycling.
+C
+      CALL FILLW(0, N_VALUES, VALUE_COUNT)
+      CALL FILLW(0, MAX_UNITS, UNIT_COUNT)
+C
+C     make a database list for all secondaries that may be updated
+C     during an asynchronous database update cycle.  The list will
+C     be made for all units and for each of the possible primaries
+C     (e.g., SBST, KLYS, and DKLY) that have at least one unit
+C     associated with it
+C
+      D_LLIST(2) = 0
+      DO 200 ISECN = 1, N_ASYNC_SECN
+        DO 100 PNUM = 1, N_PRIM           
+          IF (UNITS_IN_PRIM(PNUM) .GT. 0) THEN
+            IF (ILL) THEN
+              ISS = DBLIST(D_LLIST, PRIMARIES(PNUM), SELF, ALL,
+     1          SECN(ISECN))
+            ELSE
+              GO TO 9000
+            END IF
+          END IF
+100     CONTINUE
+200   CONTINUE
+C
+C     initialize the new value array with values from the database.
+C     This array will be updated whenever an asynchronous database
+C     value needs to be changed.  Then initialize the old value
+C     array by copying the new value array into it.  The old value
+C     array will be used to during an asynchronous database update
+C     cycle to determine whether the new value for an analog
+C     secondary has changed significantly from the old value.
+C     If it has, the VAX database may need to be updated.
+C
+      IF (ILL) THEN
+        NEW_D_LIST(1) = ADB_LIST_LEN
+        NEW_D_LIST(2) = 0
+        ISS = DBLGET(NEW_D_LIST, D_LLIST)
+        IF (ILL) THEN
+          CALL COPYW(ADB_LIST_LEN, NEW_D_LIST, OLD_D_LIST)
+        ELSE
+          GO TO 9000
+        END IF
+      ELSE
+        GO TO 9000
+      END IF
+C
+C     for each of the four analog secondaries that have a corresponding
+C     database tolerance, get the tolerance from the database for all
+C     units and compute an average.  A fraction of the average is
+C     used as the tolerance for the analog secondary
+C
+      TOL_D_LIST(1) = 28
+      DO 500 ITOL = 1, 4
+        TOL_D_LIST(2) = 0
+        DO 300 PNUM = 1, N_PRIM
+          IF (UNITS_IN_PRIM(PNUM) .GT. 0) THEN
+            IF (ILL) THEN
+              ISS = DBGET(TOL_D_LIST, PRIMARIES(PNUM), SELF, ALL,
+     1          TOLERANCE_KDB(ITOL))
+            ELSE
+              GO TO 9000
+            END IF
+          END IF
+300     CONTINUE
+        IF (ILL) THEN
+          SUM = 0.0
+          DO 400 IUNIT = 1, NUM_UNITS
+            SUM = SUM + R4TOL_D_LIST(IUNIT)
+400       CONTINUE
+          IF (ITOL .EQ. 2) THEN
+            TOLERANCE(TOLERANCE_IS(ITOL)) = (SUM / NUM_UNITS) * 0.25
+          ELSE
+            TOLERANCE(TOLERANCE_IS(ITOL)) = (SUM / NUM_UNITS) * 0.5
+          END IF
+        ELSE
+          GO TO 9000
+        END IF
+500   CONTINUE
+C
+C     for each of the analog secondaries that do not have a
+C     corresponding database tolerance, assign a "reasonable"
+C     tolerance
+C
+      TOLERANCE(IS_BVLT) =  2.0
+      TOLERANCE(IS_BCUR) =  2.0
+      TOLERANCE(IS_TPAD) =  2.0
+      TOLERANCE(IS_TMK ) =  2.0
+      TOLERANCE(IS_DRPK) =  0.2
+      TOLERANCE(IS_FEPK) =  0.5
+      TOLERANCE(IS_REPK) =  0.25
+      TOLERANCE(IS_FMON) =  0.1
+      TOLERANCE(IS_KDT ) =  0.2
+      TOLERANCE(IS_KIT ) =  0.5
+      TOLERANCE(IS_RFMG) =  5.0
+      TOLERANCE(IS_RFAP) =  0.2
+      TOLERANCE(IS_BV  ) =  TOLERANCE(IS_BVLT)
+      TOLERANCE(IS_BC  ) =  TOLERANCE(IS_BCUR)
+      TOLERANCE(IS_PERV) =  0.5
+      TOLERANCE(IS_ARAT) =  3.0
+      TOLERANCE(IS_MRAT) =  3.0
+      TOLERANCE(IS_LRAT) =  0.0
+      TOLERANCE(IS_XTRA) =  0.1
+9000  CONTINUE
+      KLYS_ASYNC_INIT = ISS
+                                      
+      RETURN
+
+      END
+                                                                                                                                                                                                                                                                                                         

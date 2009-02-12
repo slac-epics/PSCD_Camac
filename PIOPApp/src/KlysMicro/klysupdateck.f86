@@ -1,0 +1,438 @@
+      INTEGER*4 FUNCTION KLYS_UPDATE_CK(ISECN)
+
+C     **MEMBER**=SLCRMX:KLYSLIB
+C
+C====================================================================
+C
+C Abs:  This routine checks whether an analog database secondary
+C       that maybe modified by an asynchronous update cycle has
+C       changed significantly enough to cause the VAX database
+C       to be updated.
+C
+C Name: KLYS_UPDATE_CK
+C
+C Args: ISECN                     This argument identifies which analog
+C         Use:  word_signed       database secondary is to be checked
+C         Type: word(signed)      for whether it has changed
+C         Acc:  read only         significantly enough to cause the
+C         Mech: reference         VAX database to be updated.  The
+C                                 file SLCRMXI:KDBDEF.INC defines the
+C                                 allowable values, one for each
+C                                 analog secondary that is to be
+C                                 checked.  These values are parameters
+C                                 of the form IS_secn, where "secn" is
+C                                 the name of a valid SBST, KLYS, and
+C                                 DKLY secondary.
+C
+C Rem:  This function only processes asynchronous database update
+C       cycles, not VAX requests.  For the analog secondary identified
+C       by the input argument, a check is made whether the new value
+C       for this secondary has changed significantly from its old
+C       value in the VAX database.  The KLYSDBUFF common block variable
+C       VALUE_CHANGED is set to a value of .TRUE. (indicating that the
+C       VAX database should be updated) if the new value changed
+C       significantly from the old value and the drifting flag for
+C       this unit's secondary was not set.  In this case the drifting
+C       flag for this unit's secondary is set, preventing the module
+C       from later indicating that the VAX database should be updated
+C       on account of this unit's new secondary value until some time
+C       period has elapsed during which the value is no longer changing
+C       significantly (at which time the drifting flag for this unit's
+C       secondary is reset).
+C
+C       Also this function checks whether the drifting flag has changed
+C       for this unit if the secondary is PHAS, AMPL, AJTN, or PJTN.
+C       If the drifting flag has changed for one of these secondaries,
+C       the associated drift bit for the secondary in the STAT
+C       secondary is set or cleared, depending on whether the drifting
+C       flag for the secondary is now set or cleared.  Also the
+C       common block variable VALUE_CHANGED is set to a value of
+C       .TRUE. to indicate that the VAX database should be updated.
+C
+C       This function assumes that the following common block variables
+C       and arrays have been assigned values:
+C
+C         VAX_CMD - a KLYSDBUFF common block flag indicating whether
+C           a VAX request or an asynchronous database update cycle
+C           is being processed
+C         KSD_ENTRY - the KLYSUNITS common block variable containing
+C           the index for the current unit being processed
+C         NUM_UNITS - the KLYSUNITS common block variable containing
+C           the total number of units
+C         R4OLD_D_LIST and I2OLD_D_LIST - KLYSDBUFF common block arrays
+C           containing the old VAX database unit secondary values.
+C           These arrays are both equivalenced to the same KLYSDBUFF
+C           common block array.  The array R4OLD_D_LIST is used if the
+C           input argument indicates that the secondary is a real*4
+C           value while the array I2OLD_D_LIST is used if the secondary
+C           is an integer*2 value.
+C         R4NEW_D_LIST and I2NEW_D_LIST - KLYSDBUFF common block arrays
+C           containing the new micro database unit secondary values.
+C           These arrays are both equivalenced to the same KLYSDBUFF
+C           common block array.  The array R4NEW_D_LIST is used if the
+C           input argument indicates that the secondary is a real*4
+C           value while the array I2NEW_D_LIST is used if the secondary
+C           is an integer*2 value.
+C         TOLERANCE - the KLYSDBUFF common block array containing the
+C           tolerance value for each asynchronous database update
+C           secondary.  These values are used to determine whether a
+C           new secondary value has changed significantly from the old
+C           value in the VAX database.
+C
+C Side: As described above, this function may set the KLYSDBUFF common
+C       block variable VALUE_CHANGED to a value of .TRUE. if it is
+C       determined that the VAX database should be updated.  If this
+C       occurs, the KLYSDBUFF common block variable SECN_CHANGED is
+C       set to the index associated with the secondary or STAT
+C       secondary drifting bit as defined in the KDBDEF.INC include
+C       file.
+C
+C Ret:  If OK, I*4 KLYS_OKOK.  If ISECN is not within acceptable
+C       limits, this function returns KLYS_BAD_POINTER.  This
+C       function may also return status values from function
+C       KLYS_SIG_CHANGE.
+C
+C Auth: 18-JAN-1989, R. Hall
+C Rev:  10-MAR-1989, M. Flores
+C
+C----------------------------------------------------------------------
+C
+C Mod:
+C       03-AUG-1989, R. Hall (RDH)  Changed to increment significant
+C                                    change counters.
+C
+C======================================================================
+C       
+      IMPLICIT INTEGER*2 (A-Z)
+
+C*****function arguments
+C
+C     index indicating which database secondary is to be processed
+C
+      INTEGER*2 ISECN
+
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSDEF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KDBDEF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSUNITS.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSDBUFF.INC)
+$ LIST
+$        INCLUDE (SLCRMXI:KLYSTATUS.INC)
+
+C
+C*****local variables and arrays
+C
+C     flag to indicate whether the input analog secondary has an
+C     associated status bit that needs to be altered if the
+C     analog secondary has changed significantly
+C
+      LOGICAL*1 STAT_BIT
+C
+C     flag to indicate whether the new value has changed significantly
+C     from the old value
+C
+      LOGICAL*1 CHANGED_SIG
+C
+C     array to hold the number of asynchronous update cycles
+C     during which each unit's analog secondaries is no longer
+C     changing significantly
+C
+      INTEGER*1 TIME_COUNT(N_ANALOG_SECN, MAX_UNITS)
+
+C
+C     array of masks, one element for each unit of a klystron
+C     (only MAX_UNITS are actually used).  The mask for a unit
+C     indicates which bit in an element of array DRIFTING will
+C     be used to indicate whether the analog secondary value for
+C     a unit is drifting.
+C
+      INTEGER*2 UNIT_MASK(16)
+C
+C     variable when set to a non-zero value, indicates that the
+C     analog secondary for a unit was previously drifting before
+C     entering this subprogram
+C
+      INTEGER*2 PREV_DRIFTING
+C
+C     variable when set to a non-zero value, indicates that the
+C     analog secondary for a unit is currently drifting after
+C     being processed by this subprogram
+C
+      INTEGER*2 CUR_DRIFTING
+C
+C     array dimensioned by the number of analog secondaries that
+C     may be changed by the micro during a klystron status check.
+C     Each of MAX_UNIT bits in a element of the array is used to
+C     indicate whether the analog secondary for a unit is drifting.
+C     "Drifting" means that an analog value has been changing
+C     significantly
+C
+      INTEGER*2 DRIFTING(N_ANALOG_SECN)
+C
+C     count of how many nonsignificant change asynchronous update
+C     cycles must pass before a drifting analog secondary for a
+C     unit will be considered to be no longer drifting
+C
+      INTEGER*1 NONSIG_CHANGE_COUNT
+C
+C     index for the current unit being processed
+C
+      INTEGER*2 IUNIT
+C
+C     used to hold the STAT bit mask for the analog secondaries
+C     associated with a status bit
+C
+      INTEGER*2 MASK
+C
+C     index into the old or new value database array.  The index
+C     may be a word index into the I*2 database array or a longword
+C     index into a R*4 array equivalenced to the 3rd word of the
+C     old or new value database array.
+C
+      INTEGER*2 I_DLIST
+C
+C     index indicating which STAT secondary drifting bit may be
+C     changed
+C
+      INTEGER*2 IDRIFT
+C
+C     old value of an analog secondary (the value in the VAX database)
+C
+      REAL*4 OLD_VALUE
+C
+C     new value of an analog secondary
+C
+      REAL*4 NEW_VALUE
+C
+C     smallest of old and new values for a klystron or waveguide
+C     vacuum
+C
+      REAL*4 SMALLEST
+C
+C     largest of old and new values for a klystron or waveguide
+C     vacuum
+C
+      REAL*4 LARGEST
+C
+C     lower bound for the largest of the old and new values of a
+C     klystron or waveguide vacuum
+C
+      REAL*4 LOWER_BOUND
+C
+C*****functions used
+C
+C     increments significant change counters used to determine
+C     which secondaries, drifting bits in the STAT secondary,
+C     and units are associated with significant changes causing
+C     database updates
+C
+      INTEGER*4 KLYS_SIG_CHANGE
+C
+C*****data initialization
+C
+      DATA UNIT_MASK /#0001H, #0002H, #0004H, #0008H
+     1               ,#0010H, #0020H, #0040H, #0080H
+     2               ,#0100H, #0200H, #0400H, #0800H
+     3               ,#1000H, #2000H, #4000H, #8000H /
+      DATA DRIFTING /N_ANALOG_SECN * 0/
+      DATA NONSIG_CHANGE_COUNT /10/
+      DATA LOWER_BOUND /0.0000000001/
+C
+C     initialize the TIME_COUNT array to 0 (there are
+C     N_ANALOG_SECN * MAX_UNITS = 28 * 13 = 364 elements)
+C
+      DATA TIME_COUNT /364 * 0/
+ 
+      INTEGER*4 ISS
+      LOGICAL   ILL
+      EQUIVALENCE (ISS,ILL)
+C
+C*****logic begins
+C
+      IF ((ISECN .GE. 1) .AND. (ISECN .LE. N_ANALOG_SECN)) THEN
+        KLYS_UPDATE_CK = KLYS_OKOK
+      ELSE
+        KLYS_UPDATE_CK = KLYS_BAD_POINTER
+        GO TO 9999
+      END IF
+C
+C     do no processing if this subprogram is called as a result
+C     of a request from the VAX, rather than an asynchronous
+C     update cycle
+C
+      IF (.NOT. VAX_CMD) THEN
+        IUNIT = KSD_ENTRY
+C
+C       check whether the analog secondary for the unit being
+C       processed has been previously drifting (ie., having
+C       a value that has changed significantly)
+C
+        PREV_DRIFTING = DRIFTING(ISECN) .AND. UNIT_MASK(IUNIT)
+C
+        IF (ISECN .LE. IS_PERV) THEN
+C
+C         the analog secondary is a R*4.  Calculate the index into
+C         both the old and new value R*4 equivalenced arrays
+C
+          I_DLIST = ((DL_OFFSET(ISECN) / 2) * NUM_UNITS) + IUNIT
+          OLD_VALUE = R4OLD_D_LIST(I_DLIST)
+          NEW_VALUE = R4NEW_D_LIST(I_DLIST)
+        ELSE
+C
+C         the analog secondary is an I*2.  Calculate the index into
+C         both the old and new value I*2 arrays
+C
+          I_DLIST = (DL_OFFSET(ISECN) * NUM_UNITS) + IUNIT
+          OLD_VALUE = I2OLD_D_LIST(I_DLIST)
+          NEW_VALUE = I2NEW_D_LIST(I_DLIST)
+        END IF
+C
+C       check whether the new value has changed significantly from
+C       the old value
+C
+        IF ((ISECN .EQ. IS_KVAC) .OR. (ISECN .EQ. IS_WVAC)) THEN
+C
+C         the secondary is the klystron or waveguide vacuum.
+C         The value has changed significantly if there is more than
+C         a factor of 2 difference between the old and new value
+C         (using 1.0E-10 as a lower bound for the largest value)
+C
+          IF (NEW_VALUE .LT. OLD_VALUE) THEN
+            SMALLEST = NEW_VALUE
+            LARGEST = OLD_VALUE
+          ELSE
+            SMALLEST = OLD_VALUE
+            LARGEST = NEW_VALUE
+          END IF
+          IF (LARGEST .LT. LOWER_BOUND) THEN
+            LARGEST = LOWER_BOUND
+          END IF
+          IF ((SMALLEST / LARGEST) .LT. 0.5) THEN
+            CHANGED_SIG = .TRUE.
+          ELSE
+            CHANGED_SIG = .FALSE.
+          END IF
+        ELSE
+C
+C         check whether the difference between the new value and
+C         the VAX database old value for the unit's analog secondary
+C         exceeds the tolerance for the analog secondary
+C
+          IF (ABS(NEW_VALUE - OLD_VALUE) .GT.
+     1      TOLERANCE(ISECN)) THEN
+            CHANGED_SIG = .TRUE.
+          ELSE
+            CHANGED_SIG = .FALSE.
+          END IF
+        END IF
+        IF (CHANGED_SIG) THEN
+C
+C         the value has changed significantly.  If the analog secondary
+C         for the unit is not drifting, set the bit for the unit
+C         to indicate that the analog value is drifting and set
+C         the VALUE_CHANGED flag in common to .TRUE., indicating
+C         that the VAX database should be updated, and record
+C         information for the secondary whose value changed
+C         significantly
+C
+          IF ((DRIFTING(ISECN) .AND. UNIT_MASK(IUNIT)) .EQ. 0) THEN
+            DRIFTING(ISECN) = DRIFTING(ISECN) .OR. UNIT_MASK(IUNIT)
+            VALUE_CHANGED = .TRUE.
+            SECN_CHANGED = ISECN
+            UNIT_CHANGED = IUNIT
+            ISS = KLYS_SIG_CHANGE( )
+            IF (.NOT. ILL) THEN
+               KLYS_UPDATE_CK = ISS
+               GO TO 9999
+            END IF
+            CALL NET_GET_TIME(TIME_CHANGED)
+            R4OLD_CHANGED = OLD_VALUE
+            R4NEW_CHANGED = NEW_VALUE
+          END IF
+        ELSE
+          IF (PREV_DRIFTING .NE. 0) THEN
+C
+C           the analog secondary has been previously drifting but
+C           its value is not changing significantly now.  Increment
+C           the count of the number of nonsignificant change cycles
+C           for the unit's drifting analog secondary.  If the count
+C           has exceeded the number of cycles a drifting analog
+C           secondary must remain not changing significantly before
+C           it is considered to be no longer drifting, reset the count
+C           to 0 and clear the bit for the unit to indicate that the
+C           analog value is not drifting
+C
+            TIME_COUNT(ISECN, IUNIT) = TIME_COUNT(ISECN, IUNIT) + 1
+            IF (TIME_COUNT(ISECN, IUNIT) .GE.
+     1        NONSIG_CHANGE_COUNT) THEN
+              TIME_COUNT(ISECN, IUNIT) = 0
+              DRIFTING(ISECN) = DRIFTING(ISECN) .AND.
+     1          (.NOT. UNIT_MASK(IUNIT))
+            END IF
+          END IF
+        END IF
+C
+C       check whether the analog secondary being processed is
+C       associated with a status bit.  If so, store its STAT
+C       bit into MASK and store the index for the STAT drifting
+C       bit that may be changed
+C
+        STAT_BIT = .TRUE.
+        IF (ISECN .EQ. IS_PHAS) THEN
+          MASK = STAT_PHAS_DRIFT
+          IDRIFT = IS_PHAS_DRIFT
+        ELSEIF (ISECN .EQ. IS_AMPL) THEN
+          MASK = STAT_AMPL_DRIFT
+          IDRIFT = IS_AMPL_DRIFT
+        ELSEIF (ISECN .EQ. IS_AJTN) THEN
+          MASK = STAT_AJTN_DRIFT
+          IDRIFT = IS_AJTN_DRIFT
+        ELSEIF (ISECN .EQ. IS_PJTN) THEN
+          MASK = STAT_PJTN_DRIFT
+          IDRIFT = IS_PJTN_DRIFT
+        ELSE
+          STAT_BIT = .FALSE.
+        END IF
+C
+C       if the analog secondary being processed is associated
+C       with a status bit, check whether the drifting bit for
+C       the analog secondary for the unit has been changed by
+C       this subprogram.  If it has been changed, change the
+C       new value of the STAT secondary as appropriate to
+C       indicate whether the analog secondary is now drifting
+C       and set the VALUE_CHANGED flag in common to .TRUE.,
+C       indicating that the VAX database should be updated.
+C       Also record the information for the STAT bit that has been
+C       changed
+C
+        IF (STAT_BIT) THEN
+          CUR_DRIFTING = DRIFTING(ISECN) .AND. UNIT_MASK(IUNIT)
+          IF (CUR_DRIFTING .NE. PREV_DRIFTING) THEN
+            I_DLIST = (DL_OFFSET(IS_STAT) * NUM_UNITS) + IUNIT
+            IF (CUR_DRIFTING .NE. 0) THEN
+              I2NEW_D_LIST(I_DLIST) = I2NEW_D_LIST(I_DLIST) .OR. MASK
+            ELSE
+              I2NEW_D_LIST(I_DLIST) = I2NEW_D_LIST(I_DLIST) .AND.
+     1          (.NOT. MASK)
+            END IF
+            VALUE_CHANGED = .TRUE.
+            SECN_CHANGED = IDRIFT
+            UNIT_CHANGED = IUNIT
+            ISS = KLYS_SIG_CHANGE( )
+            IF (.NOT. ILL) THEN
+               KLYS_UPDATE_CK = ISS
+               GO TO 9999
+            END IF
+            CALL NET_GET_TIME(TIME_CHANGED)
+            OLDVAL_CHANGED(1) = PREV_DRIFTING
+            NEWVAL_CHANGED(1) = CUR_DRIFTING
+          END IF
+        END IF
+      END IF
+9999  CONTINUE
+      RETURN
+      END
+                                                                                                                                                                                                                                                                                                                                                                                                                                                     

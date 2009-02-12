@@ -1,0 +1,73 @@
+ /*===========================================================================*/
+ /*                                                                           */
+ /*      **CMS**=RMX_INCLUDE                                                  */
+ /*                                                                           */
+ /* Abs:  Definitions of bits and fields in MBCD (Multibus camac driver)      */
+ /*       control longword (cctlw) and in packet completion status longword   */
+ /*       generated and stored by MBCD.                                       */
+ /*                                                                           */
+ /* Name: slcrmxi:cctlwmasks.hm.                                              */
+ /*                                                                           */
+ /* Prev: None.                                                               */
+ /*                                                                           */
+ /* Auth:                                                                     */
+ /* Revw:                                                                     */
+ /*                                                                           */
+ /*---------------------------------------------------------------------------*/
+ /*                                                                           */
+ /* Mod:  09-Jun-1999, Tony Gromme (TEG):                                     */
+ /*           Translated from PLM386 to iC386.                                */
+ /*                                                                           */
+ /*===========================================================================*/
+ 
+ 
+#ifndef CCTLWMASKS_HM
+ 
+ 
+ /*  Masks and shift counts for bits and bit fields in  */
+ /*  camac control longword portion of MBCD packet.     */
+ 
+#define CCTLW__MPC       0x080000000
+#define CCTLW__XM1       0x040000000
+#define CCTLW__XM2       0x020000000
+#define CCTLW__QM1       0x010000000
+#define CCTLW__QM2       0x008000000
+#define CCTLW__P24       0x004000000
+#define CCTLW__IN        0x002000000
+#define CCTLW__ILQ       0x001000000
+#define CCTLW__SC        0x000800000
+#define CCTLW__SM        0x000400000
+#define CCTLW__SA        0x000200000
+#define CCTLW__F         0x0001F0000
+#define CCTLW__F16       0x000100000
+#define CCTLW__F8        0x000080000
+#define CCTLW__C         0x00000F000
+#define CCTLW__M         0x000000F80
+#define CCTLW__P8        0x000000020
+#define CCTLW__RE_PACK   0x000000010
+#define CCTLW__A         0x00000000F
+ 
+#define CCTLW__F_shc  16
+#define CCTLW__C_shc  12
+#define CCTLW__M_shc   7
+#define CCTLW__A_shc   0
+ 
+ 
+ /*  Masks for bits and bit fields in camac status longword  */
+ /*  generated and stored by MBCD.                           */
+ 
+#define MBCD_STAT__C     0x0F0000000
+#define MBCD_STAT__M     0x00F800000
+#define MBCD_STAT__DNE   0x000400000
+#define MBCD_STAT__CTO   0x000200000
+#define MBCD_STAT__BAR   0x000100000
+#define MBCD_STAT__EOS   0x000080000
+#define MBCD_STAT__EMS   0x000040000
+#define MBCD_STAT__X     0x000020000
+#define MBCD_STAT__Q     0x000010000
+#define MBCD_STAT__SHE   0x000008000
+#define MBCD_STAT__LAM   0x000004000
+#define MBCD_STAT__RWC   0x000003FFF
+ 
+#define CCTLWMASKS_HM
+#endif

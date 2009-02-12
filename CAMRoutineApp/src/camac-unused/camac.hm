@@ -1,0 +1,311 @@
+/*   **CMS**=RMX_INCLUDE   */
+
+/*==============================================================================
+
+  Abs:  Camac data structures and bit definitions
+        (parts copied from REF_:[RMX.INCLUDE]CTLWBITS.INC;1)
+
+  Name: camac.hm
+
+  Prev: slctxt:slc_macr.hc for int2u, int4u.
+
+  Auth: 10-Oct-1990   K. Krauter (KEK)
+
+--------------------------------------------------------------------------------
+
+  Mod:
+        23-Sep-1992, K. Luchini (LUCHINI):
+           Added emask_nox_noq, emask_terminate
+           and crate limits
+        11-Jun-1991, L. Patmore:
+           Add CTLW_CLEAR_HIGH, CTLW_F17, measurement EMASKs, bits for PAU
+           trigger and clearing low order byte in data.
+
+==============================================================================*/
+
+#ifndef CAMAC_HM
+#define CAMAC_HM
+
+/*
+ * ----------------------------------------------------------------------------
+ * camac control word bits.
+ * CTLW = MXXQ QPII SSSF FFFF CCCC MMMM MxPR AAAA
+ *        PMMM M2NL CNA1 8421 8421 1842 1 8P 8421
+ *        C121 24 Q    6           6       K
+ * MPC = zero if last packet of package; otherwise more are coming.
+ * XM1 = transfer data if X=1, else retry
+ * XM2 = quit this packet if X=0
+ * QM1 = transfer data if Q=1, else retry
+ * QM2 = quit this packet if Q=0
+ * P24 = 24-bit pack mode (see BUG section 9.1.1.2)
+ * IN  = reset least significant enabled scan counter and increment most
+ * ILQ = increment enabled counters only if Q=0
+ * SC  = enable crate counter
+ * SN  = enable station address counter (aka module or slot)
+ * SA  = enable module subaddress counter
+ * (for exact meaning of ctlw bits, see h/w manual for specific device)
+ * F16 = ctlw bit: write operation
+ * F17 = ctlw bit: read operation
+ * F8  = ctlw bit: nondata xfer operation
+ * F4  = ctlw bit:
+ * F2  = ctlw bit: read and reset operation
+ * F1  = ctlw bit:
+ * C8, C4, C2, C1  =    (crate address).  Can't be zero.
+ * M16, M8, M4, M2, M1 =    (Station/module/slot address). Can't be zero.
+ * x   = not used
+ * P8  = software-effect only 8-bit pack mode (see BUG section 9.1.1.2)
+ * REPACK = repack data into smaller blocks.
+ * A8, A4, A2, A1  =     (module subaddress).
+ */
+#define CTLW_MPC      0x80000000
+#define CTLW_XM1      0x40000000
+#define CTLW_XM2      0x20000000
+#define CTLW_QM1      0x10000000
+#define CTLW_QM2      0x08000000
+#define CTLW_P24      0x04000000
+#define CTLW_IN       0x02000000
+#define CTLW_ILQ      0x01000000
+#define CTLW_SC       0x00800000
+#define CTLW_SM       0x00400000
+#define CTLW_SA       0x00200000
+#define CTLW_F16      0x00100000
+#define CTLW_F8       0x00080000
+#define CTLW_F4       0x00040000
+#define CTLW_F2       0x00020000
+#define CTLW_F1       0x00010000
+#define CTLW_C8       0x00008000
+#define CTLW_C4       0x00004000
+#define CTLW_C2       0x00002000
+#define CTLW_C1       0x00001000
+#define CTLW_M16      0x00000800
+#define CTLW_M8       0x00000400
+#define CTLW_M4       0x00000200
+#define CTLW_M2       0x00000100
+#define CTLW_M1       0x00000080
+#define CTLW_SPARE    0x00000040
+#define CTLW_P8       0x00000020
+#define CTLW_RE_PACK  0x00000010
+#define CTLW_A8       0x00000008
+#define CTLW_A4       0x00000004
+#define CTLW_A2       0x00000002
+#define CTLW_A1       0x00000001
+
+/* bit combinations */
+#define      CTLW_F17 CTLW_F16 + CTLW_F1
+#define      CTLW_F27 CTLW_F16 | CTLW_F8 | CTLW_F2 | CTLW_F1
+#define      CTLW_F24 CTLW_F16 | CTLW_F8
+#define      CTLW_F0  0x00000000
+#define      CTLW_A0  0x00000000
+
+/* masks and shift constants for accessing ctlw fields */
+#define CTLW_CRATE_MASK                CTLW_C8 | CTLW_C4 | CTLW_C2 | CTLW_C1
+#define CTLW_MODULE_MASK    CTLW_M16 | CTLW_M8 | CTLW_M4 | CTLW_M2 | CTLW_M1
+#define CTLW_SUBADDR_MASK              CTLW_A8 | CTLW_A4 | CTLW_A2 | CTLW_A1
+#define CTLW_CRATE_SHIFT    -12
+#define CTLW_MODULE_SHIFT   - 7
+#define CTLW_FUNCTION_SHIFT -16
+/* The following masks are used to test for an untriggered condition in a PAU,
+   and to zero out the low order byte of the data in a SAM or PAU.           */
+
+#define CAMAC_PAU_NOTRIG 0x00010000
+#define CAMAC_SAM_NODATA 0xFFFFFF00
+#define CTLW_CLEAR_HIGH 0x001FFFFF
+
+
+/*
+ * ---------------------------------------------------------------
+ * camac packet completion status bits
+ * STAT = CCCC MMMM MDCB EEXQ SLWW WWWW WWWW WWWW
+ *        8421 1842 1NTA OM   HA-- ---- ---- ----
+ *             6     EOR SS   EM
+ * C8, C4, C2, C1  =    (crate address).  Can't be zero unless there was an
+ *                                        and camgo did nothing..
+ * M16, M8, M4, M2, M1 =    (Station/module/slot address). Can't be zero,
+ *                                        except as above
+ * DNE = set when all packets have executed
+ * CTO = set when camac crate timed out
+ * BAR = set when word count exhausted
+ * EOS = set when scan exceeded scan counter
+ * EMS = set if packet terminated with X=0 or Q=0
+ * X   = set if camac module received and liked the command
+ * Q   = set if camac module successfully executed the command
+ * SHE = set if MBCD problem
+ * LAM = set if camac module is requesting attention (Look At Me)
+ * WW WWWW WWWW WWWW = remaining word count of data not processed
+ */
+#define STAT_C8  0x80000000
+#define STAT_C4  0x40000000
+#define STAT_C2  0x20000000
+#define STAT_C1  0x10000000
+#define STAT_M16 0x08000000
+#define STAT_M8  0x04000000
+#define STAT_M4  0x02000000
+#define STAT_M2  0x01000000
+#define STAT_M1  0x00800000
+#define STAT_DNE 0x00400000
+#define STAT_CTO 0x00200000
+#define STAT_BAR 0x00100000
+#define STAT_EOS 0x00080000
+#define STAT_EMS 0x00040000
+#define STAT_X   0x00020000
+#define STAT_Q   0x00010000
+#define STAT_SHE 0x00008000
+#define STAT_LAM 0x00004000
+#define STAT_RWC 0x00003FFF /* remaining word count mask */
+
+/* masks and shift constants for accessing stat word fields */
+#define STAT_CRATE_MASK                STAT_C8 | STAT_C4 | STAT_C2 | STAT_C1
+#define STAT_MODULE_MASK    STAT_M16 | STAT_M8 | STAT_M4 | STAT_M2 | STAT_M1
+
+/* bit combinations, error if true */
+#define STAT_BAD_BITS STAT_CTO | !STAT_X | !STAT_Q | STAT_SHE | STAT_RWC
+
+/* This one is used by the fast feedback measurement task. It is in in hex
+   because it is used in the fast task and there is no point in doing all
+   those ORs every pulse.   It is STAT_SHE | STAT_CTO                   */
+
+#define STAT_BAD_BITS2 0x00208000 
+
+
+/*
+ * ---------------------------------------------------------------
+ * camac packet emask error-reporting bits
+ * EMASK= SSCB EEXQ SSCB EEXQ 
+ *        HTTA OM   HTTA OM
+ *        EOOR SS   EOOR SS
+ * The LSB of EMASK selects errors for which warning messages are
+ * issued.  The MSB of EMASK selects conditions for which errors are
+ * indicated in the return code.
+ * SHE = MBCD summary hardware errors
+ * STO = MBCD software timeout
+ * CTO = camac crate hardware timeout
+ * BAR = did not terminate on exhausted wordcount
+ * EOS = did not terminate on end-of-scan (most significant counter overflow)
+ * EMS = did not terminate on end-of-mode (xm2/qm2 conditions)
+ * X   = no x reponse; camac crate didn't like command
+ * Q   = no q response; camac crate couldn't execute command
+ */
+#define EMASK_HI_SHE 0x8000
+#define EMASK_HI_STO 0x4000
+#define EMASK_HI_CTO 0x2000
+#define EMASK_HI_BAR 0x1000
+#define EMASK_HI_EOS 0x0800
+#define EMASK_HI_EMS 0x0400
+#define EMASK_HI_X   0x0200
+#define EMASK_HI_Q   0x0100
+#define EMASK_LO_SHE 0x0080
+#define EMASK_LO_STO 0x0040
+#define EMASK_LO_CTO 0x0020
+#define EMASK_LO_BAR 0x0010
+#define EMASK_LO_EOS 0x0008
+#define EMASK_LO_EMS 0x0004
+#define EMASK_LO_X   0x0002
+#define EMASK_LO_Q   0x0001
+
+/* bit combinations commonly used */
+/* mgnt code only err_sends and returns SHE, STO, and CTO errors */
+
+#define EMASK_MGNT EMASK_HI_SHE|EMASK_HI_STO|EMASK_HI_CTO|EMASK_LO_SHE|EMASK_LO_STO|EMASK_LO_CTO
+#define EMASK_NOX_NOQ   EMASK_LO_X | EMASK_LO_Q | EMASK_HI_X | EMASK_HI_Q
+#define EMASK_TERMINATE EMASK_MGNT | EMASK_LO_BAR | EMASK_HI_BAR
+
+/* err_sends cannot be done for the fast feedback tasks but
+ * the return should be the same as for the magnet code.
+ */ 
+#define EMASK_FACT EMASK_HI_SHE|EMASK_HI_STO|EMASK_HI_CTO
+#define EMASK_MES_CHAN  EMASK_HI_SHE|EMASK_HI_STO|EMASK_HI_CTO
+#define EMASK_MES_READ  EMASK_MES_CHAN|EMASK_HI_Q 
+
+
+/* 
+ * crate limits
+*/
+#define MIN_CRATE_ADR    1        /* minimum crate address                  */
+#define MAX_CRATE_ADR   15        /* maximum crate address                  */
+#define MAX_CRATE_SLOT  25        /* maximum crate slot number              */
+#define MIN_CRATE_SLOT   1        /* minimum crate slot number              */
+
+/* The following masks are used to test for an untriggered condition in a PAU,
+   and to zero out the low order byte of the data in a SAM or PAU.           */
+
+#define CAMAC_PAU_NOTRIG 0x00010000
+#define CAMAC_SAM_NODATA 0xFFFFFF00
+
+
+/*
+ * ---------------------------------------------------------------
+ * camac control block structure
+ *     - one of these is at the start of every camac package
+ *     - note that the timing job uses spare2 and spare3.
+ */
+typedef struct
+{
+    int2u key;         /* the literal "FR" */
+    int2u nops;        /* max number of packets to follow */
+    int2u iop;         /* actual number of packets */
+    int2u tbytes;      /* approx. max bytecount for this package */
+    int2u spare1;
+    int2u bit_summary; /* either P8 or RE_PACK, see ctlw? */
+    int2u spare2;
+    int2u spare3;
+} camac_ctlb_ts;
+
+
+/*
+ * ---------------------------------------------------------------
+ * camac status/data area layout
+ *     - used to send and receive data from camac I/O
+ *     - used to receive I/O completion status from camac operation
+ *     - the stat field is set using the above STAT_* bits.
+ *     - that data field can be arbitrarily long (in bytes).
+ */
+typedef struct
+{
+    int4u  stat;
+    int2u  data[1];
+} camac_statdata_ts;
+
+/*
+ * ---------------------------------------------------------------
+ *     - the measurement task needs one of these with a 4-byte field - 
+ *       for easier looking at in the debugger
+ */
+ 
+typedef struct
+{
+    int4u  stat;
+    int4u  data;
+} camac_longdata_ts;
+
+
+/*
+ * ---------------------------------------------------------------
+ * camac packet structure
+ *     - an arbitrary number of these may be present in a camac package
+ *     - the ctlw field is set using the above CTLW_* bits.
+ */
+typedef struct
+{
+    int4u              ctlw;
+    camac_statdata_ts *statdata;
+    int2u              wc_max;    /* max number of words in this pkt */
+    int2u              cic;       /* completion interrupt code, must be 0 */
+} camac_pkt_ts;
+
+/*
+ * ---------------------------------------------------------------
+ * camac package structure as sent to CAMGO
+ *    - only one control_block per package.
+ *    - as many packets as camac operations to be submitted.
+ *    - as many emasks as there are packets, following the last packet
+ *      in the package, but that's not shown here because I didn't want
+ *      to hardware in a number of packets after which the emasks came.
+ */
+typedef struct
+{
+    camac_ctlb_ts  control_block;
+    camac_pkt_ts   packet;
+} camac_pkg_ts;
+
+
+#endif

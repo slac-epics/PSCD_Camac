@@ -1,0 +1,12 @@
+# provide definitions such as
+# Include external dbds if required
+#device(ai,		VME_IO,devAiIDIM,"IDIM")
+#device(ao,		VME_IO,devAoIDIM,"IDIM")
+#device(bo,		VME_IO,devBoIDIM,"IDIM")
+#device(longin,		VME_IO,devLiIDIM,"IDIM")
+#device(longout,	VME_IO,devLoIDIM,"IDIM")
+device(mbbiDirect,	VME_IO,devMiDIDIM,"IDIM")
+#device(waveform,	VME_IO,devWfIDIM,"IDIM")
+
+#registrar(myRegistrar)
+#variable(myVariable)

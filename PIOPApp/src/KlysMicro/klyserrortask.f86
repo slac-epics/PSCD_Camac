@@ -1,0 +1,422 @@
+$ LARGE(FTN_RTL EXPORTS TQ_001, INITFP)
+$ COMPACT
+        SUBROUTINE KLYSERROR_TASK                           
+C
+C   **MEMBER**=SLCRMX:KLYSLIB
+C   **CMS**=RMX_KLYS
+C   **ONLY**=80386
+C
+C=======================================================================
+C
+C Reads the Message Word from all the PIOP's (KLYS's and SBST's)
+C controlled by the micro.
+C
+C If a valid message is found, the routine checks HSTA to verify
+C that the unit is online (HSTA_GOOD).
+C
+C Calls PIOP_ERR to translate the message to our std VAX/VMS 
+C format, err_send's it, and puts the single character mnemonic in
+C the data base.
+C
+C-----------------------------------------------------------------------
+C
+C Modifications:
+C
+C       19-DEC-1988, M. Flores
+C          Change use of PIOP_STATION_FAULT as the summary code to use
+C          PIOP_ERRORS, which seems more appropriate.
+C
+C       07-DEC-1988, M. Flores
+C          Fix ERR_METER_SET call to specify a valid error code,
+C          PIOP_STATION_FAULT, as the summary error code.
+C
+C       00-FEB-1988, M. Flores
+C          Fix KERR mneumonic aging bug.
+C
+C       00-JAN-1988, RKJ
+C          Initialization problem in SBI CAMAC fixed.
+C
+C       00-JAN-1988, RKJ
+C          Non-structural changes -- code cleanup and comment 
+C          additions.  
+C
+C       00-JUN-1987, M. Flores
+C          Added KERR mnemonic stuff.
+C
+C       00-MAY-1987, RKJ
+C          Added KLYS_LOCK.
+C
+C       00-JUN-1984, KAT
+C          Restructure KLYSUNITS common block.
+C
+C=======================================================================
+ 
+        IMPLICIT NONE
+ 
+$ NOLIST INCLUDE (SLCRMXI:CTLWBITS.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:KLYSDATA.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:PIOPDEF.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:KLYSDEF.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:KDBDEF.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:KLYSTATUS.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:KLYSUNITS.INC)
+$ LIST
+$ NOLIST INCLUDE (SLCRMXI:MISCGLOBL.INC)
+$ LIST
+ 
+        LOGICAL UPDATE_KLYSUNITS_FLAG, Debug
+        DATA    Debug/.false./
+ 
+        Integer*2 SLEEP_INTERVAL, NUM_PIOPs, NUM_SBIs, CAM_PTR(2)
+        DATA      SLEEP_INTERVAL /150/
+
+        INTEGER*4 CTLW, PIOP_ERR, DATA, DBPUT
+                                                    
+        INTEGER*2 I, JJ, NUM_ELEMENTS, IW,
+     >            KERR_COUNT(MAX_UNITS),
+     >            RECENT_MAX,      KERR_MAX,       PASS_NUMBER
+        DATA      RECENT_MAX /40/, KERR_MAX /200/, PASS_NUMBER /0/
+C
+C The following are really I*4, but we do not use the high word, so...
+C
+        LOGICAL   CAMGO, CAM_ILL
+
+        INTEGER*4 ISS
+        LOGICAL   ILL
+        EQUIVALENCE (ISS, ILL)
+
+        LOGICAL
+     >          IS_A_PIOP,
+     >          DBPUT_FLAG,
+     >          CAMAC_IS_OK
+ 
+        DATA DBPUT_FLAG /.FALSE./
+C
+C The most we will scan through is one SET of camac modules per unit.
+C
+        INTEGER*2    MAX_CAM_PKTS
+        PARAMETER   (MAX_CAM_PKTS=MAX_UNITS+MAX_UNITS)
+
+        INTEGER*2 
+     >               STAT_DATA(3,MAX_CAM_PKTS),
+     >               CRATE_NUM(MAX_CAM_PKTS), 
+     >               CamPkt_to_KSD(MAX_CAM_PKTS)
+C
+C KERR mneumonic related variables.
+C
+        LOGICAL      NEW_ERROR
+
+        INTEGER*1    KERR_MNEMONIC
+
+        INTEGER*1    KERR_DB1(4,MAX_UNITS)
+        INTEGER*4    KERR_DB4(MAX_UNITS)
+        EQUIVALENCE (KERR_DB1, KERR_DB4)
+
+        INTEGER*4    KERR_OLD4
+
+        INTEGER*4    KLIST_4
+        INTEGER*2    KLIST(4)
+        EQUIVALENCE (KLIST(3), KLIST_4)
+        DATA         KLIST /4,2,0,0/
+
+        INTEGER*4    MSG_SYMBOL
+        INTEGER*1    MSG_SYMBOL_1(4)
+        LOGICAL      MSG_SYMBOL_L
+        EQUIVALENCE (MSG_SYMBOL, MSG_SYMBOL_1, MSG_SYMBOL_L)
+C
+C We need a "VMS error" code.  We are filtering errors by unit, and 
+C VMS facility.
+C
+        INTEGER*4    METER_CODE_4 
+        INTEGER*2    METER_CODE_2(2)
+        EQUIVALENCE (METER_CODE_4,METER_CODE_2)
+        DATA METER_CODE_2(2)/PIOP_FACILITY/
+C
+C=======================================================================
+C
+C Since this is destine as a sub-task, we need to initialize the
+C iRMX resources.
+
+        CALL INITFP
+        Call TQ_001
+        Call SETEXCEPT
+C
+C Grab a mutex lock.
+C
+        CALL KLYS_LOCK
+C
+C Find out how many declared PIOPs and SBIs there are so we can 
+C allocate resources.  Keep track of the index into the KSD structure,
+C so we can skim through the packets, knowing who we are talking about.
+C
+        JJ = 0
+        DO 990 I = 1, NUM_UNITS
+           IF (KSD_PLOC(I).NE.0) THEN
+              JJ=JJ+1
+              CamPkt_to_KSD(JJ) = I
+           ENDIF
+990     CONTINUE
+        NUM_PIOPs = JJ
+
+        DO 991 I = 1, NUM_UNITS
+           IF (KSD_SLOC(I).NE.0) THEN
+              JJ=JJ+1
+              CamPkt_to_KSD(JJ) = I
+           ENDIF
+991     CONTINUE
+        NUM_SBIs = JJ - NUM_PIOPs
+C
+C Set up the CAMAC packet.  No errors signaled!  There are two packets,
+C one including the SBI reads.  We will use the latter at a lower rate
+C than the former.
+C
+        CALL CAMALO(SELF,NUM_PIOPs,CAM_PTR(1))
+        CALL CAMALO(SELF,NUM_PIOPs+NUM_SBIs,CAM_PTR(2))
+C
+C For all PLOC's, build up a packet.
+C
+        DO 1, I=1, NUM_PIOPs
+           JJ = CamPkt_to_KSD(I)
+           CTLW = KSD_PLOC(JJ) .OR. A2 .OR. A1 .OR. F2              
+           CALL CAMADD(CTLW, STAT_DATA(1,I), 2, 0, CAM_PTR(1)) 
+           CALL CAMADD(CTLW, STAT_DATA(1,I), 2, 0, CAM_PTR(2)) 
+           CRATE_NUM(I) = (CTLW/C1) .and. 15
+1       CONTINUE
+C
+C For all SLOC's build up a packet.  Index from where we left off above.
+C
+        DO 2, I = NUM_PIOPs+1, NUM_PIOPs+NUM_SBIs
+           JJ = CamPkt_to_KSD(I)
+           CTLW = KSD_SLOC(JJ) .OR. A1
+           CALL CAMADD(CTLW, STAT_DATA(1,I), 2, 0, CAM_PTR(2))
+           CRATE_NUM(I) = (CTLW/C1) .and. 15
+2       CONTINUE
+C
+C For all units initialize the data base KERRs to spaces.
+C
+        DO 3, I=1, NUM_PIOPs
+           JJ = CamPkt_to_KSD(I)
+           KERR_DB4(I) = #20202020H
+           KLIST_4  = #20202020H
+           ISS = DBPUT( KLIST, 
+     >                  KSD_PRIMS(JJ),
+     >                  SELF,
+     >                  KSD_UNITS(JJ),
+     >                  KDB_KERR)
+           IF (.NOT. ILL) THEN
+              CALL ERR_GLOBAL2(KLYS_FATAL, 4HDBPU, 4HT   )
+              GOTO 9999
+           ENDIF
+3       CONTINUE
+
+        CALL MICRO_DBSEND(0)
+C
+C Set up metering of errors.
+C
+        CALL ERR_METER_SET(4HCATN, METER_CODE_4, 5, 20, 5,
+     >                     PIOP_ERRORS, 'PIOP unit')
+C 
+C=======================================================================
+C
+
+1023    CONTINUE
+
+* -- Release our MUTEX
+
+        CALL KLYS_UNLOCK
+
+* -- start of loop.  Sleep for 1.5 seconds each time        
+
+        CALL RQSLEEP(%VAL(SLEEP_INTERVAL), IW)
+
+* -- Get the MUTEX
+
+        CALL KLYS_LOCK
+
+* -- debug option
+        If (Debug) then
+           CALL ERR_METER_CANCEL(4HCATN, METER_CODE_4)
+        Endif
+ 
+* -- count to infinenity.
+
+        PASS_NUMBER = PASS_NUMBER + 1
+
+* -- blindly call CAMGO.  Call smart version (incl. SBIs) occasionally
+
+        IF ((PASS_NUMBER.AND.63).EQ.0) THEN
+           CAM_ILL = CAMGO(CAM_PTR(2))
+           NUM_ELEMENTS = NUM_PIOPs + NUM_SBIs
+        ELSE
+           CAM_ILL = CAMGO(CAM_PTR(1))
+           NUM_ELEMENTS = NUM_PIOPs
+        ENDIF
+
+* -- fail hard if there is a CAMAC error
+        IF (.NOT. CAM_ILL) THEN
+           CALL ERR_GLOBAL2(KLYS_FATAL, 4HCAMG, 4HO   )
+           GOTO 9999
+        ENDIF
+ 
+* -- set a UPDATE_KLYSUNITS_FLAG to remember to get the HSTA's
+        UPDATE_KLYSUNITS_FLAG = .TRUE.
+
+* -- loop and find errors
+        DO 10, I=1, NUM_ELEMENTS
+
+            JJ = CamPkt_to_KSD(I)
+
+            IS_A_PIOP = I.LE.NUM_PIOPs
+
+            IF (IS_A_PIOP) THEN
+               KERR_MNEMONIC = KERR_DB1(1,I)
+               NEW_ERROR = .FALSE.
+            ENDIF
+
+* -- look for Q, X, BAR, crate online
+            CAMAC_IS_OK = 
+     >           (((STAT_DATA(2,I) .AND. #003FH) .EQ. #0013H) .and.
+     >           CRATE_STAT_LOG(CRATE_NUM(I)) )
+
+            IF (.NOT. CAMAC_IS_OK) GOTO 8
+
+* SBI error bit test
+            IF ((.NOT. IS_A_PIOP) .AND.
+     >          ((STAT_DATA(3,I).AND.8).EQ.0) ) GOTO 8
+
+* -- message found, update STAT's and HSTA's
+            IF (UPDATE_KLYSUNITS_FLAG) THEN
+               UPDATE_KLYSUNITS_FLAG = .false.
+               CALL UPDATEKLYSUNITS(2+4)
+            Endif
+
+* -- signal the message if the STAT and HSTA support it
+            IF (
+     >         ((KSD_HSTA(I) .AND. HSTA_GOOD) .NE. 0) .and.
+     >         ((KSD_STAT(I).AND.(stat_ipl+stat_badcamac)).EQ.0)
+     >         )  THEN
+
+* -- translate the message to VMS and single character mnemonic
+               IF (IS_A_PIOP) THEN
+                  MSG_SYMBOL = PIOP_ERR(
+     >                                  STAT_DATA(3,I),
+     >                                  KERR_MNEMONIC)
+                  NEW_ERROR = .TRUE.
+               ELSE
+                  MSG_SYMBOL = PIOP_SBI_STANDBY
+                  STAT_DATA(3,I) = 0
+               ENDIF
+
+* -- Some codes translate to no-actions
+               IF ( MSG_SYMBOL_L .OR.
+     >             ((MSG_SYMBOL_1(4).AND.#80H) .NE. 0) ) THEN
+*                 (do nothing)
+
+* -- trap the undefined PIOP message and 
+*    normal PIOP message with data 
+               ELSEIF ((MSG_SYMBOL .EQ. PIOP_UNDEFINEDMSG) .OR.
+     >                 ((STAT_DATA(3,I) .AND. #8000H) .NE. 0) ) THEN
+
+                  IF (MSG_SYMBOL .EQ. PIOP_UNDEFINEDMSG) THEN
+                     DATA = STAT_DATA(3,I) .AND. #0000FFFFH
+                  ELSE
+                     DATA = STAT_DATA(3,I) .AND. #00FFH
+                  ENDIF
+
+                  CALL ERR_METER(MSG_SYMBOL,
+     >                          METER_CODE_2(2), 
+     >                          KSD_UNITS(JJ),
+     >                          KSD_PRIM_NAME(JJ), 
+     >                          KSD_UNIT_NAME(JJ), 
+     >                          DATA, 
+     >                          3 )
+
+* -- normal PIOP message w/o data
+               ELSE
+                  CALL ERR_METER(
+     >                          MSG_SYMBOL,
+     >                          METER_CODE_2(2), 
+     >                          KSD_UNITS(JJ),
+     >                          KSD_PRIM_NAME(JJ), 
+     >                          KSD_UNIT_NAME(JJ), 
+     >                          2 )  
+               ENDIF
+            ENDIF
+
+8           CONTINUE
+* -- Wonders -- we are done with the SBI scan.  Goto the end
+
+            IF (.NOT. IS_A_PIOP) THEN
+               GOTO 10
+            ENDIF
+
+* -- Start processing the fault mnemonic
+
+*    Save the database mnemonic for a while.  If changed, we put it back.
+
+            KERR_OLD4 = KERR_DB4(I)
+
+* -- assign the new error to the recent field, and if it is not a clear,
+*    to the historic field for later.  While it looks like this is not
+*    needed because of the NEW_ERROR flag, it should remain in case the
+*    PIOP decides to send back a 'space', indicating no more faults.
+
+            KERR_DB1(1,I) = KERR_MNEMONIC
+
+            IF (NEW_ERROR) THEN
+               KERR_DB1(2,I) = KERR_MNEMONIC
+*    reset the KERR counter to 0 to start a new countup for aging errors
+               KERR_COUNT(I) = 0
+            ENDIF
+
+* -- increment the counters for KERR
+            KERR_COUNT(I) = MIN0(KERR_COUNT(I)+1, KERR_MAX)
+
+* -- after a while, the errors are no longer recent, the historic field
+*    remains unchanged for longer
+            IF (KERR_COUNT(I) .EQ. RECENT_MAX) THEN 
+               KERR_DB1(1,I) = #20H
+            ELSEIF (KERR_COUNT(I) .EQ. KERR_MAX) THEN
+               KERR_DB1(2,I) = #20H
+            ENDIF
+
+* -- if there has been a change, update the data base
+            IF (KERR_OLD4 .NE. KERR_DB4(I)) THEN
+               KLIST_4 = KERR_DB4(I)
+               ISS = DBPUT( KLIST, 
+     >                      KSD_PRIMS(JJ), 
+     >                      SELF,   
+     >                      KSD_UNITS(JJ), 
+     >                      KDB_KERR)
+               IF (.NOT. ILL) THEN
+                  CALL ERR_GLOBAL2(KLYS_FATAL, 4HDBPU, 4HT   )
+                  GOTO 9999
+               ENDIF
+            ENDIF
+
+10      CONTINUE
+
+* -- Put the stuff into the database.  Mdbs returns fast.
+
+        IF (DBPUT_FLAG) THEN
+           Call MICRO_DBSEND(0)
+        ENDIF
+
+*** END OF LOOP ***
+
+        GOTO 1023
+
+* -- FAILURE! 
+ 
+9999    CONTINUE
+        CALL KLYS_UNLOCK
+        CALL RQSUSPENDTASK(%VAL(0), IW)
+
+        END
+                                                                                                                                                                                                                                                                                                                                                                                                                                                   
