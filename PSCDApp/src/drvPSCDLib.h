@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* $Id: drvPSCDLib.h,v 1.5 2008/03/24 01:44:28 laser Exp $           */
+/* $Id: drvPSCDLib.h,v 1.1.1.1 2009/02/12 20:08:57 pengs Exp $           */
 /* This file defines the internal hw/sw struct of PSCD module        */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847         */
 /*********************************************************************/
@@ -70,6 +70,10 @@ typedef struct PSCD_CARD
 typedef struct PSCD_CARD * PSCD_ID;
 
 int pscdCreate(unsigned int portMap0, unsigned int portMap1);
+
+#define MEMPARTADRS_TO_SIO(addr)        ((int)((char *)(addr)-(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)-0x100000))
+#define SIO_TO_MEMPARTADRS(addr)        ((int)((char *)(addr)+(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)+0x100000))
+
 #ifdef __cplusplus
 }
 #endif  /* __cplusplus */

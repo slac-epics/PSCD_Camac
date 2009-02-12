@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* $Id: drvPSCD.h,v 1.5 2008/03/24 01:44:28 laser Exp $              */
+/* $Id: drvPSCD.h,v 1.1.1.1 2009/02/12 20:08:57 pengs Exp $              */
 /* This file defines the internal hw/sw struct of PSCD module        */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847         */
 /*********************************************************************/
@@ -75,8 +75,6 @@ extern "C" {
 #define PSCD_SETREG(offset,value)	PSCD_MEM_PUTL(pscd_card.pciHeader.pciBaseAddr[(offset)>>28].pUserVirtualAddr+((offset)&0x0fffffff), (value))
 #define PSCD_GETREG(offset)		PSCD_MEM_GETL(pscd_card.pciHeader.pciBaseAddr[(offset)>>28].pUserVirtualAddr+((offset)&0x0fffffff))
 
-#define MEMPARTADRS_TO_SIO(addr)        ((int)((char *)(addr)-(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)-0x100000))
-#define SIO_TO_MEMPARTADRS(addr)        ((int)((char *)(addr)+(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)+0x100000))
 
 #ifdef __cplusplus
 }
