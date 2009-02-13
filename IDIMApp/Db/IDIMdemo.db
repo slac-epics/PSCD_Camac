@@ -1,14 +1,14 @@
 record(mbbiDirect, "PSCD:DIM:LOW") {
   field(DESC, "DIM low 16bits")
   field(SCAN, "1 second")
-  field(DTYP, "PSCD")
+  field(DTYP, "IDIM")
   field(INP,  "#C0 S0 @DIMLO")
 }
 
 record(mbbiDirect, "PSCD:DIM:HIGH") {
   field(DESC, "DIM high 16bits")
   field(SCAN, "1 second")
-  field(DTYP, "PSCD")
+  field(DTYP, "IDIM")
   field(INP,  "#C0 S0 @DIMHI")
 }
 
