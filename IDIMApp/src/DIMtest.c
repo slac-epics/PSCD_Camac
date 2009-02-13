@@ -33,8 +33,8 @@ void DIMtest (void)
   if (!SUCCESS(iss = camadd (&dimctlw, &dim_s, &bcnt, &emask, &pkg_p)))
     goto egress;
 
-  for (j=0; j<1; j++)
-  /* while(1)*/
+  /*for (j=0; j<1; j++)*/
+  while(1)
   {
     dim_s.stat = 0xABCDEF89;
     dim_s.data = 0x12345678;
