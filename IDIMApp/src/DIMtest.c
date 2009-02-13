@@ -36,8 +36,8 @@ void DIMtest (void)
   /*for (j=0; j<1; j++)*/
   while(1)
   {
-    dim_s.stat = 0xABCDEF89;
-    dim_s.data = 0x12345678;
+    /*dim_s.stat = 0xABCDEF89;
+    dim_s.data = 0x12345678;*/
     if (!SUCCESS(iss = camgo (&pkg_p)))
     {
       printf("camgo error code %x stat word = %x\n",(unsigned int) iss, dim_s.stat);
