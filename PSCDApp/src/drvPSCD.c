@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.7 2008/03/24 01:46:44 laser Exp $         */
+/* $Id: drvPSCD.c,v 1.1.1.1 2009/02/12 20:08:57 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -10,14 +10,14 @@
 
 #include "drvPSCD.h"
 
-int     PSCD_DRV_DEBUG = 1;
+int     PSCD_DRV_DEBUG = 0;
 
 struct PSCD_CARD pscd_card;
 
 static int pscd_card_inited=0;
 
 static void pscdIsr(void * parg);
-static void pscdOpTask(void *parm);
+static void pscdOpTaskLow(void *parm);
 
 extern unsigned int cam_ini(struct PSCD_CARD *pPSCD);
 
@@ -132,10 +132,8 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
 		    (pscd_card.fwID>>24)&0xFF, (pscd_card.fwID>>16)&0xFF, (pscd_card.fwID>>8)&0xFF, pscd_card.fwID&0xFF,
 		    pscd_card.fwVer, pscd_card.fwDate);
 
-#if 0
     /* Create operation thread */
-    pscd_card.opTaskId = epicsThreadMustCreate("PSCD", epicsThreadPriorityHigh, 20480, pscdOpTask, (void *)index);
-#endif
+    pscd_card.opTaskId = epicsThreadMustCreate("PSCD_Poll", epicsThreadPriorityHigh, 20480, pscdOpTaskLow, (void *)index);
 
     /* Enable Interrupt */
     if(PSCD_DRV_DEBUG)
@@ -168,7 +166,9 @@ static void pscdIsr(void * parg)
 {
     int loopsio;
     unsigned int pscdIntStatus;
-    printk ("Entered ISR\n");
+
+    if(PSCD_DRV_DEBUG >=2) printk ("Entered ISR\n");
+
     if(!pscd_card.fwVer)
     {
         epicsInterruptContextMessage("pscdIsr: pscd board is not initialized yet!\n");
@@ -182,11 +182,16 @@ static void pscdIsr(void * parg)
 
     for(loopsio=0; loopsio<3; loopsio++)
     {
-	if(pscdIntStatus & (1<<loopsio))
+	if((pscdIntStatus & (1<<loopsio) && pscd_card.waitSemSio[loopsio]))
 	{
             epicsEventSignal(pscd_card.semSio[loopsio]);
-            /*epicsInterruptContextMessage("pscdIsr: pscd sio"(loopsio==0?"0":(loopsio==1?"1":"2"))"interrupt!\n");*/
-	    printk("pscdIsr: pscd sio %d interrupt!\n", loopsio);
+            if(PSCD_DRV_DEBUG >=2)
+	    {
+                epicsInterruptContextMessage("pscdIsr: pscd sio");
+		epicsInterruptContextMessage((loopsio==0?"0":(loopsio==1?"1":"2")));
+		epicsInterruptContextMessage("interrupt!\n");
+	        printk("pscdIsr: pscd sio %d interrupt!\n", loopsio);
+	    }
 	}
     }
 
@@ -223,7 +228,7 @@ static void pscdIsr(void * parg)
     return;
 }
 
-static void pscdOpTask(void *parm)
+static void pscdOpTaskLow(void *parm)
 {
 #if 0
     int index = (int)parm;      /* pscd index */
@@ -236,7 +241,7 @@ static void pscdOpTask(void *parm)
 
     if(index<0 || index>=MAX_NUM_PSCD || (!pscd_card.firmwareVer))
     {
-        errlogPrintf ("pscdOpTask: index %d is illegal!\n", index);
+        errlogPrintf ("pscdOpTaskLow: index %d is illegal!\n", index);
         return;
     }
 
@@ -298,8 +303,8 @@ static  long    PSCD_EPICS_Init();
 static  long    PSCD_EPICS_Report(int level);
 
 const struct drvet drvPSCD = {2,                              /*2 Table Entries */
-	                             (DRVSUPFUN) PSCD_EPICS_Report,      /* Driver Report Routine */
-				                                  (DRVSUPFUN) PSCD_EPICS_Init};       /* Driver Initialization Routine */
+                             (DRVSUPFUN) PSCD_EPICS_Report,      /* Driver Report Routine */
+                             (DRVSUPFUN) PSCD_EPICS_Init};       /* Driver Initialization Routine */
 
 #if     EPICS_VERSION>=3 && EPICS_REVISION>=14
 epicsExportAddress(drvet,drvPSCD);
@@ -308,12 +313,13 @@ epicsExportAddress(drvet,drvPSCD);
 /* implementation */
 static long PSCD_EPICS_Init()
 {
-	    return  0;
+    return  0;
 }
 
 static long PSCD_EPICS_Report(int level)
 {
-	    printf("\n"PSCD_DRV_VERSION"\n\n");
-	        return 0;
+    printf("\n"PSCD_DRV_VERSION"\n\n");
+    if(level) epicsPciHeaderInfo(&(pscd_card.pciHeader));
+    return 0;
 }
 
