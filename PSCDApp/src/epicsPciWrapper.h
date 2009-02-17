@@ -31,6 +31,7 @@
 #include <libcpu/io.h>
 #include <libcpu/byteorder.h>
 #include <sys/systm.h>
+#include <rtems/bspIo.h>	/* TODO, add vxWorks declaration for printk */
 #include <rtems/rtems/region.h>	/* for memory partition. TODO, add vxWorks declaration and epics common macro */
 #define HANDLE int
 #define DIRHANDLE int

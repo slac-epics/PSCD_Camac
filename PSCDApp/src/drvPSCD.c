@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.1.1.1 2009/02/12 20:08:57 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.2 2009/02/17 18:03:39 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -103,7 +103,7 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
     if(PSCD_DRV_DEBUG)
     {/* test memory region */
 	char * segment_p;
-        rtems_region_get_segment(pscd_card.memPartId, 256, RTEMS_WAIT, 2, &segment_p);
+        rtems_region_get_segment(pscd_card.memPartId, 256, RTEMS_WAIT, 2, (void *)&segment_p);
 	printf("Get a segment %p, SIO 0x%x\n", segment_p, MEMPARTADRS_TO_SIO(segment_p));
     }
 
