@@ -16,7 +16,8 @@ LIBRARY_IOC_RTEMS += SAM
 DBD += SAM.dbd
 
 # specify all source files to be compiled and added to the library
-#SAM_SRCS += xxx
+SAM_SRCS += drvSAM.c
+SAM_SRCS += devSAM.c
 
 SAM_LIBS += $(EPICS_BASE_IOC_LIBS)
 

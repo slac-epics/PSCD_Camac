@@ -1,12 +1,11 @@
-# provide definitions such as
 # Include external dbds if required
-#device(ai,		VME_IO,devAiPSCD,"PSCD")
-#device(ao,		VME_IO,devAoPSCD,"PSCD")
-#device(bo,		VME_IO,devBoPSCD,"PSCD")
-#device(longin,		VME_IO,devLiPSCD,"PSCD")
-#device(longout,		VME_IO,devLoPSCD,"PSCD")
-#device(mbbiDirect,	VME_IO,devMiDPSCD,"PSCD")
-#device(waveform,	VME_IO,devWfPSCD,"PSCD")
-
+device(ai,		CAMAC_IO,devAiSAM,"SAM")
+#device(ao,		CAMAC_IO,devAoSAM,"SAM")
+device(bo,		CAMAC_IO,devBoSAM,"SAM")
+#device(longin,		CAMAC_IO,devLiSAM,"SAM")
+#device(longout,	CAMAC_IO,devLoSAM,"SAM")
+#device(mbbiDirect,	CAMAC_IO,devMiDSAM,"SAM")
+#device(waveform,	CAMAC_IO,devWfSAM,"SAM")
+driver(drvSAM)
 #registrar(myRegistrar)
 #variable(myVariable)
