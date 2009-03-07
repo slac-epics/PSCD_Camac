@@ -1,0 +1,24 @@
+record(ai, "$(RECNAME)") {
+  field(DESC, "SAM Input")
+  field(SCAN, "$SCAN")
+  field(DTYP, "SAM")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F$(FUNC) A$(ADDR)@DATA")
+  field(PREC, "3")
+  field(EGUF, "$(EGUF)")
+  field(EGUL, "$(EGUL)")
+  field(HOPR, "$(EGUF)")
+  field(LOPR, "$(EGUL)")
+  field(ADEL, "$(ADEL)")
+  field(MDEL, "$(MDEL)")
+  field(HIHI, "$(HIHI)")
+  field(HIGH, "$(HIGH)")
+  field(LOW,  "$(LOW)")
+  field(LOLO, "$(LOLO)")
+  field(EGU,  "$(EGU)")
+  field(HHSV, "MAJOR")
+  field(HSV,  "MINOR")
+  field(LSV,  "MINOR")
+  field(LLSV, "MAJOR")
+}
+
+
