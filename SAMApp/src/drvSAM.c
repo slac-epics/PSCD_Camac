@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.1 2009/03/03 08:16:34 pengs Exp $
+ *   $Id: drvSAM.c,v 1.2 2009/03/08 06:28:40 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -33,11 +33,11 @@ static SAM_MODULE * findSAMModuleByBCN(short b, short c, short n)
 
     for( pSAMModule = (SAM_MODULE *)ellFirst(&SAMModuleList); pSAMModule; pSAMModule = (SAM_MODULE *)ellNext((ELLNODE *)pSAMModule) )
     {
-        if(pSAMModule->b == b)
+        /* if(pSAMModule->b == b) */
         {
-            if(pSAMModule->c == c)
+            if(pSAMModule->c == (c&0xF))
             {
-                if(pSAMModule->n == n) return pSAMModule;
+                if(pSAMModule->n == (n&0x1F)) return pSAMModule;
             }
         }
     }
@@ -90,40 +90,44 @@ typedef struct STAS_DAT
 /* This function tries to reset SAM module */
 /* It will read firmware version, set float value format, set normal mode as well */
 /* It assumes b,c,n of pSAMModule is valid */
-/* It will set fwVer, maybe camacPreMsg */
+/* It will set fwVer */
 /* Return 0 means succeed, otherwise error code */
-static int SAM_Reset(SAM_MODULE * pSAMModule)
+static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
 {/* This function is not thread-safe, but only used in one thread per system */
+
+    if(!pSAMModule) return -1;
+
     /* check if module exists */
     if(isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
     {/* b (Branch) is not used in SLAC system, a is not needed for SAM either */
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
 
-        UINT32 samctlw = 0x04095800;
+        UINT32 samctlw = 0x0;
         UINT32 samstatdata[2] = {0,0x12345678};
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
         if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
-            return SAM_CAM_INIT_FAIL;
+            return (SAM_CAM_INIT_FAIL|iss);
 
         /* F9 to reset */
-        /* samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) | 0x04000000; */ /* 24-bit packed mode */;
+        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) | 0x04000000; /* 24-bit packed mode */;
+        /* samctlw = 0x04095800; */
         if (!SUCCESS(iss = camio (NULL, &samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
         {
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
-            return SAM_RST_CAMIO_FAIL;
+            return (SAM_RST_CAMIO_FAIL|iss);
         }
 
         /* F16 to set module to know mode */
-        /* samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) | 0x04000000; */ /* 24-bit packed mode */;
-        samctlw = 0x04105800;
-        samstatdata[2] = {0,0x00000004}; /* 100b, IEEE, normal mode, no read firmware version, TODO */
+        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (16 << 16) | 0x04000000; /* 24-bit packed mode */;
+        /* samctlw = 0x04105800; */
+        samstatdata[1] = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version, TODO */
         if (!SUCCESS(iss = camio (NULL, &samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
         {
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
-            return SAM_SETUP_CAMIO_FAIL;
+            return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
         return 0;
@@ -135,93 +139,80 @@ static int SAM_Reset(SAM_MODULE * pSAMModule)
 /* This function tries to read SAM module */
 /* It assumes b,c,n of pSAMModule is valid */
 /* Return 0 means succeed, otherwise error code */
-static int SAM_Read(SAM_MODULE * pSAMModule)
-{
+static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
+{/* This function is not thread safe, but only used in one thread */
+
+    UINT32 rtn = 0;
+
+    if(!pSAMModule) return -1;
+
     /* check if module exists */
     if(isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
     {
+        unsigned int loop;
+
+        void *pkg_p;  /* A camac package */
+        vmsstat_t iss;
+        UINT16 bcnt = 4;
+        UINT16 emask= 0xE0E0;
+
+        UINT32 ctlwF17 = 0x04115080;
+        UINT32 ctlwF0 = 0x04005800;
+
+        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
+        UINT16 nops;
+
         if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
-            return SAM_CAM_INIT_FAIL;
+            return (SAM_CAM_INIT_FAIL|iss);
 
-        UINT16 nops = pSAMModule->numChannels + 1;
-        STAS_DAT read_s[SAM_NUM_OF_CHANNELS];
+        nops = 2 * pSAMModule->numChannels + 1;
  
-  unsigned long ctlww = 0x04145080;
-  unsigned long ctlwr = 0x04005100;
-  unsigned int j;
+        /** Allocate package for SAM reset */
+        if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
+            return (SAM_CAM_ALLOC_FAIL|iss);
 
-    /** Allocate package for SAM reset */
-    if (!SUCCESS(iss = camalo (NULL, &nops, &pkg_p)))
-        return SAM_CAM_INIT_FAIL;
+        ctlwF17 = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (17 << 16) | 0x04000000; /* 24-bit packed mode */;
+        read_sam[0].data = pSAMModule->startChannel;
+        if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
+        {
+            rtn = (SAM_CAM_ADD_FAIL|iss);
+            goto egress;
+        }
 
-  for (j=0; j<NWRITES; j++)
-  {
-    if (!SUCCESS(iss = camadd (&ctlww, &write_s[j], &bcnt, &emask, &pkg_p)))
-      goto egress;
-    if (!SUCCESS(iss = camadd (&ctlwr, &read_s[j],  &bcnt, &emask, &pkg_p)))
-      goto egress;
-  }
+        ctlwF0 = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (0 << 16) | 0x04000000; /* 24-bit packed mode */;
+        for (loop=0; loop < (2 * pSAMModule->numChannels); loop++)
+        {
+            if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
+            {
+                rtn = (SAM_CAM_ADD_FAIL|iss);
+                goto egress;
+            }
+        }
 
-    for  (k=0; k<NWRITES; k++)
-    {
-      read_s[k].stat = 0;
-      read_s[k].indat = 0xFCFCFCFC;
-      write_s[k].stat = 0;
-      write_s[k].outdat += k;
-    }
+        if (!SUCCESS(iss = camgo (&pkg_p)))
+        {
+            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_GO_FAIL|iss);
+            goto egress;
+        }
 
-    if (!SUCCESS(iss = camgo (&pkg_p)))
-    {
-      printf("camgo error %x\n",(unsigned int) iss);
-    }
-    
-    for (k=0; k<NWRITES; k++)
-    {
-      if (read_s[k].indat != write_s[k].outdat)
-        printf ("Data mismatch for iter %d index %d outdat = %x indat = %x instat = %x\n",
-                j, k, write_s[k].outdat, read_s[k].indat, read_s[k].stat);
-    }
-  
-  if (!SUCCESS(iss = camdel (&pkg_p)))
-    goto egress;
-  /*
-  ** Do camio for DIM read
-  */
 
-egress:
-  return;
-  void *pkg_p;  /* A camac package */
-  vmsstat_t iss;
-  int j;
-  unsigned short nops = 1;
-  unsigned long dimctlw = 0x00205200; /* F0 A0 crate 5 slot 4 */
-  unsigned short bcnt = 4;
-  unsigned short emask= 0xE0E0;
+        for (loop=0; loop < pSAMModule->numChannels; loop++)
+        {
+            UINT32 tempI;
+            float tempF;
+            tempI = (read_sam[loop*2].data) | (read_sam[loop*2+1].data << 16);
+            tempF = *(float *) &tempI;
+        }
+ 
+egress: 
+        epicsTimeGetCurrent(&(pSAMModule->lastReadTime)); 
+        pSAMModule->lastErrCode = rtn;
 
-  /*
-  ** Allocate package for DIM read
-  */
+        if (!SUCCESS(iss = camdel (&pkg_p)))
+            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
 
-  if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
-    goto egress;
-  if (!SUCCESS(iss = camadd (&dimctlw, &dim_s, &bcnt, &emask, &pkg_p)))
-    goto egress;
-
-  /*for (j=0; j<1; j++)*/
-  while(1)
-  {
-    /*dim_s.stat = 0xABCDEF89;
-    dim_s.data = 0x12345678;*/
-    if (!SUCCESS(iss = camgo (&pkg_p)))
-    {
-      printf("camgo error code %x stat word = %x\n",(unsigned int) iss, dim_s.stat);
-    }
-    printf ("Stat = %x Data = %x\n",dim_s.stat, dim_s.data);
-  }
-  if (!SUCCESS(iss = camdel (&pkg_p)))
-    goto egress;
-egress:
-  return;
+        return rtn;
     }
     else
         return SAM_MODULE_NOT_EXIST;
@@ -230,7 +221,7 @@ egress:
 static int SAM_Operation(void * parg)
 {
     int     msgQstatus;
-    int     errCode;
+    UINT32  errCode;
 
     SAM_REQUEST  *pSAMRequest;
 
@@ -275,15 +266,11 @@ static int SAM_Operation(void * parg)
                     epicsTimeGetCurrent(&currentTime);
                     if(epicsTimeDiffInSeconds(&currentTime, &(pSAMRequest->pSAMModule->lastReadTime)) >= SAM_MIN_READ_INTERVAL)
                     {/* we can read SAM immediately */
-                        errCode = SAM_Read(pSAMRequest->pSAMModule);
+                        SAM_Read(pSAMRequest->pSAMModule);
 
-                        if(!errCode)
-                        {
-                            pSAMRequest->val = pSAMRequest->pSAMModule->data[pSAMRequest->a];
-                            pSAMRequest->reqTime = pSAMRequest->pSAMModule->lastReadTime;
-                        }
-                        
-                        pSAMRequest->errCode = errCode;
+                        pSAMRequest->val = pSAMRequest->pSAMModule->data[pSAMRequest->a];
+                        pSAMRequest->reqTime = pSAMRequest->pSAMModule->lastReadTime;
+                        pSAMRequest->errCode = pSAMRequest->pSAMModule->lastErrCode;
                         pSAMRequest->opDone = 1;
 
                         /* process record */
@@ -301,7 +288,7 @@ static int SAM_Operation(void * parg)
 
                             pSAMRequest->val = pSAMRequest->pSAMModule->data[pSAMRequest->a];
                             pSAMRequest->reqTime = pSAMRequest->pSAMModule->lastReadTime;
-                            pSAMRequest->errCode = pSAMRequest->pSAMModule->lastErrCode; /* snmp request timeout */
+                            pSAMRequest->errCode = pSAMRequest->pSAMModule->lastErrCode;
                             pSAMRequest->opDone = 1;
 
                             /* process record */
@@ -327,7 +314,7 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
 {
     SAM_MODULE * pSAMModule = NULL;
     int         funcflag = 0, loop;
-    int		errCode;
+    UINT32	errCode;
 
     SAM_REQUEST * pSAMRequest = NULL;
 
@@ -380,7 +367,7 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
         pSAMModule->startChannel = 0;
         pSAMModule->numChannels = 0;
         /*pSAMModule->data;*/
-        pSAMModule->lasrErrCode = 0;
+        pSAMModule->lastErrCode = 0;
 
         ellAdd(&SAMModuleList, (ELLNODE *)pSAMModule);
 
