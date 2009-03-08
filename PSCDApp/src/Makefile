@@ -15,6 +15,7 @@ LIBRARY_IOC_RTEMS += PSCD
 
 INC += drvPSCDLib.h
 INC += epicsPciWrapper.h
+INC += genType.h
 
 # install PSCD.dbd into <top>/dbd
 DBD += PSCD.dbd

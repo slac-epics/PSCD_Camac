@@ -40,6 +40,8 @@
 #error "This driver is not implemented for this OS"
 #endif
 
+#include "genType.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif  /* __cplusplus */
@@ -60,14 +62,6 @@ extern "C" {
 #ifndef FALSE
 #define FALSE 0
 #endif
-
-#ifndef vxWorks
-typedef unsigned int UINT32;
-typedef unsigned short UINT16;
-typedef unsigned char UINT8;
-#endif
-
-typedef signed short SINT16;
 
 typedef struct PCI_BASE_ADDR
 {
