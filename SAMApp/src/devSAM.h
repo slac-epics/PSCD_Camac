@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.1.1.1 2009/02/12 20:08:59 pengs Exp $
+ *   $Id: devSAM.h,v 1.1 2009/03/03 08:16:34 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -54,6 +54,7 @@
 #error "We need EPICS 3.14 or above to support OSI calls!"
 #endif
 
+#include "genType.h"
 #include "drvPSCDLib.h"
 
 #ifdef __cplusplus
@@ -69,6 +70,7 @@ extern "C" {
 /******************************************************************************************/
 
 #define SAM_MIN_READ_INTERVAL	1.0	/* 1 second */
+#define SAM_NUM_OF_CHANNELS	32
 
 /* SAM module,  b,c,n define a unique module */
 typedef struct SAM_MODULE
@@ -77,22 +79,22 @@ typedef struct SAM_MODULE
 
     epicsMessageQueueId		msgQId;	/* so far all modules share one Q */
 
-    short int			b;	/* branch */
-    short int			c;	/* crate */
-    short int			n;	/* node = slot */
+    UINT16			b;	/* branch */
+    UINT16			c;	/* crate */
+    UINT16			n;	/* node = slot */
 
-    int				fwVer;	/* also used to indicate SAM in known state */
+    float			fwVer;	/* also used to indicate SAM in known state */
 
     epicsTimeStamp		lastReadTime;
 
     ELLLIST                     SAMDelayedReqList;
 
-    unsigned int		startChannel; /* 0 ~ 31 */
-    unsigned int		endChannel; /* 0 ~ 31 */
-    unsigned short int		data[32];
-    int                         lastErrCode;
+    UINT16			startChannel; /* 0 ~ 31 */
+    UINT32			numChannels; /* 0 ~ 32 */
+    float			data[SAM_NUM_OF_CHANNELS];
+    UINT32			lastErrCode;
 
-    char			camacPreMsg[256];
+    /*char			camacPreMsg[256];*/	/* Could be done in init second pass */
 } SAM_MODULE;
 
 /******************************************************************************************/
@@ -130,16 +132,20 @@ typedef struct SAM_REQUEST
     dbCommon            *pRecord;
 
     int                 funcflag; /* read data/reset */
-    short		a;
-    short		f;
+    UINT16		a;
+    UINT16		f;
 
     epicsTimeStamp	reqTime;
-    unsigned short	val;
-    int		        errCode;
+    float		val;
+    UINT32	        errCode;
     int                 opDone;
 } SAM_REQUEST;
 
 #define SAM_REQUEST_NO_ERR	0
+#define SAM_MODULE_NOT_EXIST	1
+#define SAM_CAM_INIT_FAIL	2
+#define SAM_RST_CAMIO_FAIL	3
+#define SAM_SETUP_CAMIO_FAIL	4
 
 int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
 
