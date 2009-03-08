@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.1.1.1 2009/02/12 20:08:59 pengs Exp $
+ *   $Id: devSAM.c,v 1.1 2009/03/03 08:16:34 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -111,7 +111,8 @@ static long read_ai(struct aiRecord *pai)
             if(SAM_DRV_DEBUG)   printf("Record [%s] receives val [%g]!\n", pai->name, pRequest->val);
 
             pai->udf = FALSE;
-            pai->time = pRequest->reqTime;
+            if(pai->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
+                pai->time = pRequest->reqTime;
             pai->val = pRequest->val;
             rtn = NO_CONVERT;
         }
