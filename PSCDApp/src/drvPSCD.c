@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.2 2009/02/17 18:03:39 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.3 2009/02/17 18:08:25 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -19,6 +19,7 @@ static int pscd_card_inited=0;
 static void pscdIsr(void * parg);
 static void pscdOpTaskLow(void *parm);
 
+/* CAMRoutine init function */
 extern unsigned int cam_ini(struct PSCD_CARD *pPSCD);
 
 int pscdCreate (unsigned int portMap0, unsigned int portMap1)
@@ -226,6 +227,11 @@ static void pscdIsr(void * parg)
     }
 #endif
     return;
+}
+
+int isModuleExsit(short b, short c, short n)
+{/* TODO */
+    return TRUE;
 }
 
 static void pscdOpTaskLow(void *parm)
