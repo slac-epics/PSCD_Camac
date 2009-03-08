@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.1 2009/03/03 08:16:34 pengs Exp $
+ *   $Id: devSAM.h,v 1.2 2009/03/08 06:28:40 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -85,12 +85,12 @@ typedef struct SAM_MODULE
 
     float			fwVer;	/* also used to indicate SAM in known state */
 
-    epicsTimeStamp		lastReadTime;
+    UINT16			startChannel; /* 0 ~ 31 */
+    UINT32			numChannels; /* 0 ~ 32 */
 
     ELLLIST                     SAMDelayedReqList;
 
-    UINT16			startChannel; /* 0 ~ 31 */
-    UINT32			numChannels; /* 0 ~ 32 */
+    epicsTimeStamp		lastReadTime;
     float			data[SAM_NUM_OF_CHANNELS];
     UINT32			lastErrCode;
 
@@ -141,11 +141,16 @@ typedef struct SAM_REQUEST
     int                 opDone;
 } SAM_REQUEST;
 
+/* vmsstat_t uses low 28 bits */
 #define SAM_REQUEST_NO_ERR	0
-#define SAM_MODULE_NOT_EXIST	1
-#define SAM_CAM_INIT_FAIL	2
-#define SAM_RST_CAMIO_FAIL	3
-#define SAM_SETUP_CAMIO_FAIL	4
+#define SAM_MODULE_NOT_EXIST	0x10000000
+#define SAM_CAM_INIT_FAIL	0x20000000
+#define SAM_RST_CAMIO_FAIL	0x30000000
+#define SAM_SETUP_CAMIO_FAIL	0x40000000
+#define SAM_CAM_ALLOC_FAIL	0x50000000
+#define SAM_CAM_ADD_FAIL	0x60000000
+#define SAM_CAM_GO_FAIL		0x70000000
+#define SAM_CAM_DEL_FAIL	0x80000000
 
 int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
 
