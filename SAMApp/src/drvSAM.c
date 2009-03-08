@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.3 2009/03/08 08:00:52 pengs Exp $
+ *   $Id: drvSAM.c,v 1.4 2009/03/08 08:30:56 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -108,13 +108,13 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
-        if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
+        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
             return (SAM_CAM_INIT_FAIL|iss);
 
         /* F9 to reset */
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) | 0x04000000; /* 24-bit packed mode */;
         /* samctlw = 0x04095800; */
-        if (!SUCCESS(iss = camio (NULL, &samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
+        if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
         {
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
             return (SAM_RST_CAMIO_FAIL|iss);
@@ -124,7 +124,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (16 << 16) | 0x04000000; /* 24-bit packed mode */;
         /* samctlw = 0x04105800; */
         samstatdata[1] = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version, TODO */
-        if (!SUCCESS(iss = camio (NULL, &samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
+        if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
         {
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
             return (SAM_SETUP_CAMIO_FAIL|iss);
@@ -162,7 +162,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2+1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
+        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
             errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_INIT_FAIL|iss);
@@ -172,7 +172,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         nops = 2 * pSAMModule->numChannels + 1;
  
         /** Allocate package for SAM reset */
-        if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
+        if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
             errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_ALLOC_FAIL|iss);
@@ -251,7 +251,7 @@ UINT32 SAM_Test()
         STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2 + 1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
+        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
             errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_INIT_FAIL|iss);
@@ -261,7 +261,7 @@ UINT32 SAM_Test()
         nops = 65;
  
         /** Allocate package for SAM reset */
-        if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
+        if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
             errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_ALLOC_FAIL|iss);
