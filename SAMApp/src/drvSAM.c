@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.2 2009/03/08 06:28:40 pengs Exp $
+ *   $Id: drvSAM.c,v 1.3 2009/03/08 08:00:52 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -156,36 +156,46 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
-        UINT32 ctlwF17 = 0x04115080;
-        UINT32 ctlwF0 = 0x04005800;
+        UINT32 ctlwF17 = 0x0;
+        UINT32 ctlwF0 = 0x0;
 
-        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
-        UINT16 nops;
+        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2+1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
+        UINT16 nops = 0;
 
         if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
-            return (SAM_CAM_INIT_FAIL|iss);
+        {
+            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_INIT_FAIL|iss);
+            goto egress;
+        }
 
         nops = 2 * pSAMModule->numChannels + 1;
  
         /** Allocate package for SAM reset */
         if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
-            return (SAM_CAM_ALLOC_FAIL|iss);
+        {
+            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_ALLOC_FAIL|iss);
+            goto egress;
+        }
 
         ctlwF17 = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (17 << 16) | 0x04000000; /* 24-bit packed mode */;
         read_sam[0].data = pSAMModule->startChannel;
         if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
         {
+            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_ADD_FAIL|iss);
-            goto egress;
+            goto release_campkg;
         }
 
         ctlwF0 = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (0 << 16) | 0x04000000; /* 24-bit packed mode */;
-        for (loop=0; loop < (2 * pSAMModule->numChannels); loop++)
+        for (loop=1; loop <= (2 * pSAMModule->numChannels); loop++)
         {
             if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
             {
+                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
                 rtn = (SAM_CAM_ADD_FAIL|iss);
-                goto egress;
+                goto release_campkg;
             }
         }
 
@@ -193,29 +203,115 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         {
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             rtn = (SAM_CAM_GO_FAIL|iss);
-            goto egress;
+            goto release_campkg;
         }
 
 
-        for (loop=0; loop < pSAMModule->numChannels; loop++)
+        for (loop=1; loop <= pSAMModule->numChannels; loop++)
         {
             UINT32 tempI;
             float tempF;
-            tempI = (read_sam[loop*2].data) | (read_sam[loop*2+1].data << 16);
+            tempI = (read_sam[loop*2-1].data) | (read_sam[loop*2].data << 16);
             tempF = *(float *) &tempI;
+            pSAMModule->data[loop + pSAMModule->startChannel] = tempF;
         }
  
-egress: 
-        epicsTimeGetCurrent(&(pSAMModule->lastReadTime)); 
-        pSAMModule->lastErrCode = rtn;
+release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
             errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
-
-        return rtn;
     }
     else
-        return SAM_MODULE_NOT_EXIST;
+        rtn = SAM_MODULE_NOT_EXIST;
+
+egress:
+    epicsTimeGetCurrent(&(pSAMModule->lastReadTime)); 
+    pSAMModule->lastErrCode = rtn;
+    return rtn;
+}
+
+UINT32 SAM_Test()
+{
+
+    UINT32 rtn = 0;
+
+    /* check if module exists */
+    if(isModuleExsit(0, 5, 16))
+    {
+        unsigned int loop;
+
+        void *pkg_p;  /* A camac package */
+        vmsstat_t iss;
+        UINT16 bcnt = 4;
+        UINT16 emask= 0xE0E0;
+
+        UINT32 ctlwF17 = 0x04115080;
+        UINT32 ctlwF0 = 0x04005800;
+
+        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2 + 1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
+        UINT16 nops = 0;
+
+        if (!SUCCESS(iss = cam_ini ()))	/* no need, should be already done in PSCD driver */
+        {
+            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_INIT_FAIL|iss);
+            goto egress;
+        }
+
+        nops = 65;
+ 
+        /** Allocate package for SAM reset */
+        if (!SUCCESS(iss = camalol (NULL, &nops, &pkg_p)))
+        {
+            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_ALLOC_FAIL|iss);
+            goto egress;
+        }
+
+        read_sam[0].data = 0;
+        if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        }
+
+        for (loop=1; loop <= 64; loop++)
+        {
+            if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
+            {
+                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                rtn = (SAM_CAM_ADD_FAIL|iss);
+                goto release_campkg;
+            }
+        }
+
+        if (!SUCCESS(iss = camgo (&pkg_p)))
+        {
+            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            rtn = (SAM_CAM_GO_FAIL|iss);
+            goto release_campkg;
+        }
+
+
+        for (loop=1; loop <= 32; loop++)
+        {
+            UINT32 tempI;
+            float tempF;
+            tempI = (read_sam[loop*2-1].data) | (read_sam[loop*2].data << 16);
+            tempF = *(float *) &tempI;
+            printf("Ch[%d]: %g\n", loop, tempF);
+        }
+ 
+release_campkg: 
+
+        if (!SUCCESS(iss = camdel (&pkg_p)))
+            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+    }
+    else
+        rtn = SAM_MODULE_NOT_EXIST;
+egress:
+    return rtn;
 }
 
 static int SAM_Operation(void * parg)
