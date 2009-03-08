@@ -1,6 +1,6 @@
 record(ai, "$(RECNAME)") {
   field(DESC, "SAM Input")
-  field(SCAN, "$SCAN")
+  field(SCAN, "$(SCAN)")
   field(DTYP, "SAM")
   field(INP,  "#B0 C$(CRATE) N$(SLOT) F$(FUNC) A$(ADDR)@DATA")
   field(PREC, "3")
