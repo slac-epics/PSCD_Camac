@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.4 2009/03/08 08:30:56 pengs Exp $
+ *   $Id: drvSAM.c,v 1.5 2009/03/08 09:08:17 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,21 +112,23 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
             return (SAM_CAM_INIT_FAIL|iss);
 
         /* F9 to reset */
-        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) | 0x04000000; /* 24-bit packed mode */;
+        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) /*| 0x04000000*/; /* 24-bit packed mode */;
         /* samctlw = 0x04095800; */
-        if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
+	bcnt = 0;
+        if (!SUCCESS(iss = camio (&samctlw, NULL/*&samstatdata[1]*/, &bcnt, &samstatdata[0], &emask)))
         {
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
             return (SAM_RST_CAMIO_FAIL|iss);
         }
 
         /* F16 to set module to know mode */
-        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (16 << 16) | 0x04000000; /* 24-bit packed mode */;
+        samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (16 << 16) /*| 0x04000000*/; /* 24-bit packed mode */;
         /* samctlw = 0x04105800; */
+	bcnt = 4;
         samstatdata[1] = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version, TODO */
         if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
+            errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
@@ -245,8 +247,13 @@ UINT32 SAM_Test()
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
-        UINT32 ctlwF17 = 0x04115080;
-        UINT32 ctlwF0 = 0x04005800;
+        UINT32 samctlw;
+        UINT32 samstatdata[2] = {0,0x12345678};
+
+        /*UINT32 ctlwF17 = 0x04115800;
+        UINT32 ctlwF0 = 0x04005800;*/
+        UINT32 ctlwF17 = 0x00115800;
+        UINT32 ctlwF0 = 0x00005800;
 
         STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2 + 1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
@@ -258,7 +265,25 @@ UINT32 SAM_Test()
             goto egress;
         }
 
-        nops = 65;
+        /* F9 to reset */
+        samctlw = 0x04095800;
+	bcnt = 0;
+        if (!SUCCESS(iss = camio (&samctlw, NULL/*&samstatdata[1]*/, &bcnt, &samstatdata[0], &emask)))
+        {
+            errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
+            return (SAM_RST_CAMIO_FAIL|iss);
+        }
+
+        samctlw = 0x00105800;
+	bcnt = 4;
+        samstatdata[1] = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version, TODO */
+        if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
+        {
+            errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
+            return (SAM_SETUP_CAMIO_FAIL|iss);
+        }
+
+        nops = 3;
  
         /** Allocate package for SAM reset */
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
@@ -268,7 +293,7 @@ UINT32 SAM_Test()
             goto egress;
         }
 
-        read_sam[0].data = 0;
+        read_sam[0].data = 1;
         if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
@@ -276,7 +301,7 @@ UINT32 SAM_Test()
             goto release_campkg;
         }
 
-        for (loop=1; loop <= 64; loop++)
+        for (loop=1; loop <= 2; loop++)
         {
             if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
             {
@@ -294,7 +319,7 @@ UINT32 SAM_Test()
         }
 
 
-        for (loop=1; loop <= 32; loop++)
+        for (loop=1; loop <= 1; loop++)
         {
             UINT32 tempI;
             float tempF;
@@ -453,7 +478,7 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
         pSAMModule->fwVer = -1.0;
         errCode = SAM_Reset(pSAMModule);
         if(errCode)
-            errlogPrintf("Fail to reset SAM[%d,%d,%d], error 0x%08X\n", 
+            errlogPrintf("Fail to call SAM_Reset SAM[%d,%d,%d], error 0x%08X\n", 
                 pSAMModule->b, pSAMModule->c, pSAMModule->n, errCode);
 
         /*pSAMModule->lastReadTime;*/
