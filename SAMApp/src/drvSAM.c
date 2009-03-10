@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.5 2009/03/08 09:08:17 pengs Exp $
+ *   $Id: drvSAM.c,v 1.6 2009/03/09 21:03:03 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -111,6 +111,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
             return (SAM_CAM_INIT_FAIL|iss);
 
+#if 0
         /* F9 to reset */
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16) /*| 0x04000000*/; /* 24-bit packed mode */;
         /* samctlw = 0x04095800; */
@@ -120,6 +121,8 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
             return (SAM_RST_CAMIO_FAIL|iss);
         }
+	epicsThreadSleep(20);
+#endif
 
         /* F16 to set module to know mode */
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (16 << 16) /*| 0x04000000*/; /* 24-bit packed mode */;
@@ -213,7 +216,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         {
             UINT32 tempI;
             float tempF;
-            tempI = (read_sam[loop*2-1].data) | (read_sam[loop*2].data << 16);
+            tempI = ((read_sam[loop*2-1].data)&0xFFFF) | (read_sam[loop*2].data << 16);
             tempF = *(float *) &tempI;
             pSAMModule->data[loop + pSAMModule->startChannel] = tempF;
         }
@@ -265,8 +268,9 @@ UINT32 SAM_Test()
             goto egress;
         }
 
+#if 0
         /* F9 to reset */
-        samctlw = 0x04095800;
+        samctlw = 0x00095800;
 	bcnt = 0;
         if (!SUCCESS(iss = camio (&samctlw, NULL/*&samstatdata[1]*/, &bcnt, &samstatdata[0], &emask)))
         {
@@ -274,7 +278,9 @@ UINT32 SAM_Test()
             return (SAM_RST_CAMIO_FAIL|iss);
         }
 
-        samctlw = 0x00105800;
+	epicsThreadSleep(20);
+
+        samctlw = 0x04105800;
 	bcnt = 4;
         samstatdata[1] = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version, TODO */
         if (!SUCCESS(iss = camio (&samctlw, &samstatdata[1], &bcnt, &samstatdata[0], &emask)))
@@ -283,6 +289,11 @@ UINT32 SAM_Test()
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
+	epicsThreadSleep(5);
+
+#endif
+
+#if 0
         nops = 3;
  
         /** Allocate package for SAM reset */
@@ -323,7 +334,7 @@ UINT32 SAM_Test()
         {
             UINT32 tempI;
             float tempF;
-            tempI = (read_sam[loop*2-1].data) | (read_sam[loop*2].data << 16);
+            tempI = ((read_sam[loop*2-1].data)&0xFFFF) | (read_sam[loop*2].data << 16);
             tempF = *(float *) &tempI;
             printf("Ch[%d]: %g\n", loop, tempF);
         }
@@ -332,6 +343,44 @@ release_campkg:
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
             errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+#else
+        /* F17 to set start channel */
+        samctlw = 0x04115880;
+        /*samctlw = 0x00005200;*/
+        read_sam[0].data = 7;
+	bcnt = 4;
+        if (!SUCCESS(iss = camio (&samctlw, &read_sam[0].data, &bcnt, &read_sam[0].stat, &emask)))
+        {
+            errlogPrintf ("camio error 0x%08X for SAM F11\n", (unsigned int) iss);
+            return (SAM_RST_CAMIO_FAIL|iss);
+        }
+
+	epicsThreadSleep(0.1);
+	
+        for (loop=1; loop <= 2; loop++)
+        {
+            samctlw = 0x04005880;
+            /*samctlw = 0x00005200;*/
+	    bcnt = 4;
+            if (!SUCCESS(iss = camio (&samctlw, &read_sam[loop].data, &bcnt, &read_sam[loop].stat, &emask)))
+            {
+                errlogPrintf ("camio error 0x%08X for SAM F0-1\n", (unsigned int) iss);
+                return (SAM_SETUP_CAMIO_FAIL|iss);
+            }
+	    epicsThreadSleep(0.1);
+	}
+
+        for (loop= 1; loop <=  1; loop++)
+        {
+            UINT32 tempI;
+            float tempF;
+            tempI = (read_sam[loop*2-1].data) | (read_sam[loop*2].data << 16);
+            tempF = *(float *) &tempI;
+            printf("Ch[%d]: %g\n", read_sam[0].data+loop, tempF);
+            printf("Ch[%d] raw: L:0x%08X H:0x%08X\n", loop, read_sam[loop*2-1].data, read_sam[loop*2].data);
+        }
+ 
+#endif
     }
     else
         rtn = SAM_MODULE_NOT_EXIST;
@@ -506,15 +555,23 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
 
     pSAMRequest->funcflag = funcflag;
     pSAMRequest->a = inout.a & 0xF;
-    /* Here we use a to indicate which channel to read */
-    if(pSAMRequest->a < pSAMModule->startChannel)
+
+    if(funcflag == SAM_AI_DATA)
     {
-        pSAMModule->numChannels += (pSAMModule->startChannel - pSAMRequest->a);
-        pSAMModule->startChannel = pSAMRequest->a;
-    }
-    else if(pSAMRequest->a >= (pSAMModule->startChannel + pSAMModule->numChannels))
-    {
-        pSAMModule->numChannels = (pSAMRequest->a - pSAMModule->startChannel) + 1;
+	if(pSAMModule->numChannels == 0)
+        {/* first time */
+            pSAMModule->startChannel = pSAMRequest->a;
+	    pSAMModule->numChannels = 1;
+	}
+	else if(pSAMRequest->a < pSAMModule->startChannel)
+	{/* Here we use a to indicate which channel to read */
+            pSAMModule->numChannels += (pSAMModule->startChannel - pSAMRequest->a);
+            pSAMModule->startChannel = pSAMRequest->a;
+        }
+        else if(pSAMRequest->a >= (pSAMModule->startChannel + pSAMModule->numChannels))
+        {
+            pSAMModule->numChannels = (pSAMRequest->a - pSAMModule->startChannel) + 1;
+        }
     }
 
     pSAMRequest->f = inout.f & 0x1F;
@@ -576,6 +633,7 @@ static long SAM_EPICS_Report(int level)
             printf("\tSAM Module at b[%d]c[%d]n[%d]: \n", pSAMModule->b, pSAMModule->c, pSAMModule->n);
             if(level > 1)
             {
+		printf("\tFrom ch[%d], %d channels are in use\n\n", pSAMModule->startChannel, pSAMModule->numChannels);
                 printf("\tFirmware version is %g\n\n", pSAMModule->fwVer);
             }
         }
