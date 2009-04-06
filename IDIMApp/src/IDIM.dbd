@@ -5,7 +5,7 @@
 #device(bo,		VME_IO,devBoIDIM,"IDIM")
 #device(longin,		VME_IO,devLiIDIM,"IDIM")
 #device(longout,	VME_IO,devLoIDIM,"IDIM")
-device(mbbiDirect,	VME_IO,devMiDIDIM,"IDIM")
+device(mbbiDirect,	CAMAC_IO,devMiDIDIM,"IDIM")
 #device(waveform,	VME_IO,devWfIDIM,"IDIM")
 driver(drvIDIM)
 function(IDIM_Test)
