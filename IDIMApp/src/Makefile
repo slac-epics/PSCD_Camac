@@ -17,9 +17,12 @@ LIBRARY_IOC_RTEMS += IDIM
 DBD += IDIM.dbd
 
 # specify all source files to be compiled and added to the library
+IDIM_SRCS += drvIDIM.c
 IDIM_SRCS += devIDIM.c
-IDIM_SRCS += DIMtest.c
-IDIM_SRCS += CAMtest.c
+IDIM_SRCS += IDIMTest.c
+#IDIM_SRCS += DIMtest.c
+#IDIM_SRCS += MISCtest.c
+#IDIM_SRCS += CAMtest.c
 
 IDIM_LIBS += $(EPICS_BASE_IOC_LIBS)
 
