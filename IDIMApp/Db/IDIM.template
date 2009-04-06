@@ -1,0 +1,9 @@
+record(mbbiDirect, "$(RECNAME)") {
+  field(DESC, "IDIM Input")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "IDIM")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A$(ADDR)@")
+  field(TSE,  "-2")
+}
+
+
