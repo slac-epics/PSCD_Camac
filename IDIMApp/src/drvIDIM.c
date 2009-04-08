@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDIM.c,v 1.1 2009/04/06 02:54:26 pengs Exp $
+ *   $Id: drvIDIM.c,v 1.2 2009/04/08 22:04:01 pengs Exp $
  *   File:		drvIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -124,7 +124,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
         if(IDIM_DRV_DEBUG) printf("IDIM Operation control word is 0x%08x\n", idimctlw);
         bcnt = 4;
 
-#if 0
+#if 1
         if (!SUCCESS(iss = camio (&idimctlw, &read_idim[0].data, &bcnt, &read_idim[0].stat, &emask)))
         {
             errlogPrintf ("camio error 0x%08X for IDIM F%dA%d\n", (unsigned int) iss, pIDIMRequest->f, pIDIMRequest->a);

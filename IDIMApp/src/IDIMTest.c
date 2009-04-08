@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: IDIMTest.c,v 1.2 2009/04/05 22:23:53 pengs Exp $
+ *   $Id: IDIMTest.c,v 1.1 2009/04/06 02:55:30 pengs Exp $
  *   File:		IDIMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -50,7 +50,6 @@
              30 = XM1  = Transfer data if X=1.
              31 = MPC  = 0 if last packet of package; otherwise More
                                 Packets Coming.
-
 #endif
 
 extern struct PSCD_CARD pscd_card;
@@ -93,6 +92,7 @@ UINT32 IDIM_Test()
         nops = 2;
  
         /** Allocate package for IDIM reset */
+
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
             errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);

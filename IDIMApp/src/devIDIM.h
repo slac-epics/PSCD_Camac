@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDIM.h,v 1.3 2009/03/08 08:03:07 pengs Exp $
+ *   $Id: devIDIM.h,v 1.1 2009/04/06 02:54:26 pengs Exp $
  *   File:		devIDIM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -92,8 +92,6 @@ typedef struct IDIM_MODULE
 typedef enum EPICS_RECTYPE
 {
     EPICS_RECTYPE_NONE,
-    EPICS_RECTYPE_AI,
-    EPICS_RECTYPE_BO,
     EPICS_RECTYPE_MBBID,
 }   E_EPICS_RECTYPE;
 
