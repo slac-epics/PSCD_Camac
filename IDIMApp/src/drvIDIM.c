@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDIM.c,v 1.9 2009/03/18 04:27:53 pengs Exp $
+ *   $Id: drvIDIM.c,v 1.1 2009/04/06 02:54:26 pengs Exp $
  *   File:		drvIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -121,14 +121,48 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 
         /* F0 Aa to read IDIM */
         idimctlw = (pIDIMModule->n << 7) | (pIDIMModule->c << 12) | (pIDIMRequest->f << 16) | (pIDIMRequest->a);
+        if(IDIM_DRV_DEBUG) printf("IDIM Operation control word is 0x%08x\n", idimctlw);
         bcnt = 4;
+
+#if 0
         if (!SUCCESS(iss = camio (&idimctlw, &read_idim[0].data, &bcnt, &read_idim[0].stat, &emask)))
         {
             errlogPrintf ("camio error 0x%08X for IDIM F%dA%d\n", (unsigned int) iss, pIDIMRequest->f, pIDIMRequest->a);
             rtn = (IDIM_READ_CAMIO_FAIL|iss);
             goto egress;
         }
+#else
+	{
+	    void * pkg_p;
+	    UINT16 nops = 1;
 
+            if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
+            {
+                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+                rtn = (IDIM_CAM_ALLOC_FAIL|iss);
+                goto egress;
+            }
+
+	    if (!SUCCESS(iss = camadd (&idimctlw, &read_idim[0], &bcnt, &emask, &pkg_p)))
+	    {
+	        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+	        rtn = (IDIM_CAM_ADD_FAIL|iss);
+	        goto release_campkg;
+	    }
+
+	    if (!SUCCESS(iss = camgo (&pkg_p)))
+	    {
+	        errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+	        rtn = (IDIM_CAM_GO_FAIL|iss);
+	        goto release_campkg;
+	    }
+
+release_campkg:
+
+            if (!SUCCESS(iss = camdel (&pkg_p)))
+	        errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+	}
+#endif
         pIDIMRequest->val = (read_idim[0].data)&0xFFFF;
  
     }
@@ -227,7 +261,7 @@ int IDIMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
     pIDIMRequest->f = inout.f & 0x1F;
 
     /*pIDIMRequest->reqTime*/
-    pIDIMRequest->val = 0;
+    pIDIMRequest->val = 0u;
     pIDIMRequest->opDone = 0;
     pIDIMRequest->errCode = IDIM_REQUEST_NO_ERR;
 
@@ -280,7 +314,7 @@ static long IDIM_EPICS_Report(int level)
     {
         for(pIDIMModule=(IDIM_MODULE *)ellFirst(&IDIMModuleList); pIDIMModule; pIDIMModule = (IDIM_MODULE *)ellNext((ELLNODE *)pIDIMModule))
         {
-            printf("\tIDIM Module at b[%d]c[%d]n[%d]: \n", pIDIMModule->b, pIDIMModule->c, pIDIMModule->n);
+            printf("\tIDIM Module at b[%d]c[%d]n[%d]: \n\n", pIDIMModule->b, pIDIMModule->c, pIDIMModule->n);
         }
     }
 
