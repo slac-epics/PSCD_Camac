@@ -1,6 +1,6 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.2 2009/03/08 06:28:40 pengs Exp $
- *   File:		devSAM.c
+ *   $Id: devSAM.h,v 1.3 2009/03/08 08:03:07 pengs Exp $
+ *   File:		devSAM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
  *   Phone:		408-660-7762
@@ -12,8 +12,8 @@
  *
 \***************************************************************************/
 
-#ifndef _DEV_SAN_H_
-#define _DEV_SAN_H_
+#ifndef _DEV_SAM_H_
+#define _DEV_SAM_H_
 
 #define SAM_DRV_VER_STRING	"CAMAC SAM Driver V1.0"
 
