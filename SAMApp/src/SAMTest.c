@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: SAMTest.c,v 1.1 2009/03/18 04:28:08 pengs Exp $
+ *   $Id: SAMTest.c,v 1.2 2009/04/05 22:23:53 pengs Exp $
  *   File:		SAMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -61,7 +61,7 @@ typedef struct STAS_DAT
     UINT32 data;
 } STAS_DAT;
 
-UINT32 SAM_Test(float delay, int rst, int fwver)
+UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 {
 
     UINT32 rtn = 0;
@@ -71,6 +71,11 @@ UINT32 SAM_Test(float delay, int rst, int fwver)
         UINT32 tempI;
         float tempF;
     } value;
+
+    if(delay == 0.0 && rst == 0 && fwver == 0 && readdata == 0)
+    {
+	printf("SAM_Test(float delay, int rst, int fwver, int readdata, int channel)\n");
+    }
 
     /* check if module exists */
     if(isModuleExsit(0, 5, 16))
@@ -116,8 +121,8 @@ UINT32 SAM_Test(float delay, int rst, int fwver)
 	if(fwver)
 	{
 	    /* F16 to setup */
-	    bcnt = 4;
-            read_sam[0].data = 0x00000005; /* 101b, IEEE, normal mode, read firmware version */
+	    bcnt = 2;
+            *((UINT16 *)(&(read_sam[0].data))) = 0x0005; /* 101b, IEEE, normal mode, read firmware version */
             if (!SUCCESS(iss = camio (&ctlwF16, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
                 errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
@@ -127,8 +132,9 @@ UINT32 SAM_Test(float delay, int rst, int fwver)
 	    epicsThreadSleep(delay);
 
             /* F17 to set start channel */
-            read_sam[0].data = 0;
-	    bcnt = 4;
+            /*read_sam[0].data = 0;*/
+            *((UINT16 *)(&(read_sam[0].data))) = 0x0;
+	    bcnt = 2;
             if (!SUCCESS(iss = camio (&ctlwF17, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
                 errlogPrintf ("camio error 0x%08X for SAM F11\n", (unsigned int) iss);
@@ -143,13 +149,13 @@ UINT32 SAM_Test(float delay, int rst, int fwver)
                 return (SAM_SETUP_CAMIO_FAIL|iss);
             }
 
-            value.tempI = (read_sam[1].data&0xFFFFFFF0);
+            value.tempI = (read_sam[1].data&0xFFFFFF00);
             printf("Firmware Version: %f\n", value.tempF);
             printf("Firmware Version Raw: 0x%08X \n", read_sam[1].data);
 
 	    /* F16 to setup */
-	    bcnt = 4;
-            read_sam[0].data = 0x00000004; /* 100b, IEEE, normal mode, no read firmware version */
+	    bcnt = 2;
+            *((UINT16 *)(&(read_sam[0].data))) = 0x0004; /* 101b, IEEE, normal mode, no read firmware version */
             if (!SUCCESS(iss = camio (&ctlwF16, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
                 errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
@@ -159,55 +165,58 @@ UINT32 SAM_Test(float delay, int rst, int fwver)
 	    epicsThreadSleep(delay);
 
 	}
- 
-        nops = 3;
- 
-        /** Allocate package for SAM reset */
-        if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
-        {
-            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
-            rtn = (SAM_CAM_ALLOC_FAIL|iss);
-            goto egress;
-        }
 
-        read_sam[0].data = 0;
-	bcnt = 4;
-        if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
-        {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-            rtn = (SAM_CAM_ADD_FAIL|iss);
-            goto release_campkg;
-        }
+	if(readdata)
+	{ 
+            nops = 3;
+ 
+            /** Allocate package for SAM reset */
+            if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
+            {
+                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+                rtn = (SAM_CAM_ALLOC_FAIL|iss);
+                goto egress;
+            }
 
-        for (loop=1; loop <= 2; loop++)
-        {
-	    bcnt = 4;
-            if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
+            /* read_sam[0].data = 0; */
+            *((UINT16 *)(&(read_sam[0].data))) = channel;
+	    bcnt = 2;
+            if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
             {
                 errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
                 rtn = (SAM_CAM_ADD_FAIL|iss);
                 goto release_campkg;
             }
-        }
 
-        if (!SUCCESS(iss = camgo (&pkg_p)))
-        {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
-            rtn = (SAM_CAM_GO_FAIL|iss);
-            goto release_campkg;
-        }
+            for (loop=1; loop <= 2; loop++)
+            {
+	        bcnt = 4;
+                if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
+                {
+                    errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                    rtn = (SAM_CAM_ADD_FAIL|iss);
+                    goto release_campkg;
+                }
+            }
 
+            if (!SUCCESS(iss = camgo (&pkg_p)))
+            {
+                errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+                rtn = (SAM_CAM_GO_FAIL|iss);
+                goto release_campkg;
+            }
 
-       value.tempI = (read_sam[1].data&0xFFFFFFF0);
-       printf("Ch[%d]: Raw: 0x%08X --> %f\n", read_sam[0].data, read_sam[1].data, value.tempF);
+            value.tempI = (read_sam[1].data&0xFFFFFF00);
+            printf("Ch[%d]: Raw: 0x%08X --> %f\n", read_sam[0].data, read_sam[1].data, value.tempF);
 
-       value.tempI = ((read_sam[1].data)&0xFFF0) | (read_sam[2].data << 16);
-       printf("Ch[%d] Raw: L:0x%08X H:0x%08X, --> %f\n", read_sam[0].data, read_sam[1].data, read_sam[2].data, value.tempF);
+            value.tempI = ((read_sam[1].data)&0xFF00) | (read_sam[2].data << 16);
+            printf("Ch[%d] Raw: L:0x%08X H:0x%08X, --> %f\n", read_sam[0].data, read_sam[1].data, read_sam[2].data, value.tempF);
  
 release_campkg: 
 
-        if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            if (!SUCCESS(iss = camdel (&pkg_p)))
+                errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+        }
     }
     else
         rtn = SAM_MODULE_NOT_EXIST;
