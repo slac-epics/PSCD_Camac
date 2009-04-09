@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.3 2009/02/17 18:08:25 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.4 2009/03/08 01:44:16 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -59,8 +59,12 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
         fwID = PCI_GETREG(PSCD_ID_OFFSET);
 
 	/* check if the ID is "PSCD" in hex */
-	if(fwID == 0x50534344) break;
-	else index++;
+	if(1/*fwID == 0x50534344*/) break;
+	else
+	{
+	    printf("Find a Acromag board with fwID 0x%08X\n", fwID);
+	    index++;
+	}
     }
 
     if(PSCD_DRV_DEBUG) epicsPciHeaderInfo(&(pscd_card.pciHeader));
@@ -134,7 +138,7 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
 		    pscd_card.fwVer, pscd_card.fwDate);
 
     /* Create operation thread */
-    pscd_card.opTaskId = epicsThreadMustCreate("PSCD_Poll", epicsThreadPriorityHigh, 20480, pscdOpTaskLow, (void *)index);
+    /* pscd_card.opTaskId = epicsThreadMustCreate("PSCD_Poll", epicsThreadPriorityHigh, 20480, pscdOpTaskLow, (void *)index); */
 
     /* Enable Interrupt */
     if(PSCD_DRV_DEBUG)
@@ -325,7 +329,13 @@ static long PSCD_EPICS_Init()
 static long PSCD_EPICS_Report(int level)
 {
     printf("\n"PSCD_DRV_VERSION"\n\n");
-    if(level) epicsPciHeaderInfo(&(pscd_card.pciHeader));
+    if(level)
+    {
+	epicsPciHeaderInfo(&(pscd_card.pciHeader));
+        printf("\tFound %c%c%c%c with Firmware Version %0x. Built date is %08X! \n\n", 
+		    (pscd_card.fwID>>24)&0xFF, (pscd_card.fwID>>16)&0xFF, (pscd_card.fwID>>8)&0xFF, pscd_card.fwID&0xFF,
+		    pscd_card.fwVer, pscd_card.fwDate);
+    }
     return 0;
 }
 
