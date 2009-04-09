@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.9 2009/03/18 04:27:53 pengs Exp $
+ *   $Id: drvSAM.c,v 1.10 2009/04/09 22:05:35 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -217,7 +217,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         UINT32 ctlwF17 = 0x0;
         UINT32 ctlwF0 = 0x0;
 
-        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2+1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
+        STAS_DAT read_sam[SAM_NUM_OF_CHANNELS+1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
 
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
@@ -227,7 +227,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
             goto egress;
         }
 
-        nops = 2 * pSAMModule->numChannels + 1;
+        nops = pSAMModule->numChannels + 1;
  
         /** Allocate package for SAM reset */
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
@@ -249,7 +249,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         }
 
         ctlwF0 = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (0 << 16);
-        for (loop=1; loop <= (2 * pSAMModule->numChannels); loop++)
+        for (loop=1; loop <= pSAMModule->numChannels; loop++)
         {
 	    bcnt = 4;
             if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
@@ -270,8 +270,8 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
 
         for (loop=1; loop <= pSAMModule->numChannels; loop++)
         {
-            /*value.tempI = ((read_sam[loop].data)&0xFFFFFFF0);*/
-            value.tempI = ((read_sam[loop*2-1].data)&0xFFF0) | (read_sam[loop*2].data << 16);
+            value.tempI = ((read_sam[loop].data)&0xFFFFFF00);
+            /*value.tempI = ((read_sam[loop*2-1].data)&0xFFF0) | (read_sam[loop*2].data << 16);*/
             pSAMModule->data[loop - 1 + pSAMModule->startChannel] = value.tempF;
         }
  
