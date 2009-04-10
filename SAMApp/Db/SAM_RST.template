@@ -1,7 +1,7 @@
 record(bo, "$(RECNAME)") {
   field(DESC, "SAM Reset")
   field(DTYP, "SAM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0@RESET")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F0 A0@RESET")
   field(ZNAM, "Reset")
   field(ONAM, "Reset")
 }
