@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.10 2009/04/09 22:05:35 pengs Exp $
+ *   $Id: drvSAM.c,v 1.11 2009/04/09 23:49:57 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -119,7 +119,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
             return (SAM_CAM_INIT_FAIL|iss);
 
-#if 0
+#if 1
         /* F9 to reset */
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (9 << 16);
 	bcnt = 0;
@@ -128,7 +128,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
             errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
             return (SAM_RST_CAMIO_FAIL|iss);
         }
-	epicsThreadSleep(20);
+	epicsThreadSleep(10);
 #endif
 
         /* F16 to set module to know mode */
@@ -141,7 +141,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
             errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
-        epicsThreadSleep(10);
+        epicsThreadSleep(1);
 
         /* F17 to set start channel */
         samctlw = (pSAMModule->n << 7) | (pSAMModule->c << 12) | (17 << 16);
@@ -166,7 +166,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         /*value.tempI = (read_sam[1].data & 0xFFFF) | (read_sam[2].data << 16);*/
         value.tempI = (read_sam[1].data & 0xFFFFFF00);
 	pSAMModule->fwVer = value.tempF;
-        printf("Firmware Version: %f\n", value.tempF);
+        printf("SAM at crate[%d] slot [%d] with firmware version: %f\n", pSAMModule->c, pSAMModule->n, value.tempF);
         /*printf("Firmware Version raw: L:0x%08X H:0x%08X\n", read_sam[1].data, read_sam[2].data);*/
 
         /* F16 to setup */
@@ -180,7 +180,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
-        epicsThreadSleep(10);
+        epicsThreadSleep(1);
 
         return 0;
     }
