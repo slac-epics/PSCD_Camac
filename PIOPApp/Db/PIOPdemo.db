@@ -1,0 +1,9 @@
+record(stringout, "PIOP:TEST:IPL") {
+  field(DESC, "IPL PIOP in test stand")
+  field(SCAN, "Passive")
+  field(OMSL, "supervisory")
+  field(VAL, "db/mksu.img")
+  field(DTYP, "PIOP")
+  field(OUT,  "#B0 C5 N3 @IPL")
+}
+

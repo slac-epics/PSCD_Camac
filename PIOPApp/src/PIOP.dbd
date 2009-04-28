@@ -1,7 +1,7 @@
-# Include external dbds if required
-#include devPSCD.dbd
-#device(ai,		CAMAC_IO,devAiPIOP,"PIOP")
+ # Include external dbds if required
 
-#driver(myDriver)
+device(stringout,        CAMAC_IO,devSoPIOP,"PIOP")
+
+driver(drvPIOP)
 #registrar(myRegistrar)
 #variable(myVariable)

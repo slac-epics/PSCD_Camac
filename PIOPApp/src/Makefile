@@ -16,7 +16,9 @@ LIBRARY_IOC_RTEMS += PIOP
 DBD += PIOP.dbd
 
 # specify all source files to be compiled and added to the library
-#PIOP_SRCS += devPIOP.c
+PIOP_SRCS += devPIOP.c
+PIOP_SRCS += drvPIOP.c
+PIOP_SRCS += iplPIOP.c
 
 PIOP_LIBS += $(EPICS_BASE_IOC_LIBS)
 
