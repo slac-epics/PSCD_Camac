@@ -15,7 +15,7 @@
  
   Side:
  
-  Proto: cam_proto.hm.
+  Proto: cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
@@ -50,13 +50,13 @@
 #include <stdio.h>          /* NULL                                    */ 
 #include "rtems.h"          /* rtems_region_get_segment.               */
 #include "slc_macros.h"    /* vmsstat_t, SUCCESS.                     */
-#include "cctlwmasks.hm"    /* CCTLW__P8, CCTLW__F8, CCTLW__RE_PACK,   */
+#include "cctlwmasks.h"    /* CCTLW__P8, CCTLW__F8, CCTLW__RE_PACK,   */
                             /*  CCTLW__MPC.                            */
-#include "camblkstruc.hm"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
+#include "camblkstruc.h"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
                             /*  mbcd_pkg_ts, mbcd_savep_ts,            */
                             /*  CAM_REPACK_WC.                         */
 #include "cam_proto.h"     /* (Self)                                  */
-#include "camdef.hc"        /* CAM_OKOK,...                            */
+#include "camdef.h"        /* CAM_OKOK,...                            */
 #include "errlog.h"         /* errlogSevPrintf                         */
 #include "drvPSCDLib.h"    /* Registers etc. for PSCD access */
   

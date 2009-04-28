@@ -5,7 +5,7 @@
  /* Abs:  This file defines the internal structure of the MBCD package in     */
  /*       the micro's.                                                        */
  /*                                                                           */
- /* Name: slcrmxi:camblkstruc.hm.                                             */
+ /* Name: slcrmxi:camblkstruc.h.                                             */
  /*                                                                           */
  /* Prev: None.                                                               */
  /*                                                                           */
@@ -89,7 +89,7 @@ typedef struct
  } mbcd_pkg_ts;
  
 /* Definition of camac package "token" type (32 bits, not 16 bits).   */
-/* Weaker version of mbcdpkg_ts is provided by cam_proto.hm & certain */
+/* Weaker version of mbcdpkg_ts is provided by cam_proto.h & certain */
 /* others when this includefile is absent.                            */ 
 
 #ifndef CAMPKGP_TDEF
@@ -99,15 +99,9 @@ typedef struct
  
                           /*  Structure of an MBCD status/data block.  */
  typedef struct
- {   union
-     {   unsigned short camst_w[2];
-         unsigned long  camst_dw;
-     } camst_u;
-     union
-     {   unsigned char  dat_b[1];
-         unsigned short dat_w[1];
-         unsigned long  dat_dw[1];
-     } dat_u;
+ {   
+   unsigned int  camst_dw;
+   unsigned short dat_w[1];
  } mbcd_stad_ts;
 
 #define CAMBLKSTRUC_HM

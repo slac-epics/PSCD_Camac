@@ -18,7 +18,7 @@
  
   Side:
  
-  Proto: cam_proto.hm.
+  Proto: cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
@@ -42,10 +42,10 @@
 #include <stdio.h>              /* NULL                                    */ 
 #include "rtems.h"              /* rtems_region_get_segment.               */
 #include "slc_macros.h"        /* vmsstat_t, SUCCESS.                     */
-#include "camblkstruc.hm"       /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
+#include "camblkstruc.h"       /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
                                 /* mbcd_pkg_ts, mbcd_savep_ts.             */
 #include "cam_proto.h"         /* (Self)                                  */
-#include "camdef.hc"            /* CAM_NOPS_MAX.                           */ 
+#include "camdef.h"            /* CAM_NOPS_MAX.                           */ 
 #include "errlog.h"             /* errlogSevPrintf                         */
 #include "drvPSCDLib.h"        /* Registers etc. for PSCD access */
  
@@ -134,9 +134,7 @@
         /*       memory, the package can correctly be deleted only by */
         /*       camdel.  All arguments are passed by reference.  See */
         /*       Basic User's Guide (BUG) for more details.           */
-        /* Args: brch_p          Pointer to branch name (ignored by   */
-        /*                        version of camalo that runs in      */
-        /*                        micro).                             */
+        /* Args:                                                      */
         /*       nops_p          Pointer to word containing max # of  */
         /*                        packets that can be built in this   */
         /*                        package.                            */
@@ -148,8 +146,7 @@
         /**************************************************************/
  
  /**procedure**/
- vmsstat_t camalo(const char brch_p[4], const unsigned short *nops_p,
-                  campkgp_t *camblk_pp)
+ vmsstat_t camalo(const unsigned short *nops_p, campkgp_t *camblk_pp)
  {
      return camal_1(sizeof(mbcd_pkghdr_ts) + *nops_p * (sizeof(mbcd_pkt_ts) +
                      sizeof(mbcd_savep_ts)), KEY_MED, *nops_p, camblk_pp);
@@ -166,9 +163,7 @@
         /*       memory, the package can correctly be deleted only by */
         /*       camdel.  All arguments are passed by reference.  See */
         /*       Basic User's Guide (BUG) for more details.           */
-        /* Args: brch_p          Pointer to branch name (ignored by   */
-        /*                        version of camalo that runs in      */
-        /*                        micro).                             */
+        /* Args:                                                      */
         /*       nops_p          Pointer to word containing max # of  */
         /*                        packets that can be built in this   */
         /*                        package.                            */
@@ -180,8 +175,7 @@
         /**************************************************************/
  
  /**procedure**/
- vmsstat_t camalol(const char brch_p[4], const unsigned short *nops_p,
-                   campkgp_t *camblk_pp)
+ vmsstat_t camalol(const unsigned short *nops_p, campkgp_t *camblk_pp)
  {
      return camal_1(sizeof(mbcd_pkghdr_ts) + *nops_p * (sizeof(mbcd_pkt_ts) +
 		    sizeof(mbcd_savep_ts)), KEY_LOW, *nops_p, camblk_pp);
@@ -198,9 +192,7 @@
         /*       memory, the package can correctly be deleted only by */
         /*       camdel.  All arguments are passed by reference.  See */
         /*       Basic User's Guide (BUG) for more details.           */
-        /* Args: brch_p          Pointer to branch name (ignored by   */
-        /*                        version of camalo that runs in      */
-        /*                        micro).                             */
+        /* Args:                                                      */
         /*       nops_p          Pointer to word containing max # of  */
         /*                        packets that can be built in this   */
         /*                        package.                            */
@@ -212,7 +204,7 @@
         /**************************************************************/
  
  /**procedure**/
- vmsstat_t camaloh(const char brch_p[4], const unsigned short *nops_p,
+ vmsstat_t camaloh(const unsigned short *nops_p,
                    campkgp_t *camblk_pp)
  {
      return camal_1(sizeof(mbcd_pkghdr_ts) + *nops_p * (sizeof(mbcd_pkt_ts) +

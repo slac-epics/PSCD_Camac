@@ -21,10 +21,7 @@
  
 --------------------------------------------------------------------------------
  
-  Mod:
-        11-Apr-2009, Robert C. Sass (RCS)
-            Semaphore claim in wrong place. Alloc normal memory for local stat/data.
-        26-Jul-2008, Robert C. Sass (RCS)
+  Mod:  26-Jul-2008, Robert C. Sass (RCS)
             Modify for PSCD card running under EPICS
         10-Jun-1999, Tony Gromme (TEG):
             Translate from PLM386 to iC386.
@@ -37,24 +34,25 @@
  
 ==============================================================================*/
 
-#include <stdio.h>         /* NULL                                    */ 
 #include <string.h>        /* memcpy                                  */
-#include <stdlib.h>        /* calloc                                  */ 
+#include <stdio.h>         /* NULL                                    */ 
 
-#include "epicsMutex.h"     /* epicsMutexId, epicsMutexLockStatus,     */
+#include "rtems.h"         /* rtems_region_get/return_segment         */
+#include "epicsMutex.h"    /* epicsMutexId, epicsMutexLockStatus,     */
                            /*  epicsMutexCreate, epicsMutexLock,      */
                            /*  epicsMutexUnlock, epicsMutexDestroy.   */
-#include "cantProceed.h"   /* callocMustSucceed                       */
-
-#include "slc_macros.h"    /* vmsstat_t, SUCCESS.                     */
-#include "cctlwmasks.h"    /* CCTLW__F16, CCTLW__F8.                  */
-#include "camblkstruc.h"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
+#include "slc_macros.h"   /* vmsstat_t, SUCCESS.                     */
+#include "cctlwmasks.h"   /* CCTLW__F16, CCTLW__F8.                  */
+#include "camblkstruc.h"  /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
                            /*  mbcd_pkg_ts, mbcd_stad_ts.             */
-#include "cam_proto.h"     /* (Self), camalo, camalo_reset, camadd,   */
+#include "cam_proto.h"    /* (Self), camalo, camalo_reset, camadd,   */
                            /*  camgo.                                 */
 #include "camdef.h"        /* CAM_NOHEAP                              */
 #include "micrdef.h"       /* MICR_EPMUTEXCREA.                       */
 #include "errlog.h"        /* errlogSevPrintf                         */
+#include "drvPSCDLib.h"       /* Registers etc. for PSCD access          */
+
+extern PSCD_CARD pscd_card;    /* PSCD card registers etc. */     
  
 #define CAMIO_DAT_DEFBC 128
  
@@ -62,6 +60,7 @@
  static campkgp_t      camio_pkg_tok = NULL;
  static void          *camio_stad_tok;
  
+ static const unsigned short one_w = 1;
  
        /****************************************************************/
        /*                                                              */
@@ -95,6 +94,7 @@
        /*       camio_sem_tok   Identifier of our mutex semaphore.     */
        /* Ret:  CAM_OKOK if successful;  else possible bad status      */
        /*       return from camalo_reset, camadd,                      */
+       /* rtems_region_get_segment, or (most likely) camgo.            */
        /*                                                              */
        /****************************************************************/
  
@@ -102,14 +102,38 @@
  vmsstat_t camio(const unsigned long *cctlw_p, void *datau_p,
                  const unsigned short *bcnt_p, void *statu_p, const unsigned short *emask_p)
  {  
-     void          *stad_free_p = NULL;
+     void          *stad_free_p;
      mbcd_stad_ts  *stad_locl_p;
      epicsMutexLockStatus oss;
+     rtems_status_code rss;
      vmsstat_t      iss;
  
-     /*----------------------------------------------*/
+               /*----------------------------------------------*/
+ 
+     /* Make sure returned MBCD status will be 0 if failure */
+     /* before camgo.  Get memory if *bcnt_p > default.     */
+ 
+     *(unsigned long *) statu_p = 0;
+     if (*bcnt_p <= CAMIO_DAT_DEFBC)
+     {
+         stad_free_p = NULL;
+         stad_locl_p = (void *) camio_stad_tok;
+     }
+     else     /* Request too big for pre-allocated package */
+     {
+         if ((rss = rtems_region_get_segment(pscd_card.memPartId, *bcnt_p+12, 
+              RTEMS_NO_WAIT, 0, &stad_free_p)) != RTEMS_SUCCESSFUL)
+	 {
+	     iss = CAM_NOHEAP;
+             errlogSevPrintf (errlogFatal, 
+                    "CAMIO - Unable to (allocate dynamic memory with code %d\n", rss);
+             goto egress;
+         }
+         stad_locl_p = stad_free_p;
+     }
+ 
      /* Claim our semaphore, thus serializing use of our local */
-     /* preallocated package & data area.                      */
+     /* preallocated segments.                                 */
  
      if ((oss = epicsMutexLock(camio_sem_tok)) != 0)
      {
@@ -117,25 +141,6 @@
          errlogSevPrintf (errlogFatal, "CAMIO - Unable to lock Mutex with EPICS code %x\n", oss);
          goto egress;
      }         
-     /* Make sure returned MBCD status will be 0 if failure */
-     /* before camgo.  Get memory if *bcnt_p > default.     */
- 
-     *(unsigned long *) statu_p = 0;
-     if (*bcnt_p <= CAMIO_DAT_DEFBC)
-     {
-         stad_locl_p = (void *) camio_stad_tok;
-     }
-     else     /* Request too big for pre-allocated package */
-     {
-         if ((stad_free_p = calloc (1, *bcnt_p+12)) == NULL)
-	 {
-	     iss = CAM_NOHEAP;
-             errlogSevPrintf (errlogFatal, 
-                    "CAMIO - Unable to allocate dynamic memory size %d\n", *bcnt_p+12);
-             goto egress;
-         }
-         stad_locl_p = stad_free_p;
-     }
 
      /*  Reset our local preallocated package to 0 packets, */
      /*  and build one packet therein.                      */
@@ -143,12 +148,11 @@
      if (SUCCESS(iss = camalo_reset(&camio_pkg_tok)) &&
          SUCCESS(iss = camadd(cctlw_p, stad_locl_p, bcnt_p, emask_p, &camio_pkg_tok)))
      {
+ 
          /* If write, then copy data from caller's area before executing packet. */
  
          if ((*cctlw_p & (CCTLW__F16 | CCTLW__F8)) == CCTLW__F16)
-	 {
              memcpy(&stad_locl_p->dat_w, datau_p, *bcnt_p);
-	 }
          /* Execute the packet. */
  
          iss = camgo(&camio_pkg_tok);
@@ -156,19 +160,31 @@
          /*  If read, then copy data to caller's area after executing packet. */
  
          if ((*cctlw_p & (CCTLW__F16 | CCTLW__F8)) == 0)
-	 {
              memcpy(datau_p, &stad_locl_p->dat_w, *bcnt_p);
-         }
          /*  Copy status longword as generated by MBCD. */
  
          *(unsigned long *) statu_p = stad_locl_p->camst_dw;
-     } 
-egress:
-     /*  If we allocated memory here, then deallocate it.*/
-     if (stad_free_p != NULL)
-        free (stad_free_p);
+
+     }
+ 
+     /*  Release our semaphore. */
+ 
      epicsMutexUnlock(camio_sem_tok);
 
+ 
+     /*  If we allocated memory here, then deallocate it.  Then return. */
+ 
+egress:
+     if (stad_free_p != NULL)
+     {
+        if ((rss = rtems_region_return_segment (pscd_card.memPartId, 
+                                                stad_free_p)) != RTEMS_SUCCESSFUL)
+        {
+           iss = CAM_NOHEAP;  
+           errlogSevPrintf (errlogFatal, 
+                          "CAMIO - Unable to free dual-port memory with code %d\n", rss);     
+        }
+     }
      return iss;
  }                                                              /* End camio. */
  
@@ -197,16 +213,38 @@ egress:
  /**procedure**/
  vmsstat_t camioi(void)
  {  
+     rtems_status_code rss;
      vmsstat_t      iss = CAM_OKOK;
-     unsigned short one_w = 1;
-     /*------------------ code ----------------------------*/
+ 
+     /*----------------------------------------------*/
+ 
      if (camio_pkg_tok != NULL)
        goto egress;      /* Already initialized */
 
-     if (!SUCCESS(iss = camalo(&one_w, &camio_pkg_tok)))
-       goto egress;
-     camio_sem_tok =  epicsMutexMustCreate();
-     camio_stad_tok = callocMustSucceed (1, CAMIO_DAT_DEFBC+12,"CAMIOI calloc stat/data");
+     if ((camio_sem_tok = epicsMutexCreate()) != NULL)
+     {
+         if (SUCCESS(iss = camalo(&one_w, &camio_pkg_tok)))
+         {
+             if ((rss = rtems_region_get_segment(pscd_card.memPartId, CAMIO_DAT_DEFBC+12, 
+                  RTEMS_NO_WAIT, 0, &camio_stad_tok)) != RTEMS_SUCCESSFUL)
+             {
+	         iss = CAM_NOHEAP;
+                 errlogSevPrintf (errlogFatal, 
+                     "CAMIOI - Unable to allocate dynamic memory with code %x\n", rss);
+                 camdel(&camio_pkg_tok);
+                 epicsMutexDestroy(camio_sem_tok);
+             }
+         }
+         else
+         {
+             epicsMutexDestroy(camio_sem_tok);
+         }
+     }
+     else
+     {
+         iss = MICR_EPMUTEXCREA;
+         errlogSevPrintf (errlogFatal, "CAMIOI - Cannot create EPICS mutex\n");
+     }
  egress:
      return iss;
  }                                                             /* End camioi. */

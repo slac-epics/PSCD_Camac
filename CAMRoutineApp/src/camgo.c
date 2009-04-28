@@ -18,14 +18,17 @@
  
   Side: Operation of camac modules is affected.
  
-  Proto: slcrmxi:cam_proto.hm.
+  Proto: slcrmxi:cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
  
 --------------------------------------------------------------------------------
  
-  Mod:  21-Jul-2008, Robert C. Sass (RCS)
+  Mod:  
+        16-Feb-2009, Robert C. Sass (RCS)
+            Cahnge for PSCD card struct and interrupts.
+        21-Jul-2008, Robert C. Sass (RCS)
             Modify for PSCD card running under EPICS
         10-Jun-1999, Tony Gromme (TEG):
             Translate from PLM386 to iC386.
@@ -50,18 +53,18 @@
 #include <stdio.h>                 /* NULL                                    */ 
 #include <string.h>                /* memcpy                                  */
 
-#include "drvPSCDLib.h"               /* Registers etc. for PSCD access          */
+#include "drvPSCDLib.h"            /* Registers etc. for PSCD access          */
 #include "epicsMutex.h"            /* epicsMutexId, Create, Lock, Unlock      */
-#include "epicsTime.h" /* !! Debug !! */
-#include "slc_macros.h"           /* vmsstat_t, SUCCESS.                     */
-#include "cctlwmasks.hm"           /* CCTLW__P8, CCTLW__F8, CCTLW__MPC        */
-#include "camblkstruc.hm"          /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
+#include "epicsEvent.h"            /* For interrupt event                      */
+#include "slc_macros.h"            /* vmsstat_t, SUCCESS.                     */
+#include "cctlwmasks.h"           /* CCTLW__P8, CCTLW__F8, CCTLW__MPC        */
+#include "camblkstruc.h"          /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
                                    /* mbcd_pkg_ts, mbcd_savep_ts,             */
                                    /* mbcd_stad_ts                            */
-#include "cam_proto.h"            /* (Self).                                 */
+#include "cam_proto.h"             /* (Self).                                 */
 #include "errlog.h"                /* errlogSevPrintf                         */
-#include "camdef.hc"               /* CAM_OKOK,...                            */
-#include "micrdef.hc"              /* MICR_EPMUTEXCREA.                       */
+#include "camdef.h"               /* CAM_OKOK,...                            */
+#include "micrdef.h"              /* MICR_EPMUTEXCREA.                       */
 #include "epicsThread.h"
 
  static unsigned long cam_tdv_busy_count = 0,
@@ -69,8 +72,16 @@
  static const vmsstat_t camerrcods[9] = {CAM_OKOK,
                                          CAM_NO_Q,      CAM_NO_X,     CAM_NO_EOSTRM, CAM_NO_EOSTRM,
                                          CAM_NO_WCTERM, CAM_CRATE_TO, CAM_SOFT_TO,   CAM_MBCD_NFG};
+/*
+** Mutex for each priority level to start the PSCD.
+*/
+
+#define MAX_PRIOR 3
+ static epicsMutexId   camgo_sem_toks[MAX_PRIOR] = {NULL, NULL, NULL};
  
- /*  Prototypes of local procedures:  */
+/***********************************
+ **  Prototypes of local procedures:
+ ********************************* */
  static vmsstat_t cam_get_errcod(unsigned char eflagb);
  static vmsstat_t camgo_spin_errs(unsigned miop, const mbcd_pkt_ts mbcd_pkt_p[],
                                   const mbcd_savep_ts savep_p[]);
@@ -78,13 +89,15 @@
 	                             unsigned char dest_p[], unsigned bc);	
  void unpk_bytes_to_w(const unsigned char sorc_p[],
 	 	                     unsigned short dest_p[], unsigned bc);
-
+#ifndef _X86_
+/* To or From Dual-port memory */
+#define TODP 1
+#define FROMDP 2
 /*
-** Mutex for each priority level to start the PSCD.
+** Big-endian word copy to insure that odd half-words go in the right place.
 */
-
-#define MAX_PRIOR 3
- static epicsMutexId   camgo_sem_toks[MAX_PRIOR] = {NULL, NULL, NULL};
+void bewcpy (void *dest_p, void *wsrc_p, size_t wc,unsigned char dir );
+#endif
 
 /*********************
 ** Local procedures
@@ -126,13 +139,58 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
   return;
 }
 
+#ifndef _X86_
+/*
+** Big-endian word copy. The PCI bus and hence dual-port memory is read
+** little endian by the PSCD i.e. sequential addresses proceed from the 
+** low-order byte. The PPC is big-endian i.e. sequential addresses proceed 
+** from the high-order byte. The PSCD always does word transfers and the PLX 
+** swaps the bytes but not the words which we must do here.
+**
+** Furthermore, how we do the swap depends on the direction.
+**
+** For TODP i.e. PPC -> DP;  PPC[0] -> DP[1]
+** For FROMDP i.e. DP  -> PPC; DP[0]  -> PPC[1]
+*/
+void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
+{
+  unsigned short *lsrc_p  = (unsigned short *) src_p, 
+                 *ldest_p = (unsigned short *) dest_p; /* Make ptrs *word */
+  /*------------------ code ---------------*/
+  /*
+  ** If the word count is even this degerates into a simple memcpy because the 
+  ** PLX chip handles the byte swapping.
+  ** If it's odd, then do memcpy for the even number of words and put the last word
+  ** in the correct half depending on the direction.
+  */
+  if (!(wc & 1))
+  {
+    memcpy (ldest_p, lsrc_p, (wc << 1));  /* Even word count = memcpy */
+  }
+  else            /* Odd word count. For 1 word the memcpy is a NOP. */
+  {
+    memcpy (ldest_p, lsrc_p, ((wc-1) << 1)); /* Copy all but the last odd word */
+    lsrc_p =  &(lsrc_p[wc-1]);    /* Point to the last words */
+    ldest_p = &(ldest_p[wc-1]);
+    if (dir == TODP)
+    {
+      ldest_p[1] = lsrc_p[0];
+    }
+    else
+    {
+      ldest_p[0] = lsrc_p[1];
+    }
+  }
+  return;
+}
+#endif
          /************************************************************/
          /*                                                          */
          /* Abs:  CAM routine initialization.                        */
          /* Name: cam_ini.                                           */
          /* Scop: Public;  must be called once from somewhere.       */
          /* Rem:  Creates semaphore for each priority & calls camioi */
-         /* Arg:  None.                                              */
+         /* Arg:  PSCD card structure.                               */
          /* Ctxt: camgo_sem_toks - Mutex semaphore for each priority */
          /* Ret:  CAM_OKOK if successfull; possible bad status return*/
          /*       camioi MICR_EPMUTEXCREA if mutex can't be created. */
@@ -140,8 +198,8 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
          /************************************************************/
  
  /**procedure**/
- vmsstat_t cam_ini(void)
- {  
+ vmsstat_t cam_ini(void *pPSCD)
+ {
      int i;
      vmsstat_t      iss = CAM_OKOK;
  
@@ -178,28 +236,38 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
         /*       contain more than one camac package selector whose   */
         /*       execution was initiated at task level (as opposed to */
         /*       interrupt level).                                    */
-        /* Arg:  pscd_siop             32-bit "sio" ptr to be pushed  */
-        /*                             into PSCD's fifo to start      */
-        /*                             execution of PSCD package.     */
+        /* Arg:  campkg_pp             pointer to camac package       */
         /*                                                            */
         /* Ret:  None.                                                */
         /*                                                            */
         /**************************************************************/
  
  /**procedure**/
- vmsstat_t camgo_start_pscd(void *pscd_siop, unsigned int prior, int wait)
+ vmsstat_t camgo_start_pscd(const campkgp_t *campkg_pp, int wait)
  {
-  
+#define CAMBLK_p (*campkg_pp) 
 #define TDV_BSYN_MSK 0x80
 #define TDV_PEND_MSK 0x20
 #define TDV_PTO_MSK  0x40 
 #define TDV_DONE_MSK 0x1
-     unsigned       j,k;
+     unsigned       j;
+     unsigned int prior = CAMBLK_p->hdr.key;
      epicsMutexLockStatus oss;
+     epicsEventWaitStatus ess;
      vmsstat_t iss = CAM_OKOK;
      extern volatile PSCD_CARD pscd_card;        /* PSCD card registers etc. */
 
-               /*----------------------------------------------*/
+     /*----------------------------------------------*/
+     /* Check key (priority) for validity */
+
+     if (prior > KEY_LOW)
+     {
+         iss = CAM_CCB_NFG;
+         errlogSevPrintf (errlogMinor, 
+           "CAMGO_ - In start_pscd invalid priority %d\n",CAMBLK_p->hdr.key);
+         goto egress;
+     }
+
      /* Serialize access to the registers for this priority */
 
      if ((oss = epicsMutexLock(camgo_sem_toks[prior])) != 0)
@@ -233,27 +301,30 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
      {
  
      /* 
-     ** Push given addressinto PSCD's priority fifo to 
-     ** start execution of package and optionally wait for done.
+     ** Set wait for interrupt event condition and push given address into PSCD's 
+     ** priority fifo to start execution of package and optionally wait for done.
      */
 
-        *(pscd_card.sio_p[prior]) = MEMPARTADRS_TO_SIO((unsigned) pscd_siop);
+	pscd_card.waitSemSio[prior] = FALSE;
+        if (wait)
+	   pscd_card.waitSemSio[prior] = TRUE;
+        *(pscd_card.sio_p[prior]) = MEMPARTADRS_TO_SIO((unsigned) CAMBLK_p->hdr.pkg_p);
 
      /*
-     **  The I/O has started so free semaphore. If requested, Wait for TDV done bit 
-     **  to be cleared & set it to reset for package completion. 
+     **  If requested, wait for I/O completion interrupt. Free mutex when done. 
      */
-
-        epicsMutexUnlock (camgo_sem_toks[prior]);
 
         if (wait)
         {
-           for (k=4000;  (*pscd_card.tdv_p[prior] & TDV_DONE_MSK) == 0 && k > 0;  --k);
-           *pscd_card.tdv_p[prior] = TDV_DONE_MSK;
-	   printf ("Waited %d for done mask\n",k);           
+	   if ((ess = epicsEventWaitWithTimeout(pscd_card.semSio[prior], 0.1)) != epicsEventWaitOK)
+	   {
+              iss = MICR_UNK_IRMXERR;        
+              errlogSevPrintf (errlogFatal, "CAMGO - epics event wait error %x\n",ess);
+	   }
+           *pscd_card.tdv_p[prior] = TDV_DONE_MSK;  /* Insure clear for next I/O */
         }
+        epicsMutexUnlock (camgo_sem_toks[prior]);
      }
-     /* epicsThreadSleep(0.001); */
  egress:
      return iss;
  }                                                   /* End camgo_start_pscd. */ 
@@ -342,8 +413,11 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
          /* Low byte of emask conditions err_send's done here.  High byte */
          /* of emask conditions the code returned to caller.  Caller will */
          /* get first bad error code seen, or ok.                         */
- 
+#ifdef _X86_
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask)))
+#else
+         if (!SUCCESS(issx = cam_get_errcod(eflag & (savep_p[jp].emask << 8))))
+#endif
          {
              parmdw[0] = (mbcd_pkt_p[jp].cctlw & CCTLW__C) >> CCTLW__C_shc;
              parmdw[1] = (mbcd_pkt_p[jp].cctlw & CCTLW__M) >> CCTLW__M_shc;
@@ -389,9 +463,13 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
              }
 
          }
- 
+#ifdef __X86  
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask >> 8))  &&
              SUCCESS(iss))
+#else
+         if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask))  &&
+             SUCCESS(iss))
+#endif
          {
              iss = issx;
          }
@@ -453,7 +531,6 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
      /*
      ** Only execute low and medium priority packages with Camgo.
      */
-/*
      if ( (CAMBLK_p->hdr.key != KEY_MED) && (CAMBLK_p->hdr.key != KEY_LOW))
      {
          iss = CAM_CCB_NFG;
@@ -461,7 +538,6 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
            "CAMGO - Cannot execute package with key %d\n",CAMBLK_p->hdr.key);
          goto egress;
      }
-*/
      if ((miop = CAMBLK_p->hdr.iop) == 0 || miop > 127)
      {
          iss = CAM_NO_PKTS;
@@ -480,36 +556,43 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
      for (jp = 0;  jp < miop;  ++jp)
      {
          stadh_p = savep_p[jp].hrdw_p;
-         stadh_p->camst_u.camst_dw = 0;
- 
+         stadh_p->camst_dw = 0;
          if (savep_p[jp].user_p != NULL &&
             (CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == CCTLW__F16)
          {
              if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
              {
-                 memcpy(&stadh_p->dat_u, (char *) savep_p[jp].user_p + 4,
+#ifdef _X86_
+                 memcpy(&stadh_p->dat_w, (char *) savep_p[jp].user_p + 4,
                  CAMBLK_p->mbcd_pkt[jp].wc_max << 1);
+#else
+                 bewcpy(&stadh_p->dat_w, savep_p[jp].user_p + 4,
+                         CAMBLK_p->mbcd_pkt[jp].wc_max, TODP);
+#endif
              }
              else
                  unpk_bytes_to_w((unsigned char *) savep_p[jp].user_p + 4,
-                                 stadh_p->dat_u.dat_w, CAMBLK_p->mbcd_pkt[jp].wc_max);
+                                 stadh_p->dat_w, CAMBLK_p->mbcd_pkt[jp].wc_max);
          }
      }
 
      /* Start the PSCD operation and wait for completion. */
+
  
-     iss = camgo_start_pscd(CAMBLK_p->hdr.pkg_p, CAMBLK_p->hdr.key, wait);
- 
+     iss = camgo_start_pscd(campkg_pp, wait);
+
+
      /* Spin until completion and sort out the errors. */
 
      iss = camgo_spin_errs(miop, CAMBLK_p->mbcd_pkt, savep_p);
  
+
      /* For each packet, if we are buffering the operation, then  */
      /* copy the status longword from memory allocated by camadd, */
      /* and if the packet is a read, then copy the data too.      */
      /* Note that if a packet is requesting P8, then we are       */
      /* buffering that operation.                                 */
- 
+
      for (jp = 0;  jp < miop;  ++jp)
      {
          if (savep_p[jp].user_p != NULL)
@@ -518,8 +601,13 @@ void unpk_bytes_to_w(const unsigned char sorc_p[],
              {
                  if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
                  {
+#ifdef _X86_
                      memcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
                             (CAMBLK_p->mbcd_pkt[jp].wc_max << 1) + 4);
+#else
+                     bewcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
+                            (CAMBLK_p->mbcd_pkt[jp].wc_max + 2), FROMDP);
+#endif
                  }
                  else
                  {

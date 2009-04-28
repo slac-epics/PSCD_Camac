@@ -13,7 +13,7 @@
  
   Side:
  
-  Proto: slcrmxi:cam_proto.hm.
+  Proto: slcrmxi:cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
@@ -41,10 +41,10 @@
 
 #include <stdio.h>          /* NULL                           */
 #include "slc_macros.h"    /* vmsstat_t, SUCCESS.            */
-#include "camblkstruc.hm"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,   */
+#include "camblkstruc.h"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,   */
                             /* mbcd_pkg_ts, mbcd_savep_ts.    */
 #include "cam_proto.h"     /* (Self)                         */
-#include "camdef.hc"        /* CAM_OKOK,...                   */
+#include "camdef.h"        /* CAM_OKOK,...                   */
 #include "errlog.h"         /* errlogSevPrintf                */
 #include "drvPSCDLib.h"        /* Registers etc. for PSCD access */
  
@@ -101,7 +101,7 @@
                      {
                          iss = CAM_NOHEAP;  
                          errlogSevPrintf (errlogFatal, 
-                          "CAMALORL - Unable to free dual-port memory with code %d\n", rss);
+                          "CAMALOR - Unable to free dual-port memory with code %d\n", rss);
 	             }
                  }
              }

@@ -13,7 +13,7 @@
  
   Side:
  
-  Proto: slcrmxi:cam_proto.hm.
+  Proto: slcrmxi:cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
@@ -37,9 +37,9 @@
 
 #include "rtems.h"          /* rtems_region_return_segment.            */
 #include "slc_macros.h"    /* vmsstat_t, SUCCESS.                     */
-#include "camblkstruc.hm"   /* mbcd_pkt_ts, mbcd_pkghdr_ts             */
+#include "camblkstruc.h"   /* mbcd_pkt_ts, mbcd_pkghdr_ts             */
 #include "cam_proto.h"     /* (Self), camalo_reset, campoold.         */
-#include "camdef.hc"        /* CAM_OKOK,...                            */
+#include "camdef.h"        /* CAM_OKOK,...                            */
 #include "errlog.h"         /* errlogSevPrintf                         */
 #include "drvPSCDLib.h"    /* Registers etc. for PSCD access          */
  
