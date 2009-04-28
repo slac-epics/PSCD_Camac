@@ -14,7 +14,7 @@
  
   Side:
  
-  Proto: slcrmxi:cam_proto.hm.
+  Proto: slcrmxi:cam_proto.h.
  
   Auth: ??-???-1982, Dave Sherden (DJS).
   Revw:
@@ -33,13 +33,13 @@
 ==============================================================================*/
 
 #include "slc_macros.h"    /* vmsstat_t.                              */
-#include "cctlwmasks.hm"    /* CCTLW__P8, CCTLW__P24, CCTLW__F8,       */
+#include "cctlwmasks.h"    /* CCTLW__P8, CCTLW__P24, CCTLW__F8,       */
                             /*  CCTLW__MPC.                            */
-#include "camblkstruc.hm"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
+#include "camblkstruc.h"   /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
                             /*  mbcd_pkg_ts.                           */
 #include "cam_proto.h"     /* (Self), camgo.                          */
 #include "errlog.h"         /* errlogSevPrintf                         */
-#include "camdef.hc"        /* CAM_ILMODCTLW.                          */
+#include "camdef.h"        /* CAM_ILMODCTLW.                          */
  
  
        /****************************************************************/
