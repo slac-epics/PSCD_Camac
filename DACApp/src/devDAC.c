@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devDAC.c,v 1.2 2009/03/08 08:01:34 pengs Exp $
+ *   $Id: devDAC.c,v 1.1 2009/05/12 07:40:23 pengs Exp $
  *   File:		devDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -306,7 +306,7 @@ static long read_li(struct longinRecord *pli)
         }
         else
         {
-            if(DAC_DRV_DEBUG)   printf("Record [%s] receives val [0x%X]!\n", pli->name, pRequest->val);
+            if(DAC_DRV_DEBUG)   printf("Record [%s] receives val [%d]!\n", pli->name, pRequest->val);
 
             if(pli->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pli->time = pRequest->actTime;

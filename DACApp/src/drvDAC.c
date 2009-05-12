@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.1 2009/05/12 07:40:23 pengs Exp $
+ *   $Id: drvDAC.c,v 1.2 2009/05/12 08:10:29 pengs Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -168,7 +168,7 @@ UINT32 DAC_ReadData(DAC_REQUEST  *pDACRequest)
             }
 
             pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
-            printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
+            if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
 			    pDACModule->c, pDACModule->n, pDACRequest->a, pDACRequest->val);
 	}
     }
