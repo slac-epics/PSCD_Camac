@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.12 2009/04/12 00:19:54 pengs Exp $
+ *   $Id: drvDAC.c,v 1.1 2009/05/12 07:40:23 pengs Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -218,7 +218,7 @@ UINT32 DAC_ReadID(DAC_REQUEST  *pDACRequest)
 
             pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
             pDACModule->moduleID = pDACRequest->val;
-            printf("DAC at crate[%d] slot [%d] ch[%d] with module ID: 0x%X\n",
+            if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with module ID: %d\n",
 			    pDACModule->c, pDACModule->n, pDACRequest->a, pDACRequest->val);
 	}
     }
@@ -437,7 +437,7 @@ static long DAC_EPICS_Report(int level)
             printf("\tDAC Module at b[%d]c[%d]n[%d]: \n", pDACModule->b, pDACModule->c, pDACModule->n);
             if(level > 1)
             {
-                printf("\tModule ID is 0x%x\n\n", pDACModule->moduleID);
+                printf("\tModule ID is %d\n\n", pDACModule->moduleID);
             }
         }
     }
