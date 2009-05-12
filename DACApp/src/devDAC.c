@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devDAC.c,v 1.1 2009/05/12 07:40:23 pengs Exp $
+ *   $Id: devDAC.c,v 1.2 2009/05/12 08:32:15 pengs Exp $
  *   File:		devDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -76,7 +76,7 @@ static long init_ai(struct aiRecord * pai)
     }
 
     pai->eslo = (pai->eguf - pai->egul)/(float)0x10000;
-    pai->roff = 0x8000;
+    pai->roff = 0x0;
 
     return (status);
 }
