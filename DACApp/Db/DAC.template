@@ -7,6 +7,8 @@ record(ao, "$(RECNAME)") {
   field(EGUL, "$(EGUL)")
   field(HOPR, "$(EGUF)")
   field(LOPR, "$(EGUL)")
+  field(DRVH, "$(EGUF)")
+  field(DRVL, "$(EGUL)")
   field(ADEL, "$(ADEL)")
   field(MDEL, "$(MDEL)")
   field(HIHI, "$(HIHI)")
@@ -19,6 +21,7 @@ record(ao, "$(RECNAME)") {
   field(LSV,  "MINOR")
   field(LLSV, "MAJOR")
   field(TSE,  "-2")
+  field(PINI, "$(PINI)")
   field(FLNK,  "$(RECNAME):Rdbk")
 }
 
@@ -43,5 +46,6 @@ record(ai, "$(RECNAME):Rdbk") {
   field(LSV,  "MINOR")
   field(LLSV, "MAJOR")
   field(TSE,  "-2")
+  field(PINI, "YES")
 }
 
