@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.5 2009/05/12 01:10:55 pengs Exp $
+ *   $Id: devSAM.h,v 1.6 2009/05/12 01:54:27 pengs Exp $
  *   File:		devSAM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -123,7 +123,7 @@ static struct PARAM_MAP
     int  funcflag;
 } param_map[] = {
     {"DATA",  EPICS_RECTYPE_AI, SAM_AI_DATA},
-    {"FWVER", EPICS_RECTYPE_AI, SAM_AI_FWVER},
+    {"VERSION", EPICS_RECTYPE_AI, SAM_AI_FWVER},
     {"RESET", EPICS_RECTYPE_BO, SAM_BO_RESET}
 };
 #define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))

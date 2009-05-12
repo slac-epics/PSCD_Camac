@@ -7,12 +7,11 @@ record(bo, "$(MODULENAME):Reset") {
 }
 
 record(ai, "$(MODULENAME):fwVer") {
-  field(DESC, "SAM fw")
+  field(DESC, "SAM FW")
   field(SCAN, "$(SCAN)")
   field(DTYP, "SAM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0@FWVER")
-  field(PREC, "1")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0@VERSION")
+  field(PREC, "3")
 }
-
 
 
