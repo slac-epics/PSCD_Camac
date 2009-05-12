@@ -22,6 +22,7 @@ record(ao, "$(RECNAME)") {
   field(LLSV, "MAJOR")
   field(TSE,  "-2")
   field(PINI, "$(PINI)")
+  field(LINR, "LINEAR")
   field(FLNK,  "$(RECNAME):Rdbk")
 }
 
@@ -45,6 +46,7 @@ record(ai, "$(RECNAME):Rdbk") {
   field(HSV,  "MINOR")
   field(LSV,  "MINOR")
   field(LLSV, "MAJOR")
+  field(LINR, "LINEAR")
   field(TSE,  "-2")
   field(PINI, "YES")
 }
