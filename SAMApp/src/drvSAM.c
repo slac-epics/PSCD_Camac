@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.15 2009/05/12 03:20:47 pengs Exp $
+ *   $Id: drvSAM.c,v 1.16 2009/05/12 03:36:14 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -277,10 +277,10 @@ release_campkg:
         if (!SUCCESS(iss = camdel (&pkg_p)))
             errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
     }
-    else if(pSAMModule->fwVer <= 0.0)
-        rtn = SAM_MODULE_UNKNOWN_MODE;
-    else
+    else if(!isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
         rtn = SAM_MODULE_NOT_EXIST;
+    else
+        rtn = SAM_MODULE_UNKNOWN_MODE;
 
 egress:
     epicsTimeGetCurrent(&(pSAMModule->lastReadTime)); 
