@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.3 2009/03/08 08:03:07 pengs Exp $
+ *   $Id: devSAM.h,v 1.4 2009/04/08 22:07:40 pengs Exp $
  *   File:		devSAM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -77,11 +77,13 @@ typedef struct SAM_MODULE
 {
     ELLNODE                     node;   /* Link List Node */
 
-    epicsMessageQueueId		msgQId;	/* so far all modules share one Q */
-
     UINT16			b;	/* branch */
     UINT16			c;	/* crate */
     UINT16			n;	/* node = slot */
+
+    /* So one task/msgQ per module since reset takes long time */
+    epicsMessageQueueId		msgQId;
+    epicsThreadId               opTaskId;
 
     float			fwVer;	/* also used to indicate SAM in known state */
 

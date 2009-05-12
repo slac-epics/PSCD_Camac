@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.11 2009/04/09 23:49:57 pengs Exp $
+ *   $Id: drvSAM.c,v 1.12 2009/04/12 00:19:54 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -21,10 +21,7 @@ extern struct PSCD_CARD pscd_card;
 int SAM_DRV_DEBUG = 0;
 
 /* We only support one PSCD per IOC */
-/* So all SAM transactions go thru one PSCD, only one task/msgQ needed */
 static ELLLIST SAMModuleList = {{NULL, NULL}, 0};
-static epicsMessageQueueId SAMmsgQId = NULL;
-static epicsThreadId SAMOpId = NULL;
 
 /*********************************************************************/
 static SAM_MODULE * findSAMModuleByBCN(short b, short c, short n)
@@ -294,19 +291,28 @@ static int SAM_Operation(void * parg)
     int     msgQstatus;
     UINT32  errCode;
 
-    SAM_REQUEST  *pSAMRequest;
-
     epicsTimeStamp currentTime;
 
-    if(SAMmsgQId == NULL)
+    SAM_REQUEST  *pSAMRequest;
+    SAM_MODULE * pSAMModule = (SAM_MODULE *) parg;
+
+    if(pSAMModule->msgQId == NULL)
     {
         errlogPrintf("Operation thread quit because no legal SAMmsgQId!\n");
         return -1;
     }
 
+    errCode = SAM_Reset(pSAMModule);
+    if(errCode)
+    {
+        errlogPrintf("Fail to call SAM_Reset SAM[%d,%d,%d], error 0x%08X\n", 
+            pSAMModule->b, pSAMModule->c, pSAMModule->n, errCode);
+        return -1;
+    }
+
     while(TRUE)
     {
-        msgQstatus = epicsMessageQueueReceive(SAMmsgQId, &pSAMRequest, sizeof(SAM_REQUEST *) );
+        msgQstatus = epicsMessageQueueReceive(pSAMModule->msgQId, &pSAMRequest, sizeof(SAM_REQUEST *) );
         if(msgQstatus < 0)
         {/* we should never time out, so something wrong */
             errlogPrintf("SAM Operation msgQ timeout!\n");
@@ -415,28 +421,64 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
 
     if(!pSAMModule)
     {/* Did not find any existing matching SAM, create one */
+	char opTaskName[256];
         pSAMModule = callocMustSucceed(1, sizeof(SAM_MODULE), "calloc buffer for SAM_MODULE");
         /* no bzero needed due to calloc */
 
-        pSAMModule->msgQId = SAMmsgQId;
+#if 0
+
+/* SAM module,  b,c,n define a unique module */
+typedef struct SAM_MODULE
+{
+    ELLNODE                     node;   /* Link List Node */
+
+    UINT16			b;	/* branch */
+    UINT16			c;	/* crate */
+    UINT16			n;	/* node = slot */
+
+    /* So one task/msgQ per module since reset takes long time */
+    epicsMessageQueueId		msgQId;
+    epicsThreadId               opTaskId;
+
+    float			fwVer;	/* also used to indicate SAM in known state */
+
+    UINT16			startChannel; /* 0 ~ 31 */
+    UINT32			numChannels; /* 0 ~ 32 */
+
+    ELLLIST                     SAMDelayedReqList;
+
+    epicsTimeStamp		lastReadTime;
+    float			data[SAM_NUM_OF_CHANNELS];
+    UINT32			lastErrCode;
+
+    /*char			camacPreMsg[256];*/	/* Could be done in init second pass */
+} SAM_MODULE;
+#endif
 
         pSAMModule->b = inout.b; /* SLAC system does not use branch */
         pSAMModule->c = inout.c & 0xF ;	
         pSAMModule->n = inout.n & 0x1F;
 
+        /* how many record could send request to SAM at same time, 1000 should be enough */
+        pSAMModule->msgQId = epicsMessageQueueCreate(1000, sizeof(struct SAM_REQUEST *));
+
+        if (pSAMModule->msgQId == NULL)
+        {/* Fail to create messageQ */
+            errlogPrintf("Failed to create messageQ for SAM[%d,%d,%d] operation!\n",pSAMModule->b, pSAMModule->c, pSAMModule->n);
+            epicsThreadSuspendSelf();
+        }
+        sprintf(opTaskName, "%d-%dSAM", pSAMModule->c, pSAMModule->n);
+        pSAMModule->opTaskId = epicsThreadMustCreate(opTaskName, epicsThreadPriorityLow, 20480, (EPICSTHREADFUNC)SAM_Operation, (void *)pSAMModule);
+
         /* Reset SAM to known state */
         pSAMModule->fwVer = -1.0;
-        errCode = SAM_Reset(pSAMModule);
-        if(errCode)
-            errlogPrintf("Fail to call SAM_Reset SAM[%d,%d,%d], error 0x%08X\n", 
-                pSAMModule->b, pSAMModule->c, pSAMModule->n, errCode);
-
-        /*pSAMModule->lastReadTime;*/
-
-        ellInit(&(pSAMModule->SAMDelayedReqList));
 
         pSAMModule->startChannel = 0;
         pSAMModule->numChannels = 0;
+
+        ellInit(&(pSAMModule->SAMDelayedReqList));
+
+        /*pSAMModule->lastReadTime;*/
         /*pSAMModule->data;*/
         pSAMModule->lastErrCode = 0;
 
@@ -450,6 +492,25 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
     /* Request info prepare */
     pSAMRequest = (SAM_REQUEST *)callocMustSucceed(1, sizeof(SAM_REQUEST), "calloc SAM_REQUEST");
     /* no bzero needed due to calloc */
+
+#if 0
+typedef struct SAM_REQUEST
+{
+    ELLNODE             node;   /* Link List Node */
+
+    SAM_MODULE          *pSAMModule;
+    dbCommon            *pRecord;
+
+    int                 funcflag; /* read data/reset */
+    UINT16		a;
+    UINT16		f;
+
+    epicsTimeStamp	reqTime;
+    float		val;
+    UINT32	        errCode;
+    int                 opDone;
+} SAM_REQUEST;
+#endif
 
     pSAMRequest->pSAMModule = pSAMModule;
     pSAMRequest->pRecord = pRecord;
@@ -479,8 +540,8 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
 
     /*pSAMRequest->reqTime*/
     pSAMRequest->val = 0.0;
-    pSAMRequest->opDone = 0;
     pSAMRequest->errCode = SAM_REQUEST_NO_ERR;
+    pSAMRequest->opDone = 0;
 
     pRecord->dpvt = (void *)pSAMRequest;
 
@@ -507,16 +568,6 @@ static long SAM_EPICS_Init()
 {
 
     ellInit(&SAMModuleList);
-
-    /* how many record could send request to SAM at same time, 1000 should be enough */
-    SAMmsgQId = epicsMessageQueueCreate(1000, sizeof(struct SAM_REQUEST *));
-
-    if (SAMmsgQId == NULL)
-    {/* Fail to create messageQ */
-        errlogPrintf("Failed to create messageQ for SAM operation!\n");
-        epicsThreadSuspendSelf();
-    }
-    SAMOpId = epicsThreadMustCreate("SAM_OP", epicsThreadPriorityLow, 20480, (EPICSTHREADFUNC)SAM_Operation, (void *)0);
 
     return 0;
 }
