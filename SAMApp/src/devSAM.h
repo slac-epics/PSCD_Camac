@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.4 2009/04/08 22:07:40 pengs Exp $
+ *   $Id: devSAM.h,v 1.5 2009/05/12 01:10:55 pengs Exp $
  *   File:		devSAM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,6 +112,7 @@ typedef enum EPICS_RECTYPE
 /* define function flags */
 typedef enum {
     SAM_AI_DATA,
+    SAM_AI_FWVER,
     SAM_BO_RESET
 } SAMFUNC;
 
@@ -122,6 +123,7 @@ static struct PARAM_MAP
     int  funcflag;
 } param_map[] = {
     {"DATA",  EPICS_RECTYPE_AI, SAM_AI_DATA},
+    {"FWVER", EPICS_RECTYPE_AI, SAM_AI_FWVER},
     {"RESET", EPICS_RECTYPE_BO, SAM_BO_RESET}
 };
 #define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
@@ -153,6 +155,7 @@ typedef struct SAM_REQUEST
 #define SAM_CAM_ADD_FAIL	0x60000000
 #define SAM_CAM_GO_FAIL		0x70000000
 #define SAM_CAM_DEL_FAIL	0x80000000
+#define SAM_MODULE_UNKNOWN_MODE	0x90000000
 
 int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
 

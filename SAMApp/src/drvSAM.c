@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.12 2009/04/12 00:19:54 pengs Exp $
+ *   $Id: drvSAM.c,v 1.13 2009/05/12 01:10:56 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -196,7 +196,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
     if(!pSAMModule) return -1;
 
     /* check if module exists */
-    if(isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
+    if(isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n) && pSAMModule->fwVer > 0.0)
     {
         unsigned int loop;
 
@@ -277,6 +277,8 @@ release_campkg:
         if (!SUCCESS(iss = camdel (&pkg_p)))
             errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
     }
+    else if(pSAMModule->fwVer <= 0.0)
+        rtn = SAM_MODULE_UNKNOWN_MODE;
     else
         rtn = SAM_MODULE_NOT_EXIST;
 

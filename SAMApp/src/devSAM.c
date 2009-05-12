@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.1 2009/03/03 08:16:34 pengs Exp $
+ *   $Id: devSAM.c,v 1.2 2009/03/08 08:01:34 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -77,6 +77,15 @@ static long read_ai(struct aiRecord *pai)
     int rtn = -1;
 
     if(!pRequest) return(-1);
+
+    if(pRequest->funcflag == SAM_AI_FWVER)
+    {
+        pai->val = pRequest->pSAMModule->fwVer;
+        pai->udf = FALSE;
+	if(pai->val <= 0.0)
+            recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
+        return NO_CONVERT;
+    }
 
     if(!pai->pact)
     {/* pre-process */

@@ -1,9 +1,18 @@
-record(bo, "$(RECNAME)") {
+record(bo, "$(MODULENAME):Reset") {
   field(DESC, "SAM Reset")
   field(DTYP, "SAM")
   field(OUT,  "#B0 C$(CRATE) N$(SLOT) F0 A0@RESET")
   field(ZNAM, "Reset")
   field(ONAM, "Reset")
 }
+
+record(ai, "$(MODULENAME):fwVer") {
+  field(DESC, "SAM fw")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "SAM")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0@FWVER")
+  field(PREC, "1")
+}
+
 
 
