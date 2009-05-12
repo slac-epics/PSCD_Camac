@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.14 2009/05/12 01:54:28 pengs Exp $
+ *   $Id: drvSAM.c,v 1.15 2009/05/12 03:20:47 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -90,7 +90,7 @@ typedef struct STAS_DAT
 /* It will set fwVer */
 /* Return 0 means succeed, otherwise error code */
 static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
-{/* This function is not thread-safe, but only used in one thread per system */
+{/* This function is not thread-safe, but only used in one thread per module */
 
     if(!pSAMModule) return -1;
 
@@ -189,7 +189,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
 /* It assumes b,c,n of pSAMModule is valid */
 /* Return 0 means succeed, otherwise error code */
 static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
-{/* This function is not thread safe, but only used in one thread */
+{/* This function is not thread safe, but only used in one thread per module */
 
     UINT32 rtn = 0;
 
