@@ -1,0 +1,12 @@
+# Include external dbds if required
+device(ai,		CAMAC_IO,devAiDAC,"DAC")
+device(ao,		CAMAC_IO,devAoDAC,"DAC")
+#device(bo,		CAMAC_IO,devBoDAC,"DAC")
+device(longin,		CAMAC_IO,devLiDAC,"DAC")
+#device(longout,	CAMAC_IO,devLoDAC,"DAC")
+#device(mbbiDirect,	CAMAC_IO,devMiDDAC,"DAC")
+#device(waveform,	CAMAC_IO,devWfDAC,"DAC")
+driver(drvDAC)
+function(DAC_Test)
+#registrar(myRegistrar)
+#variable(myVariable)

@@ -1,0 +1,9 @@
+record(longin, "$(MODULENAME):ModuleID") {
+  field(DESC, "DAC ID")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "DAC")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F3 A0@MDID")
+}
+
+
+
