@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.13 2009/05/12 01:10:56 pengs Exp $
+ *   $Id: drvSAM.c,v 1.14 2009/05/12 01:54:28 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -472,7 +472,6 @@ typedef struct SAM_MODULE
         sprintf(opTaskName, "%d-%dSAM", pSAMModule->c, pSAMModule->n);
         pSAMModule->opTaskId = epicsThreadMustCreate(opTaskName, epicsThreadPriorityLow, 20480, (EPICSTHREADFUNC)SAM_Operation, (void *)pSAMModule);
 
-        /* Reset SAM to known state */
         pSAMModule->fwVer = -1.0;
 
         pSAMModule->startChannel = 0;
