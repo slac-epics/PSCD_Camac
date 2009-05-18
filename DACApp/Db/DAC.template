@@ -20,7 +20,6 @@ record(ao, "$(RECNAME)") {
   field(HSV,  "MINOR")
   field(LSV,  "MINOR")
   field(LLSV, "MAJOR")
-  field(TSE,  "-2")
   field(PINI, "$(PINI)")
   field(LINR, "LINEAR")
   field(FLNK,  "$(RECNAME):Rdbk")
