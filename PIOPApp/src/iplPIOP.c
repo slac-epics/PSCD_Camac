@@ -33,7 +33,6 @@ char *ImagePIOP_p = NULL;  /* Pointer to PIOP image in memory */
 void iplPIOPMain (PIOP_PVT *pvt_p, char *name, short crate, short slot)
 {
   /*------------------------------*/
-  printf ("Entered iplPIOPMain with name %s\n", name);
   /*
   ** Read in the image if not already done.
   */
@@ -266,24 +265,9 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
      epicsThreadSleep(0.020);
   }  /* End of loop to download the image */
   /*
-  ** This PIOP seems now to be IPL'ed.  Send its non-FTP PP map to it.
+  ** This PIOP seems now to be IPL'ed.Sleep a bit so PIOP can digest the image.
   */
   epicsThreadSleep(0.050);
-  printf ("IPLed the PIOP %d blocks. Temp try read of message word\n",i);
-  /******* Temp!! ******/
-  {
-     unsigned int tmp[2] = {0,0};
-     if (!SUCCESS(iss = camalo_reset(&pkg_p)))
-        goto egress;
-     ctlw1 = ploc | CCTLW__A1  | CCTLW__A2  | CCTLW__F2;
-     bcnt = 2;
-     if(!SUCCESS(iss = camadd(&ctlw1,&tmp,&bcnt,&zero,&pkg_p)))
-        goto egress;
-     if(!SUCCESS(iss = camgo(&pkg_p)))
-        goto egress;
-     printf ("Msg read stat/data %08x %08x\n",tmp[0], tmp[1]);
-  }
-  /*********** !!end temp ***************/
 egress:  
   camdel (&pkg_p);
   pvt_p->status = iss;  /* Status for device support */

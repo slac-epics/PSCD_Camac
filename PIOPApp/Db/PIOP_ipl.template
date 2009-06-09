@@ -1,13 +1,13 @@
 # Records required to IPL a PIOP
 
 # A button to push
-record (bo, "$(DEV):PIOP:IPL") {
+record (bo, "$(DEV):IPL") {
   field(DESC, "IPL PIOP")
-  field(DTYP, "IPL PIOP")
-  field(ZNAM, "No IPL")
-  field(ONAM, "Doing IPL")
-  field(HIGH, "0.5")
-  field(FLNK, "$(DEV):IMG:DWNLD")
+  field(DTYP, "Soft Channel")
+  field(ZNAM, "No IPL in Progress")
+  field(ONAM, "IPL in Progress")
+  field(HIGH, "1.0")
+  field(FLNK, "$(DEV):IMG:DWNLD.PROC")
 }
 
 record(stringout, "$(DEV):IMG:DWNLD") {
@@ -17,17 +17,16 @@ record(stringout, "$(DEV):IMG:DWNLD") {
   field(VAL, "$(IMAGENAME)")
   field(DTYP, "PIOP")
   field(OUT,  "#B0 C$(CRATE) N$(SLOT) @IPL")
-  field(FLNK, "$(DEV):PP:DWNLD")
+  field(FLNK, "$(DEV):PP:DWNLD.PROC")
 }
 
-record(waveform, "$(DEV):PP:DWNLD" {
+record(waveform, "$(DEV):PP:DWNLD") {
   field(DESC, "PIOP PP Download")
   field(SCAN, "Passive")
-  field(INP,  "Constant")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) @PPN")
   field(NELM, "30")
   field(FTVL, "CHAR")
-  field(DTYP, "PIOP")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) @PPNOFTP")
 }
 
 

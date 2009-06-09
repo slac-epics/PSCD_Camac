@@ -1,6 +1,10 @@
  # Include external dbds if required
 
-device(stringout,        CAMAC_IO,devSoPIOP,"PIOP")
+device(stringout, CAMAC_IO,devSoPIOP,"PIOP")
+device(waveform,  CAMAC_IO,devWfPIOP,"PIOP")
+device(longin,    CAMAC_IO,devLiPIOP,"PIOP")
+device(bi,        CAMAC_IO,devBiPIOP,"PIOP")
+device(mbbi,      CAMAC_IO,devMbiSBI,"SBI")
 
 driver(drvPIOP)
 #registrar(myRegistrar)

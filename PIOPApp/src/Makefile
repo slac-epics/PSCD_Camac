@@ -19,6 +19,7 @@ DBD += PIOP.dbd
 PIOP_SRCS += devPIOP.c
 PIOP_SRCS += drvPIOP.c
 PIOP_SRCS += iplPIOP.c
+PIOP_SRCS += blockPIOP.c
 
 PIOP_LIBS += $(EPICS_BASE_IOC_LIBS)
 
