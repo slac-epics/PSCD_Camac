@@ -1,0 +1,25 @@
+# Records required to read the message word from each PIOP
+
+# BI->fanout->longin for each PIOP to get msg word
+# The BI record does the Camac operation and the longin records 
+# get the result from that operation.
+
+record(bi,     "$(IOC):PIOP:MSG:BI")  {
+  field(DESC, "PIOP Msg Read")
+  field(SCAN, "1 second")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C0 N0 @MSG")
+  field(FLNK, "$(IOC):PIOP:MSG:FAN.PROC")
+}
+record(fanout, "$(IOC):PIOP:MSG:FAN") {
+  field(DESC, "PIOP Msg Fanout")
+  field(LNK1,"$(DEV1):PIOP:MSG1")
+  field(SELN, "1")
+}
+
+record(longin, "$(DEV1):PIOP:MSG1") {
+  field(DESC, "$(DEV1) PIOP Msg 1")
+  field(SCAN, "Passive")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE1) N$(SLOT1) @MSG1")
+}

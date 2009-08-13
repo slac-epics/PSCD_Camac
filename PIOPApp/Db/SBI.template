@@ -1,0 +1,30 @@
+# Records for the SBI
+
+# SBI status register
+record (mbbi, "$(DEV):STATUS") {
+  field(DESC, "Read Status Register")
+  field(SCAN, "10 second")
+  field(NOBT, "8")
+  field(ZRST, "Invalid")
+  field(ONST, "PSK Gate enabld")
+  field(TWST, "STBY Plse 11mS")
+  field(THST, "Accl Plse 110mS")
+  field(FRST, "STBY out window")
+  field(FVST, "STBY 1")
+  field(SXST, "STBY 2")
+  field(SVST, "STBY 4")
+  field(EIST, "Accl Permit")
+  field(ZRSV,"MAJOR")
+  field(ONSV,"NO_ALARM")
+  field(TWSV,"NO_ALARM")
+  field(THSV,"NO_ALARM")
+  field(FRSV,"MINOR")
+  field(FVSV,"NO_ALARM")
+  field(SXSV,"NO_ALARM")
+  field(SVSV,"NO_ALARM")
+  field(EISV,"NO_ALARM")
+  field(DTYP, "SBI")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) @STS")
+  field(PINI, "YES")
+}
+
