@@ -1,2 +1,11 @@
 PSCD_Camac_R1-0:
    The first release which enables SAM IDIM and PIOP IPL
+
+PSCD_Camac_R1-1:
+   Change SAM driver to one thread per module
+   Change SAM read interval to 0.8 second
+   Add SAM fwver record
+   Add DAC support
+   More PIOP work
+   Add MBCD/PSCD switch
+
