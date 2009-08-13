@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.h,v 1.6 2009/05/12 01:54:27 pengs Exp $
+ *   $Id: devSAM.h,v 1.7 2009/05/12 09:35:30 pengs Exp $
  *   File:		devSAM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -69,7 +69,7 @@ extern "C" {
 #define MAX_FUNC_STRING_LEN	(40)
 /******************************************************************************************/
 
-#define SAM_MIN_READ_INTERVAL	1.0	/* 1 second */
+#define SAM_MIN_READ_INTERVAL	0.8	/* 0.8 second */
 #define SAM_NUM_OF_CHANNELS	32
 
 /* SAM module,  b,c,n define a unique module */
