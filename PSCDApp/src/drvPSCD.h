@@ -1,11 +1,13 @@
 /*********************************************************************/
-/* $Id: drvPSCD.h,v 1.1.1.1 2009/02/12 20:08:57 pengs Exp $              */
+/* $Id: drvPSCD.h,v 1.2 2009/02/12 23:50:43 pengs Exp $              */
 /* This file defines the internal hw/sw struct of PSCD module        */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847         */
 /*********************************************************************/
 
 #ifndef _INCLUDE_DRV_PSCD_H_
 #define _INCLUDE_DRV_PSCD_H_
+
+#include "drvPSCDLib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +50,7 @@ extern "C" {
 #define PSCD_PMAP0_OFFSET	0x20008030
 #define PSCD_PMAP1_OFFSET	0x20008034
 #define PSCD_VERSION_OFFSET	0x20008038
-#define PSCD_UNUSED_OFFSET	0x2000803C
+#define PSCD_SWITCH_OFFSET	0x2000803C
 #define PSCD_SIOTO0_OFFSET	0x20008040
 #define PSCD_SIOTO1_OFFSET	0x20008044
 #define PSCD_SIOTO2_OFFSET	0x20008048
@@ -61,13 +63,6 @@ extern "C" {
 
 #define PSCD_SRAM_OFFSET	0x20100000
 #define PSCD_SRAM_SIZE		0x100000
-
-#define PSCD_MEM_PUTC(addr, value)       out_8((volatile unsigned char *)(addr),(int)value);
-#define PSCD_MEM_PUTS(addr, value)       out_be16((volatile unsigned short *)(addr),(int)value);
-#define PSCD_MEM_PUTL(addr, value)       out_be32((volatile unsigned *)(addr),(int)value);
-#define PSCD_MEM_GETC(addr)              in_8((volatile unsigned char *)(addr));
-#define PSCD_MEM_GETS(addr)              in_be16((volatile unsigned short *)(addr));
-#define PSCD_MEM_GETL(addr)              in_be32((volatile unsigned *)(addr));
 
 #define PCI_SETREG(offset,value)	PCI_MEM_PUTL(pscd_card.pciHeader.pciBaseAddr[(offset)>>28].pUserVirtualAddr+((offset)&0x0fffffff), (value))
 #define PCI_GETREG(offset)		PCI_MEM_GETL(pscd_card.pciHeader.pciBaseAddr[(offset)>>28].pUserVirtualAddr+((offset)&0x0fffffff))

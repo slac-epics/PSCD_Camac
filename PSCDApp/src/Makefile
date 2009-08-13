@@ -23,6 +23,7 @@ DBD += PSCD.dbd
 # specify all source files to be compiled and added to the library
 PSCD_SRCS += epicsPciWrapper.c
 PSCD_SRCS += drvPSCD.c
+PSCD_SRCS += devPSCD.c
 PSCD_SRCS += PSCDMain.cpp 
 
 PSCD_LIBS += $(EPICS_BASE_IOC_LIBS)

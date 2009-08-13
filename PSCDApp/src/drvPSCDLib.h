@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* $Id: drvPSCDLib.h,v 1.2 2009/02/12 23:50:43 pengs Exp $           */
+/* $Id: drvPSCDLib.h,v 1.3 2009/03/08 01:44:16 pengs Exp $           */
 /* This file defines the internal hw/sw struct of PSCD module        */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847         */
 /*********************************************************************/
@@ -60,6 +60,7 @@ typedef struct PSCD_CARD
     UINT32 *		sio_p[3];	/* for SIO, 0 is the highest priority */
     UINT32 *		tdv_p[3];	/* for TDV, 0 is the highest priority */
     unsigned char *	sram_p;
+    UINT32 *		switch_p;	/* pointing to the register to handle PSCD MBCD switch */
     epicsMemPartId	memPartId;	/* Memory partition on PSCD */
 
     epicsMessageQueueId msgQId;
@@ -74,6 +75,13 @@ int isModuleExsit(short b, short c, short n);
 
 #define MEMPARTADRS_TO_SIO(addr)        ((int)((char *)(addr)-(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)-0x100000))
 #define SIO_TO_MEMPARTADRS(addr)        ((int)((char *)(addr)+(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)+0x100000))
+
+#define PSCD_MEM_PUTC(addr, value)       out_8((volatile unsigned char *)(addr),(int)value);
+#define PSCD_MEM_PUTS(addr, value)       out_be16((volatile unsigned short *)(addr),(int)value);
+#define PSCD_MEM_PUTL(addr, value)       out_be32((volatile unsigned *)(addr),(int)value);
+#define PSCD_MEM_GETC(addr)              in_8((volatile unsigned char *)(addr));
+#define PSCD_MEM_GETS(addr)              in_be16((volatile unsigned short *)(addr));
+#define PSCD_MEM_GETL(addr)              in_be32((volatile unsigned *)(addr));
 
 #ifdef __cplusplus
 }

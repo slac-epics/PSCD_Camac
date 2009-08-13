@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.4 2009/03/08 01:44:16 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.5 2009/04/09 23:47:26 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -92,6 +92,7 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
     pscd_card.tdv_p[1] = (UINT32 *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_TDV1_OFFSET & 0x0FFFFFFF));
     pscd_card.tdv_p[2] = (UINT32 *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_TDV2_OFFSET & 0x0FFFFFFF));
     pscd_card.sram_p = (unsigned char *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_SRAM_OFFSET & 0x0FFFFFFF));
+    pscd_card.switch_p = (UINT32 *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_SWITCH_OFFSET & 0x0FFFFFFF));
 
     if(PSCD_DRV_DEBUG)
     {

@@ -1,4 +1,9 @@
 # provide definitions such as
+device(bi,      INST_IO,devBiPSCD,     "PSCD")
+device(bo,      INST_IO,devBoPSCD,     "PSCD")
+device(longin,  INST_IO,devLiPSCD,     "PSCD")
+#device(stringin,INST_IO,devSiPSCD,     "PSCD")
+
 driver(drvPSCD)
 #registrar(myRegistrar)
 #variable(myVariable)

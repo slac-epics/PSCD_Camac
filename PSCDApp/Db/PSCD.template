@@ -1,0 +1,44 @@
+record(bi, "$(user):LocalRemote")
+{
+  field(DESC, "Local Remote?")
+  field(DTYP, "PSCD")
+  field(INP,  "@LOCALRMT")
+  field(SCAN, "1 second")
+  field(ZNAM, "Local")
+  field(ONAM, "Remote")
+}
+
+record(bi, "$(user):SwitchSts")
+{
+  field(DESC, "Switch Status?")
+  field(DTYP, "PSCD")
+  field(INP,  "@SWITCH")
+  field(SCAN, "1 second")
+  field(ZNAM, "PSCD")
+  field(ONAM, "MBCD")
+}
+
+record(bo, "$(user):SwitchSet")
+{
+  field(DESC, "Switch Set")
+  field(DTYP, "PSCD")
+  field(OUT,  "@SWITCH")
+  field(ZNAM, "PSCD")
+  field(ONAM, "MBCD")
+}
+
+record(longin, "$(user):FwVersion") {
+  field(DESC, "Firmware Ver")
+  field(DTYP, "PSCD")
+  field(INP,  "@FWVER")
+  field(PINI, "YES")
+}
+
+record(longin, "$(user):FwDate") {
+  field(DESC, "Firmware Date")
+  field(DTYP, "PSCD")
+  field(INP,  "@FWDATE")
+  field(PINI, "YES")
+}
+
+
