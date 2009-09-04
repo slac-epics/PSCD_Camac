@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.2 2009/05/12 08:10:29 pengs Exp $
+ *   $Id: drvDAC.c,v 1.3 2009/05/12 08:32:16 pengs Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -166,10 +166,12 @@ UINT32 DAC_ReadData(DAC_REQUEST  *pDACRequest)
                  errlogPrintf ("camio error 0x%08X for DAC F0 read\n", (unsigned int) iss);
                  status = (DAC_RDDAT_CAMIO_FAIL|iss);
             }
-
-            pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
-            if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
+            else
+            {
+                pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
+                if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
 			    pDACModule->c, pDACModule->n, pDACRequest->a, pDACRequest->val);
+	    }
 	}
     }
     else
