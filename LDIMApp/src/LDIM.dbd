@@ -1,0 +1,15 @@
+# provide definitions such as
+# Include external dbds if required
+#device(ai,             VME_IO,devAiLDIM,"LDIM")
+#device(ao,             VME_IO,devAoLDIM,"LDIM")
+#device(bo,             VME_IO,devBoLDIM,"LDIM")
+#device(longin,         VME_IO,devLiLDIM,"LDIM")
+#device(longout,        VME_IO,devLoLDIM,"LDIM")
+device(mbbiDirect,      CAMAC_IO,devMiDLDIM,"LDIM")
+#device(waveform,       VME_IO,devWfLDIM,"LDIM")
+driver(drvLDIM)
+function(LDIM_Test)
+#function(CAM_Test)
+#registrar(myRegistrar)
+#variable(myVariable)
+
