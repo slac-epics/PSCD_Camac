@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: LDIMTest.c,v 1.2 2009/04/08 22:06:38 pengs Exp $
+ *   $Id: LDIMTest.c,v 1.1 2009/09/04 00:37:41 pengs Exp $
  *   File:		LDIMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -79,7 +79,7 @@ UINT32 LDIM_Test()
         UINT32 ctlwF0A0 = 0x00005200;
         UINT32 ctlwF0A1 = 0x00005201;
 
-        STAS_DAT read_idim[2];
+        STAS_DAT read_ldim[2];
         UINT16 nops = 0;
 
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
@@ -100,17 +100,17 @@ UINT32 LDIM_Test()
             goto egress;
         }
 
-        read_idim[0].data = 0;
-        read_idim[1].data = 0;
+        read_ldim[0].data = 0;
+        read_ldim[1].data = 0;
 	bcnt = 4;
-        if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_idim[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_ldim[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             rtn = (LDIM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
-        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_idim[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_ldim[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             rtn = (LDIM_CAM_ADD_FAIL|iss);
@@ -125,7 +125,7 @@ UINT32 LDIM_Test()
         }
 
 
-       printf("Raw: L:0x%08X H:0x%08X\n", read_idim[0].data, read_idim[1].data);
+       printf("Raw: L:0x%08X H:0x%08X\n", read_ldim[0].data, read_ldim[1].data);
  
 release_campkg: 
 
