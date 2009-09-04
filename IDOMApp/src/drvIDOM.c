@@ -1,11 +1,11 @@
 /***************************************************************************\
- *   $Id: drvIDOM.c,v 1.3 2009/04/08 22:06:39 pengs Exp $
+ *   $Id: drvIDOM.c,v 1.1 2009/09/04 00:51:29 pengs Exp $
  *   File:		drvIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
  *   Phone:		408-660-7762
  *   Company:		RTESYS, Inc.
- *   Date:		03/2007
+ *   Date:		09/2009
  *   Version:		1.0
  *
  *   EPICS driver for IDOM 
@@ -87,19 +87,117 @@ typedef struct STAS_DAT
     UINT32 data;
 } STAS_DAT;
 
+/* This function tries to reset or clear IDOM module */
+/* It assumes b,c,n of pIDOMModule is valid */
+/* Return 0 means succeed, otherwise error code */
+UINT32 IDOM_RstClr(IDOM_REQUEST  *pIDOMRequest)
+{
+    UINT32 status = IDOM_REQUEST_NO_ERR;
+
+    IDOM_MODULE * pIDOMModule = pIDOMRequest->pIDOMModule;
+    if(!pIDOMRequest || !pIDOMModule) return -1; 
+
+    /* check if module exists */
+    if(isModuleExsit(pIDOMModule->b, pIDOMModule->c, pIDOMModule->n))
+    {/* b (Branch) is not used in SLAC system */
+        vmsstat_t iss;
+
+        UINT16 bcnt = 0;
+        UINT16 emask= 0xE0E0;
+
+        UINT32 idomctlw = 0x0;
+        STAS_DAT rstclr_idom = {0,0};
+
+        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
+	{
+            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
+            status = (IDOM_CAM_INIT_FAIL|iss);
+	}
+	else
+	{
+            /* F9A0 does reset, F10A0/1 clear */
+            idomctlw = (pIDOMModule->n << 7) | (pIDOMModule->c << 12) |
+		    (pIDOMRequest->f << 16) | pIDOMRequest->a;
+	    bcnt = 0;
+            if (!SUCCESS(iss = camio (&idomctlw, NULL, &bcnt, &(rstclr_idom.stat), &emask)))
+            {
+                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d write.\n",
+				(unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                status = (IDOM_RSTCLR_CAMIO_FAIL|iss);
+            }
+	}
+    }
+    else
+        status = IDOM_MODULE_NOT_EXIST;
+
+    epicsTimeGetCurrent(&(pIDOMRequest->actTime));
+    pIDOMRequest->errCode = status;
+    pIDOMRequest->opDone = 1;
+
+    return status;
+}
+
+/* This function tries to write IDOM module */
+/* It assumes b,c,n of pIDOMModule is valid */
+/* Return 0 means succeed, otherwise error code */
+UINT32 IDOM_WriteData(IDOM_REQUEST  *pIDOMRequest)
+{
+    UINT32 status = IDOM_REQUEST_NO_ERR;
+
+    IDOM_MODULE * pIDOMModule = pIDOMRequest->pIDOMModule;
+    if(!pIDOMRequest || !pIDOMModule) return -1; 
+
+    /* check if module exists */
+    if(isModuleExsit(pIDOMModule->b, pIDOMModule->c, pIDOMModule->n))
+    {/* b (Branch) is not used in SLAC system */
+        vmsstat_t iss;
+
+        UINT16 bcnt = 2;
+        UINT16 emask= 0xE0E0;
+
+        UINT32 idomctlw = 0x0;
+        STAS_DAT write_idom = {0,0};
+
+        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
+	{
+            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
+            status = (IDOM_CAM_INIT_FAIL|iss);
+	}
+	else
+	{
+            /* F16, F17, (F18, F21), (F19, F23) A0/1 */
+            idomctlw = (pIDOMModule->n << 7) | (pIDOMModule->c << 12) |
+		    (pIDOMRequest->f << 16) | pIDOMRequest->a;
+	    bcnt = 2;
+            *((UINT16 *)(&(write_idom.data))) = pIDOMRequest->val;
+            if (!SUCCESS(iss = camio (&idomctlw, &(write_idom.data), &bcnt, &(write_idom.stat), &emask)))
+            {
+                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d write.\n",
+				(unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                status = (IDOM_WRT_CAMIO_FAIL|iss);
+            }
+	}
+    }
+    else
+        status = IDOM_MODULE_NOT_EXIST;
+
+    epicsTimeGetCurrent(&(pIDOMRequest->actTime));
+    pIDOMRequest->errCode = status;
+    pIDOMRequest->opDone = 1;
+
+    return status;
+}
+
 /* This function tries to read IDOM module upon request */
 /* It assumes b,c,n of pIDOMModule is valid */
 /* Return 0 means succeed, otherwise error code */
-static UINT32 IDOM_Read(IDOM_REQUEST * pIDOMRequest)
+UINT32 IDOM_ReadData(IDOM_REQUEST * pIDOMRequest)
 {/* This function is not thread safe, but only used in one thread */
 
-    UINT32 rtn = IDOM_REQUEST_NO_ERR;
+    UINT32 status = IDOM_REQUEST_NO_ERR;
 
-    IDOM_MODULE * pIDOMModule;
-
-    if(!pIDOMRequest || !(pIDOMRequest->pIDOMModule)) return -1;
-
-    pIDOMModule = pIDOMRequest->pIDOMModule;
+    IDOM_MODULE * pIDOMModule = pIDOMRequest->pIDOMModule;
+    if(!pIDOMRequest || !pIDOMModule) return -1;
 
     /* check if module exists */
     if(isModuleExsit(pIDOMModule->b, pIDOMModule->c, pIDOMModule->n))
@@ -115,65 +213,31 @@ static UINT32 IDOM_Read(IDOM_REQUEST * pIDOMRequest)
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
             errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (IDOM_CAM_INIT_FAIL|iss);
-            goto egress;
+            status = (IDOM_CAM_INIT_FAIL|iss);
         }
-
-        /* F0 Aa to read IDOM */
-        idomctlw = (pIDOMModule->n << 7) | (pIDOMModule->c << 12) | (pIDOMRequest->f << 16) | (pIDOMRequest->a);
-        if(IDOM_DRV_DEBUG) printf("IDOM Operation control word is 0x%08x\n", idomctlw);
-        bcnt = 4;
-
-#if 1
-        if (!SUCCESS(iss = camio (&idomctlw, &read_idom[0].data, &bcnt, &read_idom[0].stat, &emask)))
+        else
         {
-            errlogPrintf ("camio error 0x%08X for IDOM F%dA%d\n", (unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
-            rtn = (IDOM_READ_CAMIO_FAIL|iss);
-            goto egress;
-        }
-#else
-	{
-	    void * pkg_p;
-	    UINT16 nops = 1;
+            /* F0 Aa to read IDOM, we don't use pIDOMRequest->f here to help init mbboDirect */
+            idomctlw = (pIDOMModule->n << 7) | (pIDOMModule->c << 12) /*| (pIDOMRequest->f << 16)*/ | (pIDOMRequest->a);
+            if(IDOM_DRV_DEBUG) printf("IDOM Operation control word is 0x%08x\n", idomctlw);
+            bcnt = 4;
 
-            if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
+            if (!SUCCESS(iss = camio (&idomctlw, &read_idom[0].data, &bcnt, &read_idom[0].stat, &emask)))
             {
-                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
-                rtn = (IDOM_CAM_ALLOC_FAIL|iss);
-                goto egress;
+                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d\n", (unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                status = (IDOM_READ_CAMIO_FAIL|iss);
             }
-
-	    if (!SUCCESS(iss = camadd (&idomctlw, &read_idom[0], &bcnt, &emask, &pkg_p)))
-	    {
-	        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-	        rtn = (IDOM_CAM_ADD_FAIL|iss);
-	        goto release_campkg;
-	    }
-
-	    if (!SUCCESS(iss = camgo (&pkg_p)))
-	    {
-	        errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
-	        rtn = (IDOM_CAM_GO_FAIL|iss);
-	        goto release_campkg;
-	    }
-
-release_campkg:
-
-            if (!SUCCESS(iss = camdel (&pkg_p)))
-	        errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+	    else
+                pIDOMRequest->val = (read_idom[0].data)&0xFFFF;
 	}
-#endif
-        pIDOMRequest->val = (read_idom[0].data)&0xFFFF;
- 
     }
     else
-        rtn = IDOM_MODULE_NOT_EXIST;
+        status = IDOM_MODULE_NOT_EXIST;
 
-egress:
-    epicsTimeGetCurrent(&(pIDOMRequest->reqTime)); 
-    pIDOMRequest->errCode = rtn;
+    epicsTimeGetCurrent(&(pIDOMRequest->actTime)); 
+    pIDOMRequest->errCode = status;
     pIDOMRequest->opDone = 1;
-    return rtn;
+    return status;
 }
 
 static int IDOM_Operation(void * parg)
@@ -201,7 +265,20 @@ static int IDOM_Operation(void * parg)
         {/* some requests come in, we deal it one by one, no dynamic combination */
             if(IDOM_DRV_DEBUG) printf("IDOM Operation task gets requests!\n");
 
-            IDOM_Read(pIDOMRequest);
+            switch(pIDOMRequest->funcflag)
+            {/* check funcflag */
+                case IDOM_BO_RESET:
+                case IDOM_BO_CLEAR:
+                    IDOM_RstClr(pIDOMRequest);
+                    break;
+                case IDOM_MBBID_DATA:
+                    IDOM_ReadData(pIDOMRequest);
+                    break;
+                case IDOM_MBBOD_DATA:
+                case IDOM_MBBOD_CONF:
+                    IDOM_WriteData(pIDOMRequest);
+                    break;
+            }/* check funcflag */
 
             /* process record */
             if(pIDOMRequest->pRecord)
@@ -224,9 +301,27 @@ int IDOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 {
     IDOM_MODULE * pIDOMModule = NULL;
     IDOM_REQUEST * pIDOMRequest = NULL;
+    int         funcflag = 0, loop;
 
     /* parameter check */
     if(!pRecord) return -1;
+
+    for(loop=0; loop<N_PARAM_MAP; loop++)
+    {
+        if( 0 == strcmp(param_map[loop].param, inout.parm) )
+        {
+            if( rtyp == EPICS_RECTYPE_NONE || rtyp == param_map[loop].rtyp)
+            {
+                funcflag = param_map[loop].funcflag;
+                break;
+            }
+        }
+    }
+    if(loop >= N_PARAM_MAP)
+    {
+        errlogPrintf("Record %s param %s is illegal!\n", pRecord->name, inout.parm);
+        return -1;
+    }
 
     /* Check if the IDOM module is already in our list, or else add it */
     /* This should only happen in iocInit, single thread, so no mutex needed */
@@ -257,10 +352,12 @@ int IDOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
     pIDOMRequest->pIDOMModule = pIDOMModule;
     pIDOMRequest->pRecord = pRecord;
 
+    pIDOMRequest->funcflag = funcflag;
+
     pIDOMRequest->a = inout.a & 0xF;
     pIDOMRequest->f = inout.f & 0x1F;
 
-    /*pIDOMRequest->reqTime*/
+    /*pIDOMRequest->actTime*/
     pIDOMRequest->val = 0u;
     pIDOMRequest->opDone = 0;
     pIDOMRequest->errCode = IDOM_REQUEST_NO_ERR;

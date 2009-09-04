@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDOM.h,v 1.2 2009/04/08 22:06:38 pengs Exp $
+ *   $Id: devIDOM.h,v 1.1 2009/09/04 00:51:29 pengs Exp $
  *   File:		devIDOM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -47,7 +47,9 @@
 #include <special.h>
 #include <cvtTable.h>
 
+#include <boRecord.h>
 #include <mbbiDirectRecord.h>
+#include <mbboDirectRecord.h>
 
 #else
 #error "We need EPICS 3.14 or above to support OSI calls!"
@@ -92,8 +94,33 @@ typedef struct IDOM_MODULE
 typedef enum EPICS_RECTYPE
 {
     EPICS_RECTYPE_NONE,
+    EPICS_RECTYPE_BO,
     EPICS_RECTYPE_MBBID,
+    EPICS_RECTYPE_MBBOD,
 }   E_EPICS_RECTYPE;
+
+/* define function flags */
+typedef enum {
+    IDOM_BO_RESET,
+    IDOM_BO_CLEAR,
+    IDOM_MBBID_DATA,
+    IDOM_MBBOD_DATA,
+    IDOM_MBBOD_CONF
+} IDOMFUNC;
+
+static struct PARAM_MAP
+{
+    char param[MAX_FUNC_STRING_LEN];
+    enum EPICS_RECTYPE rtyp;
+    int  funcflag;
+} param_map[] = {
+    {"RESET", EPICS_RECTYPE_BO,    IDOM_BO_RESET},
+    {"CLEAR", EPICS_RECTYPE_BO,    IDOM_BO_CLEAR},
+    {"DATA",  EPICS_RECTYPE_MBBID, IDOM_MBBID_DATA},
+    {"DATA",  EPICS_RECTYPE_MBBOD, IDOM_MBBOD_DATA},
+    {"CONF",  EPICS_RECTYPE_MBBOD, IDOM_MBBOD_CONF}
+};
+#define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
 
 typedef struct IDOM_REQUEST
 {
@@ -105,7 +132,9 @@ typedef struct IDOM_REQUEST
     UINT16		a;
     UINT16		f;
 
-    epicsTimeStamp	reqTime;
+    int                 funcflag; /* read data/write data/read mdid */
+
+    epicsTimeStamp	actTime;
     UINT16		val;
     UINT32	        errCode;
     int                 opDone;
@@ -115,13 +144,19 @@ typedef struct IDOM_REQUEST
 #define IDOM_REQUEST_NO_ERR	0
 #define IDOM_MODULE_NOT_EXIST	0x10000000
 #define IDOM_CAM_INIT_FAIL	0x20000000
-#define IDOM_READ_CAMIO_FAIL	0x30000000
-#define IDOM_CAM_ALLOC_FAIL	0x40000000
-#define IDOM_CAM_ADD_FAIL	0x50000000
-#define IDOM_CAM_GO_FAIL	0x60000000
-#define IDOM_CAM_DEL_FAIL	0x70000000
+#define IDOM_RSTCLR_CAMIO_FAIL	0x30000000
+#define IDOM_READ_CAMIO_FAIL	0x40000000
+#define IDOM_WRT_CAMIO_FAIL	0x50000000
+#define IDOM_CAM_ALLOC_FAIL	0x60000000
+#define IDOM_CAM_ADD_FAIL	0x70000000
+#define IDOM_CAM_GO_FAIL	0x80000000
+#define IDOM_CAM_DEL_FAIL	0x90000000
 
 int IDOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
+
+UINT32 IDOM_RstClr(IDOM_REQUEST  *pIDOMRequest);
+UINT32 IDOM_WriteData(IDOM_REQUEST  *pIDOMRequest);
+UINT32 IDOM_ReadData(IDOM_REQUEST  *pIDOMRequest);
 
 #ifdef __cplusplus
 }
