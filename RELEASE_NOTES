@@ -9,3 +9,6 @@ PSCD_Camac_R1-1:
    More PIOP work
    Add MBCD/PSCD switch
 
+PSCD_Camac_R1-2:
+Fix SAM channel number bug
+Add IDOM support, not fully tested yet
