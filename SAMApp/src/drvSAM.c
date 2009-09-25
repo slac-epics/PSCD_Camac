@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.16 2009/05/12 03:36:14 pengs Exp $
+ *   $Id: drvSAM.c,v 1.17 2009/05/12 08:10:08 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -517,7 +517,7 @@ typedef struct SAM_REQUEST
     pSAMRequest->pRecord = pRecord;
 
     pSAMRequest->funcflag = funcflag;
-    pSAMRequest->a = inout.a & 0xF;
+    pSAMRequest->a = inout.a & 0x1F;	/* We are using a to indicate channel number here. So up to 31 */
 
     if(funcflag == SAM_AI_DATA)
     {
