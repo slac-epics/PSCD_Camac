@@ -1,0 +1,99 @@
+#==============================================================
+#
+#  Name: README
+#
+#  Rem:  This is the Linac Upgrade CAMAC-to-VME Controls
+#        EPICS IOC Application 
+#
+#  Side: None
+#
+#  Auth: 30-Jun-2009, Sheng Peng       (PENGS)
+#  Rev:  dd-mmm-yyyy, Reviewer's Name (USERNAME)
+#--------------------------------------------------------------
+#  Mod:
+#        30-Jun-2009, K. Luchini      (LUCHINI);
+#          added content.
+#
+#==============================================================
+#
+Releases
+-----------
+This package has been successfully tested with code built
+under EPICS R3.14.8.2 and RTEMS 4.7.1 (Tills version)
+
+Build Instructions
+--------------------
+The file RELEASE_SITE is included in the file configure/RELEASE
+as a way to decouple the directory tree for base,modules and extensions
+in the automatic build script used by LCLS. Therefore, to build
+this package the users must edit the file RELEASE_SITE, and define
+the EPICS path for base, modules and exensions on your system.
+
+PSCDApp
+--------
+This application containes the driver for the PSCD board,
+which is a PCI-Module, that is piggy backed on the CPU board,.
+Use of this module by an IOC Application requires the users to 
+add the following line to their application configure/RELEASE file:
+
+PSCDCAMAC_MODULE_VERSION=Development
+PSCDCAMAC=$(EPICS_MODULES)/PSCD_Camac/$(PSCDCAMAC_MODULE_VERSION)
+
+The user will also need to add the PSCDlib libarary and PSCD.dbd
+database definitions file to the application src/Makefile to
+include the set of CAMAC-to-VME functions which are used by the
+individual CAMAC module drivers.
+
+The EPICS drivers and device support for individual CAMAC modules
+are included in this package. The following table provides a list
+of module. See the sections on each application for further details.
+
+Module          Db definition    Db Templates   Libraries
+------         -------------    -------------   ------------
+Crate Verifier  CV.dbd          CV.template     CVlib
+SAM             SAM.dbd         SAM.template    SAMlib
+IDIM            IDIM.dbd        IDIM.template   IDIMlib
+PIOP            PIOP.dbd        PIOP.template   PIOPlib 
+
+CVApp
+-------
+The CVApp is the CAMAC Crate Verifier Module Application, which
+consists of the EPICS driver and device support for this module as
+well as database templates. Use of this module by an IOC Application
+requires the users to add the library CVLib and the database definitions
+file CV.dbd to your application. When defining the database for an application
+there user can create a database substitution file using the database
+template CV.template. 
+
+Documentation for the CAMAC Module used at SLAC in the SLC Hardware Manual at
+http://www.slac.stanford.edu/grp/cd/soft/wwwman.hardwww/index.html
+
+
+
+IDIMApp
+--------
+
+PIOPApp
+--------
+
+SAMApp
+-------
+The SAMApp is the CAMAC Smart-Analog-Module (SAM) Application, which
+consists of the EPICS driver and device support for this module as well
+as database template.  Use of this module by an IOC Application
+requires the users to add the library SAMLib and the database definitions
+file SAM.dbd to your application. When defining the database for an application
+there user can create a database substitution file using the database
+template SAM.template
+
+
+# End of the file
+
+
+
+
+
+
+
+
+
