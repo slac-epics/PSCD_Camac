@@ -1,0 +1,18 @@
+This is no reason to support F22 A0/1 command which does checksum and OUTPUT checksum.
+And not so usefuly to support F1 to read status, F27 to test status.
+SLC system does not support them as well.
+
+Three types of records will be supported:
+
+mbbiDirect to read setting, F0A0/1
+
+mbboDirect to set (F16, F18, F21, F19, F23) A0/1
+F17 A0/1 is going thru mbboDirect as well.
+One can have multi instances of F17 record which take input link from calc.
+
+bo to reset (F9) and clear (F10)
+
+Not all supported record are used.
+
+For mbboDirect, only F18/F21 are used for level set and F17 is used for pulse.
+
