@@ -1,6 +1,14 @@
 # provide definitions such as
-#include "xxxRecord.dbd"
-#device(xxx,CONSTANT,devXxxSoft,"SoftChannel")
-#driver(myDriver)
+# Include external dbds if required
+#device(ai,		VME_IO,devAiPPOM,"PPOM")
+#device(ao,		VME_IO,devAoPPOM,"PPOM")
+device(bo,		VME_IO,devBoPPOM,"PPOM")
+#device(longin,		VME_IO,devLiPPOM,"PPOM")
+#device(longout,	VME_IO,devLoPPOM,"PPOM")
+device(mbbiDirect,	CAMAC_IO,devMiDPPOM,"PPOM")
+device(mbboDirect,	CAMAC_IO,devMoDPPOM,"PPOM")
+#device(waveform,	VME_IO,devWfPPOM,"PPOM")
+driver(drvPPOM)
+function(PPOM_Test)
 #registrar(myRegistrar)
 #variable(myVariable)
