@@ -16,3 +16,5 @@ Add IDOM support, not fully tested yet
 PSCD_Camac_R1-2-9:
 Add IDOM templates
 Add PPOM support, not fully tested yet
+PIOP code does not compile
+

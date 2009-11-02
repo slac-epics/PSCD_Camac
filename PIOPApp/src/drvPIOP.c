@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.1 2009/04/28 06:09:45 pengs Exp $
+ *   $Id: drvPIOP.c,v 1.2 2009/06/09 22:27:06 pengs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -88,14 +88,16 @@ static long PIOP_EPICS_Report(int level)
  ** Driver init for each record type called by devPIOP
  ****************************************************/
 
-int PIOPDriverInit (dbCommon *pRec, struct camacio inout, enum EPICS_RECTYPE rtyp)
+int PIOPDriverInit (dbCommon *pRec, struct camacio *cam_ps, enum EPICS_RECTYPE rtyp)
 {
-   PIOP_PVT *DrvPvt;
+   PIOP_PVT *pvt_p;
    /*---------------------------------------------------*/ 
-   DrvPvt = callocMustSucceed (1, sizeof(PIOP_PVT), "calloc driver pvt");
-   DrvPvt->status = KLYS_OKOK;   /* Init status to good */
-   pRec->dpvt = (void *)DrvPvt;
-   return 0;
+   pvt_p = callocMustSucceed (1, sizeof(PIOP_PVT), "calloc driver pvt");
+   pvt_p->status = KLYS_OKOK;   /* Init status to good */
+   pvt_p->crate = cam_ps->c;
+   pvt_p->slot =  cam_ps->s;
+   pRec->dpvt = (void *)pvt_p;
+   return;
 }
 /****************************************************************
 ** This is the driver thread/PIOP that does all of the Camac work
@@ -109,6 +111,9 @@ void threadPIOP (void * msgQId)
    int msgQstat;
    CAMBLOCKS_TS *camblocks_ps = NULL;
    vmsstat_t iss = KLYS_OKOK;
+   PIOP_PVT *pvt_p;    /* Driver private struct */
+   dbCommon *reccom_p  /* Record pointer */
+   int first_init = 0; /* Must do init first time */
    /*----------------------------*/
    camblocks_ps = callocMustSucceed (1, sizeof(CAMBLOCKS_TS), "calloc camac blocks struct");
    while (TRUE)
@@ -120,49 +125,56 @@ void threadPIOP (void * msgQId)
          epicsThreadSuspendSelf();
       }
  
-      dbCommon *reccom_p = msg_s.rec_p;   /* Record pointer for return to device support */
-      PIOP_PVT *ppvt_p = reccom_p->dpvt;  /* Local routines only know about driver private */
-
-      switch (msg_s.func_e)
+      reccom_p = msg_s.rec_p;  /* Record pointer for return to device support */
+      pvt_p = (PIOP_PVT *)reccom_p->dpvt;  /* Driver private pointer */
+      /*************************************
+      ** Check for first time initialization.
+      **************************************/
+      if (!first_init)
       {
-         case INIT:
+         if (!SUCCESS (iss = blockPIOPInit (camblocks_ps, pvt_p->crate, pvt_p->slot)))
          {
-            if (!SUCCESS (iss = blockPIOPInit (camblocks_ps, msg_s.crate, msg_s.slot)))
-	    {
-               errlogSevPrintf(errlogFatal,
-                     "PIOP failed to init Camac packages thread %s status %x. Suspending...\n", 
-                      epicsThreadGetNameSelf(), (unsigned int) iss);
-               epicsThreadSuspendSelf();
-	    }
-            break;
-         }
-         case IPL:
-         {
-            IPLSTRUC_TS iplmsg = msg_s.parm_u.ipl;
-            iplPIOPMain (ppvt_p, iplmsg.fname, msg_s.crate, msg_s.slot);
-            dbScanLock(reccom_p);
-            (*(reccom_p->rset->process))(reccom_p);
-            dbScanUnlock(reccom_p);
-            break;
-         }
-         case PPN:
-         {
-	    ppvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
-                        msg_s.parm_u.pp.indat_p);
-            dbScanLock(reccom_p);
-            (*(reccom_p->rset->process))(reccom_p);
-            dbScanUnlock(reccom_p);
-            break;
-         }
-         default:
-            errlogSevPrintf(errlogMinor, "Invalid function %d in threadPIOP\n",msg_s.func_e);
+            errlogSevPrintf(errlogFatal,
+                  "PIOP failed to init Camac packages thread %s status %x. Suspending...\n", 
+                   epicsThreadGetNameSelf(), (unsigned int) iss);
+            epicsThreadSuspendSelf();
+	 }
+         first_init = 1;
       }
+      /***************************************
+      ** Execute Camac function from driver private struct.
+      ***************************************/ 
+      switch (pvt_p->camfunc_e)
+      {
+         case IPL:
+         {    
+            iplPIOPMain (ppvt_p, (char *)pvt_p->val_p, pvt_p->crate, pvt_p->slot);
+            dbScanLock(reccom_p);
+            (*(reccom_p->rset->process))(reccom_p);
+            dbScanUnlock(reccom_p);
+            break;
+         }
+         case PPNOFTP:
+         {
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
+                                           (char *)pvt_p->val_p);
+            dbScanLock(reccom_p);
+            (*(reccom_p->rset->process))(reccom_p);
+            dbScanUnlock(reccom_p);
+            break;
+         }           
+         default:
+            errlogSevPrintf(errlogMinor, "Invalid camac function %d in threadPIOP\n",
+                            pvt_p->camfunc_e);
+      }   /* Switch on Camac function */
    }   /* End while (TRUE) */
-}      /* End threadPIOP */
+}   /* End threadPIOP */
 
 
 /****************************************************************
 ** This is the driver thread that does all of the SBI Camac work.
+** It also executes the Camac package that reads all of the PIOP
+** message words.
 *****************************************************************/
 void threadSBI (void * msgQId)
 {
@@ -183,6 +195,9 @@ void threadSBI (void * msgQId)
    STAT_DAT32 read_delay_s;
    STAT_DAT32 read_status_s, write_scan_s, read_scan_s;
    STAT_DAT16 read_status_only_s;   /* Just for periodic status read func SBISTS */
+   PIOP_PVT *pvt_p;    /* Driver private struct */
+   dbCommon *reccom_p  /* Record pointer */
+   int first_init = 0;   /* must do init first time */
    /*----------------------------*/
    while (TRUE)
    {
@@ -192,66 +207,70 @@ void threadSBI (void * msgQId)
          epicsThreadSuspendSelf();
       }
  
-      dbCommon *reccom_p = msg_s.rec_p;   /* Record pointer for return to device support */
-      PIOP_PVT *ppvt_p = reccom_p->dpvt;  /* Local routines only know about driver private */
-      switch (msg_s.func_e)
+      reccom_p = msg_s.rec_p;   /* Record pointer for return to device support */
+      pvt_p = (PIOP_PVT *)reccom_p->dpvt;   /* Local routines only know about driver private */
+      /*************************************
+      ** Check for first time initialization.
+      **************************************/
+      if (!first_init)
       {
-         case INIT:
-         {
-            /*
-            ** Construct the Camac packages we'll need.
-            */
-            nops = 4;
-	    iss = camalo(&nops, &pkg_p);
-            nops = 1;
-            if (SUCCESS(iss))
-	       iss = camalo(&nops, &stspkg_p);
+         /*
+         ** Construct the Camac packages we'll need.
+         */
+         nops = 4;
+	 iss = camalo(&nops, &pkg_p);
+         nops = 1;
+         if (SUCCESS(iss))
+	    iss = camalo(&nops, &stspkg_p);
 
-            unsigned long ploc = (msg_s.crate << CCTLW__C_shc) | (msg_s.slot << CCTLW__M_shc);
-	    /*
-	    ** First the status only package
-	    */
-            unsigned long ctlw = ploc | CCTLW__A1;
-            if (SUCCESS(iss))
-               iss = camadd(&ctlw, &read_status_only_s, &twobytes, &zero, &stspkg_p);
-	    /*
-	    ** Now the general package
-	    **
-	    ** F0 read of delay register
-	    */
-            iss = camadd(&ploc, &read_delay_s, &fourbytes, &emaskf3f3, &pkg_p);
-	    /*
-	    ** F0 A1 read status
-	    */
-            ctlw = ploc | CCTLW__A1;
-            if (SUCCESS(iss))
-               iss = camadd(&ctlw, &read_status_s, &fourbytes, &emaskf3f3, &pkg_p);
-	    /*
-	    ** F16 A0 SA write scan
-	    */
-            ctlw = ploc | CCTLW__F16 | CCTLW__SA;
-            if (SUCCESS(iss))
-               iss = camadd(&ctlw, &write_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
-	    /*
-	    ** F0 A0 SA read scan
-	    */
-            ctlw = ploc | CCTLW__SA;
-            if (SUCCESS(iss))
-               iss = camadd(&ctlw, &read_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
-	    /*
-	    ** Suspend us if we can't init Camac package
-	    */
-	    if (!SUCCESS(iss))
-	    {
-               errlogSevPrintf(errlogFatal,
-                  "SBI thread failed to init Camac packages thread %s status %x. Suspending...\n", 
-                   epicsThreadGetNameSelf(), (unsigned int) iss);
-               epicsThreadSuspendSelf();
-	    }
-	    ppvt_p->status = iss;
-            break;
-         }
-         case SBISTS:   /* Execute the SBI status package */
+         unsigned long ploc = (msg_s.crate << CCTLW__C_shc) | (msg_s.slot << CCTLW__M_shc);
+	 /*
+	 ** First the status only package
+	 */
+         unsigned long ctlw = ploc | CCTLW__A1;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &read_status_only_s, &twobytes, &zero, &stspkg_p);
+	 /*
+	 ** Now the general package
+	 ** F0 read of delay register
+         */
+         iss = camadd(&ploc, &read_delay_s, &fourbytes, &emaskf3f3, &pkg_p);
+	 /*
+	 ** F0 A1 read status
+	 */
+         ctlw = ploc | CCTLW__A1;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &read_status_s, &fourbytes, &emaskf3f3, &pkg_p);
+	 /*
+	 ** F16 A0 SA write scan
+	 */
+         ctlw = ploc | CCTLW__F16 | CCTLW__SA;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &write_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
+	 /*
+	 ** F0 A0 SA read scan
+	 */
+         ctlw = ploc | CCTLW__SA;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &read_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
+	 /*
+	 ** Suspend us if we can't init Camac package
+	 */
+	 if (!SUCCESS(iss))
+	 {
+            errlogSevPrintf(errlogFatal,
+               "SBI thread failed to init Camac packages thread %s status %x. Suspending...\n", 
+                epicsThreadGetNameSelf(), (unsigned int) iss);
+            epicsThreadSuspendSelf();
+	 }
+	 first_init = 1;
+      }  /* End first time initialization */
+      /***************************************
+       ** Execute Camac function from driver private struct.
+       ***************************************/ 
+      switch (pvt_p->camfunc_e)
+      {
+         case SBISTATUS:   /* Execute the SBI status package */
          {
             if (SUCCESS(iss = camgo (&stspkg_p)))
  	    {

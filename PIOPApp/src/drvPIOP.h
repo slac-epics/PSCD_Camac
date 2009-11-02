@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.1 2009/04/28 06:09:45 pengs Exp $
+ *   $Id: drvPIOP.h,v 1.1 2009/08/13 06:19:43 pengs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -52,7 +52,7 @@
 **
 ** Note on structure piop_base_ppbitmap_ts:  Member bitmapb covers exactly
 ** all possible substitute beamcodes, which we assume to be 32-247, defined
-** by RGBM_SUBSPP_MIN and RGBM_SUBSPP_MAX in rgbm_defines.hc.  We also
+** by RGBM_SUBSPP_MIN and RGBM_SUBSPP in rgbm_defines.hc.  We also
 ** assume N_BEAMS = 32.  Any element of base_pp having value 0 is ignored.
 ** If base_pp[0] >= 32 then base_pp[1] and base_pp[2] are ignored.
 ** If base_pp[0] = 32 then PIOP assumes all base beamcodes 1-31.
