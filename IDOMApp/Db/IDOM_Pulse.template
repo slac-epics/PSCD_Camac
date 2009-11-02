@@ -1,0 +1,30 @@
+# RECNAME is whatever you like
+# CRATE is CAMAC crate address
+# SLOT is the slot number IDOM is in
+# CHNL is 0 ~ 31 to indicate which channel
+# WIDTH sets the pulse width to n * 25ms. WIDTH has to be [1,255]
+
+record(bo, "$(RECNAME)") {
+  field(DESC, "Pulse IDOM")
+  field(ZNAM, "Pulse Off")
+  field(ONAM, "Pulse On")
+  field(FLNK, "(RECNAME):CalcPulse")
+}
+
+record(calcout, "$(RECNAME):CalcPulse") {
+  field(DESC, "Do set")
+  field(VAL,  "0")
+  field(CALC, "(A&31)|(B?64:0)|((C&255)<<8)")
+  field(INPA, "$(CHNL)")
+  field(INPB, "$(RECNAME)")
+  field(INPC, "$(WIDTH)")
+  field(OUT, "$(RECNAME):HWPULSE PP")
+  field(DOPT, "Use CALC")
+  field(OOPT, "Every Time")
+}
+
+record(mbboDirect, "$(RECNAME):HWPULSE") {
+  field(DESC, "IDOM Pulse HW")
+  field(DTYP, "IDOM")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F17 A0@PULSE")
+}
