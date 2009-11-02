@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPPOM.h,v 1.2 2009/09/04 03:35:32 pengs Exp $
+ *   $Id: devPPOM.h,v 1.1 2009/11/02 05:20:18 pengs Exp $
  *   File:		devPPOM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -102,10 +102,8 @@ typedef enum EPICS_RECTYPE
 /* define function flags */
 typedef enum {
     PPOM_BO_RESET,
-    PPOM_BO_CLEAR,
     PPOM_MBBID_DATA,
     PPOM_MBBOD_DATA,
-    PPOM_MBBOD_CONF
 } PPOMFUNC;
 
 static struct PARAM_MAP
@@ -115,10 +113,8 @@ static struct PARAM_MAP
     int  funcflag;
 } param_map[] = {
     {"RESET", EPICS_RECTYPE_BO,    PPOM_BO_RESET},
-    {"CLEAR", EPICS_RECTYPE_BO,    PPOM_BO_CLEAR},
     {"DATA",  EPICS_RECTYPE_MBBID, PPOM_MBBID_DATA},
     {"DATA",  EPICS_RECTYPE_MBBOD, PPOM_MBBOD_DATA},
-    {"CONF",  EPICS_RECTYPE_MBBOD, PPOM_MBBOD_CONF}
 };
 #define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
 

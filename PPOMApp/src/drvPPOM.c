@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPPOM.c,v 1.2 2009/09/04 03:35:32 pengs Exp $
+ *   $Id: drvPPOM.c,v 1.1 2009/11/02 05:20:19 pengs Exp $
  *   File:		drvPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -268,14 +268,12 @@ static int PPOM_Operation(void * parg)
             switch(pPPOMRequest->funcflag)
             {/* check funcflag */
                 case PPOM_BO_RESET:
-                case PPOM_BO_CLEAR:
                     PPOM_RstClr(pPPOMRequest);
                     break;
                 case PPOM_MBBID_DATA:
                     PPOM_ReadData(pPPOMRequest);
                     break;
                 case PPOM_MBBOD_DATA:
-                case PPOM_MBBOD_CONF:
                     PPOM_WriteData(pPPOMRequest);
                     break;
             }/* check funcflag */
