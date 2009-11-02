@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDOM.c,v 1.1 2009/09/04 00:51:29 pengs Exp $
+ *   $Id: drvIDOM.c,v 1.2 2009/09/04 03:35:32 pengs Exp $
  *   File:		drvIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -11,6 +11,10 @@
  *   EPICS driver for IDOM 
  *
 \***************************************************************************/
+
+/* TODO, check X and Q, cctlwmasks.h:#define MBCD_STAT__Q     0x000010000 */
+/* TODO, keep tracking number of errors */
+
 #include "drvPSCDLib.h"
 #include "devIDOM.h"
 #include "slc_macros.h"
@@ -271,11 +275,13 @@ static int IDOM_Operation(void * parg)
                 case IDOM_BO_CLEAR:
                     IDOM_RstClr(pIDOMRequest);
                     break;
-                case IDOM_MBBID_DATA:
+                case IDOM_MBBID_LATCHED:
                     IDOM_ReadData(pIDOMRequest);
                     break;
-                case IDOM_MBBOD_DATA:
-                case IDOM_MBBOD_CONF:
+                case IDOM_MBBOD_LEVEL_LATCHED:
+                case IDOM_MBBOD_LEVEL_SELECT:
+                case IDOM_MBBOD_PULSE_SELECT:
+                case IDOM_MBBOD_PULSE:
                     IDOM_WriteData(pIDOMRequest);
                     break;
             }/* check funcflag */

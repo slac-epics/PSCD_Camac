@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDOM.h,v 1.1 2009/09/04 00:51:29 pengs Exp $
+ *   $Id: devIDOM.h,v 1.2 2009/09/04 03:35:32 pengs Exp $
  *   File:		devIDOM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -103,9 +103,11 @@ typedef enum EPICS_RECTYPE
 typedef enum {
     IDOM_BO_RESET,
     IDOM_BO_CLEAR,
-    IDOM_MBBID_DATA,
-    IDOM_MBBOD_DATA,
-    IDOM_MBBOD_CONF
+    IDOM_MBBID_LATCHED,
+    IDOM_MBBOD_LEVEL_LATCHED,
+    IDOM_MBBOD_LEVEL_SELECT,
+    IDOM_MBBOD_PULSE_SELECT,
+    IDOM_MBBOD_PULSE
 } IDOMFUNC;
 
 static struct PARAM_MAP
@@ -114,11 +116,13 @@ static struct PARAM_MAP
     enum EPICS_RECTYPE rtyp;
     int  funcflag;
 } param_map[] = {
-    {"RESET", EPICS_RECTYPE_BO,    IDOM_BO_RESET},
-    {"CLEAR", EPICS_RECTYPE_BO,    IDOM_BO_CLEAR},
-    {"DATA",  EPICS_RECTYPE_MBBID, IDOM_MBBID_DATA},
-    {"DATA",  EPICS_RECTYPE_MBBOD, IDOM_MBBOD_DATA},
-    {"CONF",  EPICS_RECTYPE_MBBOD, IDOM_MBBOD_CONF}
+    {"RESET",		EPICS_RECTYPE_BO,    IDOM_BO_RESET},
+    {"CLEAR",		EPICS_RECTYPE_BO,    IDOM_BO_CLEAR},
+    {"LATCHED",		EPICS_RECTYPE_MBBID, IDOM_MBBID_LATCHED},
+    {"LEVEL_LATCHED",	EPICS_RECTYPE_MBBOD, IDOM_MBBOD_LEVEL_LATCHED},
+    {"LEVEL_SELECT",	EPICS_RECTYPE_MBBOD, IDOM_MBBOD_LEVEL_SELECT},
+    {"PULSE_SELECT",	EPICS_RECTYPE_MBBOD, IDOM_MBBOD_PULSE_SELECT},
+    {"PULSE",		EPICS_RECTYPE_MBBOD, IDOM_MBBOD_PULSE}
 };
 #define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
 

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDOM.c,v 1.1 2009/09/04 00:51:29 pengs Exp $
+ *   $Id: devIDOM.c,v 1.2 2009/09/04 03:35:32 pengs Exp $
  *   File:		devIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -227,7 +227,7 @@ static long init_mod(struct mbboDirectRecord * pmbbod)
     {
         switch(pRequest->funcflag)
         {/* check funcflag */
-            case IDOM_MBBOD_DATA:
+            case IDOM_MBBOD_LEVEL_LATCHED:
                 if(IDOM_ReadData(pRequest))
                     return -1;
 		else
