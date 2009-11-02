@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.2 2009/04/28 05:53:19 pengs Exp $
+ *   $Id: devPIOP.c,v 1.3 2009/06/09 22:27:05 pengs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -16,7 +16,7 @@
 #include <devPIOP.h>    /* All other includes & PIOP definitions */
 
 /******************************************************************************************/
-/*********************               Global storage             ***************************/
+/*********************      Externs defined in drvPIOP          ***************************/
 /******************************************************************************************/
 
 /*
@@ -30,10 +30,18 @@ extern epicsMessageQueueId piop_msgQId[MAX_CRATES][MAX_SLOTS];
 extern epicsMessageQueueId sbi_msgQId;
 
 /*
-** Camac package and stat/data array for PIOP message word
+** Camac package and stat/data array for PIOP message word from drvPIOP
 */
 extern void *msgw_pkg_p;
 extern STAT_DAT16 Piop_Msgs_s[MAX_PIOPS];
+
+
+/******************************************************************************************/
+/********************* globals for this module's eyes only      ***************************/
+/******************************************************************************************/
+
+static char *wave_parms = {"PPNOFTP","PPFTP", "STATUSBLOCK", "PAD", "MK2", "NEWPHASE", "TRIMSLED", 
+                           "FOXHOME"}
 
 /******************************************************************************************/
 /***********************  local routine prototypes         ********************************/
@@ -53,7 +61,7 @@ static long So_write (struct stringoutRecord *sor_p);
 
 static long Wf_init (int); 
 static long Wf_init_record (struct waveformRecord *wfr_p);
-static long Wf_write (struct waveformRecord *wfr_p);
+static long Wf_read_write (struct waveformRecord *wfr_p);
 
 /*
 ** Mbbi record support
@@ -78,6 +86,12 @@ static long Bi_read (struct biRecord *bir_p);
 static long Li_init (int); 
 static long Li_init_record (struct longinRecord *lir_p);
 static long Li_read (struct longinRecord *lir_p);
+
+/*
+** Local support routines
+*/
+
+static CAMFUNC_TE xlate_wf_parm (char *parm); 
 
 /******************************************************************************************/
 /*********************              implementation              ***************************/
@@ -106,7 +120,7 @@ epicsExportAddress(dset, devSoPIOP);
 /*
 ** Waveform PIOP device support functions
 */
-DEV_SUP devWfPIOP = {6, NULL, Wf_init, Wf_init_record, NULL, Wf_write, NULL};
+DEV_SUP devWfPIOP = {6, NULL, Wf_init, Wf_init_record, NULL, Wf_read_write, NULL};
 
 epicsExportAddress(dset, devWfPIOP);
 
@@ -160,7 +174,7 @@ static long So_init_record (struct stringoutRecord *sor_p)
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
    char *parm_p= cam_ps->parm;  
-   THREADMSG_TS msg_s;
+   PIOP_PVT *pvt_p;
    int status;
    /*------------------------------------------------*/
    /*************************
@@ -180,46 +194,43 @@ static long So_init_record (struct stringoutRecord *sor_p)
       sor_p->pact=TRUE;
       return (S_db_badField);
    }
-   /*
-   ** If this is an IPL record, create the MessageQueue & Thread for this module
-   ** & send INIT msg to thread with crate & slot.
-   */
-   if (strcmp("IPL",parm_p) == 0)
+   if (strcmp("IPL",parm_p) != 0)
    {
-      if (piop_msgQId[crate][slot] == NULL)
-      {
-         if ((piop_msgQId[crate][slot] = epicsMessageQueueCreate (10,sizeof(THREADMSG_TS))) == NULL)
-         {
-            recGblRecordError(S_db_noMemory, (void *)sor_p, 
-                        "devSoPIOP So_init_record, can't create MessageQueue");
-            sor_p->pact=TRUE;
-            return (S_db_noMemory);
-         }
-         char tname[10];     /* Constructed thread name */
-         sprintf (tname, "threadPIOP%2.2u%2.2u",crate,slot);
-         epicsThreadMustCreate(tname, epicsThreadPriorityMedium, 20480,
-                               threadPIOP, (void *)piop_msgQId[crate][slot]);
-         msg_s.rec_p = (dbCommon *)sor_p;
-         msg_s.func_e = INIT;
-         msg_s.crate = crate;
-         msg_s.slot  = slot;
-         if (epicsMessageQueueTrySend (piop_msgQId[crate][slot], &msg_s, sizeof(msg_s)) == -1)
-         {
-            recGblRecordError(S_db_badField, (void *)sor_p, 
-                        "devSoPIOP Can't sent init message to PIOP thread");
-            sor_p->pact=TRUE;
-            return (S_db_badField);
-         }
-      }
-      else           /* >1 record for IPL error */
-      {
-         recGblRecordError(S_dbLib_recExists, (void *)sor_p, 
-                           "Stringout PIOP So_init_record, duplicate IPL record for crate/slot");
-         sor_p->pact=TRUE;
-         return (S_dbLib_recExists);
-      }
-      status = PIOPDriverInit((dbCommon *)sor_p, *cam_ps, EPICS_RECTYPE_SO);
+      recGblRecordError(S_db_badField, (void *)sor_p, 
+                        "devSoPIOP So_init_record, parm not IPL");
+      sor_p->pact=TRUE;
+      return (S_db_badField);
    }
+   if (piop_msgQId[crate][slot] != NULL)
+   {
+      recGblRecordError(S_dbLib_recExists, (void *)sor_p, 
+                        "Stringout PIOP So_init_record, duplicate IPL record for crate/slot");
+      sor_p->pact=TRUE;
+      return (S_dbLib_recExists);
+   }
+   /*
+   ** Create the MessageQueue & Thread for this module.
+   */
+   if ((piop_msgQId[crate][slot] = epicsMessageQueueCreate (10,sizeof(THREADMSG_TS))) == NULL)
+   {
+      recGblRecordError(S_db_noMemory, (void *)sor_p, 
+                  "devSoPIOP So_init_record, can't create MessageQueue");
+      sor_p->pact=TRUE;
+      return (S_db_noMemory);
+   }
+   char tname[10];     /* Constructed thread name */
+   sprintf (tname, "threadPIOP%2.2u%2.2u",crate,slot);
+   epicsThreadMustCreate(tname, epicsThreadPriorityMedium, 20480,
+                         threadPIOP, (void *)piop_msgQId[crate][slot]);
+   /*
+   ** Init and set up common info in dpvt our private space for
+   ** communication between record processing and the Camac thread.
+   ** PIOPDriverInit sets crate, slot & inits status.
+   */
+   PIOPDriverInit((dbCommon *)sor_p, *cam_ps, EPICS_RECTYPE_SO);
+   pvt_p = (PIOP_PVT *)(sor_p->dpvt);
+   pvt_p->camfunc_e = IPL;
+   pvt_p->val_p = sor_p->val;
    return (0);
 }
 
@@ -231,52 +242,87 @@ static long So_write (struct stringoutRecord *sor_p)
    struct camacio *cam_ps = &(sor_p->out.value.camacio);
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
-   char *parm_p= cam_ps->parm;
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(sor_p->dpvt);
    int rtn = -1;        /* Assume bad */
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
    /*
-   ** If this is an IPL record send a message to do it.
+   ** Send msg to thread if not active else complete record processing.
    */
-   if (strcmp("IPL",parm_p) == 0)
-   {
-      if(!sor_p->pact)
-      {  /* Pre-process */
-         msg_s.rec_p = (dbCommon *)sor_p;
-         msg_s.func_e = IPL;
-         msg_s.crate = crate;
-         msg_s.slot  = slot;
-         strcpy (msg_s.parm_u.ipl.fname, sor_p->val);
-         if (epicsMessageQueueTrySend (piop_msgQId[crate][slot], &msg_s, sizeof(msg_s)) == -1)
-         {
-            recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("PIOP IPL Thread Error [%s]", sor_p->name);
-         }
-         else
-         {
-            sor_p->pact = TRUE;
-            rtn = 0;     /* Return OK */
-         }
+   if(!sor_p->pact)
+   {  /* Pre-process. */
+      msg_s.rec_p = (dbCommon *)sor_p;
+      if (epicsMessageQueueTrySend (piop_msgQId[crate][slot], &msg_s, sizeof(msg_s)) == -1)
+      {
+         recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("So_write msg queue send error [%s]", sor_p->name);
       }
       else
-      { /* post-process */
-         rtn = 0;     /* Always return good status */
-         if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
-         {
-            recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", sor_p->name, 
-                         (unsigned int)pvt_p->status);
-         }
-      }   /* post-process */
-   } /* IPL stringout */ 
+      {
+         sor_p->pact = TRUE;
+         rtn = 0;     /* Return OK */
+      }
+   }
+   else
+   { /* post-process */
+      rtn = 0;     /* Always return good status */
+      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      {
+         recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", sor_p->name, 
+                      (unsigned int)pvt_p->status);
+      }
+   }   /* post-process */ 
    return (rtn);
 }
 
 /*********************************************************
  *********** Waveform Record Support *********************
  ********************************************************/
+
+
+/*
+** Local routine to translate Waveform parm into a camac function CAMFUNC_TE
+**
+** Note that we explicitly check the length as FTP has other chars after the "FTP".
+*/
+static struct ckparm_s
+{
+  char       *parm_p;
+  int         lenparm;
+  CAMFUNC_TE  func_e;
+} ckparm_as[] = { {"PPNOFTP",sizeof("PPNOFTP"),PPNOFTP},
+                  {"PPFTP",sizeof("PPFTP"),PPFTP},
+                  {"STATUSBLOCK",sizeof("STATUSBLOCK"),STATUSBLOCK},
+                  {"FTP",sizeof("FTP"),FTP},
+                  {"PAD",sizeof("PAD"),PAD},
+                  {"MK2",sizeof("MK2"),MK2FTP},
+                  {"TRIMSLED",sizeof("TRIMDSLED"),TRIMSLEDP},
+                  {"FOXHOME",sizeof("FOXHOME"),FOXHOME} };
+
+static CAMFUNC_TE xlate_wf_parm (char *inparm_p, short *outidx_p);
+{
+   int j;
+   CAMFUNC_TE camfunc_e = INVALID;
+   /*------------------------------------------------*/
+   for (j=0; j<(sizeof(ckparm_as)/sizeof(ckparm_s); j++) 
+      if (strncmp(ckparm_as[j].parm_p, inparm_p, ckparm_as[j].lenparm) == 0)
+      {
+         camfunc_e = ckparm_as[j].func;
+         break;
+      }
+   /*
+   ** If FTP, validate index.
+   */
+   if (camfunc_e == FTP)
+   {
+      sprintf (&inparm_p[3], "%2.2u",*outidx_p);
+      if (*outidx_p > MAX_FTP_IDX)
+         camfunc_e = INVALID;
+   }
+   return (camfunc_e);
+}
 
 /*
 ** Init for Waveform record
@@ -295,42 +341,47 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
    char *parm_p= cam_ps->parm;
-   int status;
-   long retval = 0;
+   PIOP_PVT      *pvt_p;
+   CAMFUNC_TE     camfunc_e;
+   short          ftpidx
    /*------------------------------------------------*/
    if(wfr_p->inp.type!=CAMAC_IO)
    {
       recGblRecordError(S_db_badField, (void *)wfr_p, 
                          "devWfPIOP Wf_init_record, not CAMAC");
       wfr_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return(S_db_badField);
    }
    if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
    {
       recGblRecordError(S_db_badField, (void *)wfr_p, 
                         "devWfPIOP Wf_init_record, illegal crate or slot");
       wfr_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return(S_db_badField);
    }
-   if (strcmp("PPN",parm_p) != 0)
-   {
+   /*
+   ** Insure the PARM is one we know about.If ftp then we also need it's index. 
+   */
+   if ((camfunc_e = xlate_wf_parm(parm_p, &ftpidx)) == INVALID)
+   {   
       recGblRecordError(S_db_badField, (void *)wfr_p, 
-                        "devWfPIOP Wf_init_record, unknown parameter");
+                        "devWfPIOP Wf_init_record, invalid parameter");
       wfr_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
-   }
+      return (S_db_badField);
+   }     
    status = PIOPDriverInit((dbCommon *)wfr_p, *cam_ps, EPICS_RECTYPE_WF);
+   pvt_p = (PIOP_PVT *)(wfr_p->dpvt);
+   pvt_p->camfunc_e = camfunc_e;
+   pvt_p->ftpidx = ftpidx;
+   pvt_p->val_p = sor_p->val;
 egress:
    return (retval);
 }
 
 /*
-** Write routine for Waveform record
+** Read/Write routine for Waveform record
 */
-static long Wf_write (struct waveformRecord *wfr_p)
+static long Wf_read_write (struct waveformRecord *wfr_p)
 {
    struct camacio *cam_ps = &(wfr_p->inp.value.camacio);
    short  crate = cam_ps->c;
@@ -342,39 +393,32 @@ static long Wf_write (struct waveformRecord *wfr_p)
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
    /*
-   ** If this is a PPN Non-FTP PP record send a message to do it.
+   ** If pre-process send msg to PIOP thread to execute the Camac operation.
    */
-   if (strcmp("PPN",parm_p) == 0)
-   {
-      if(!wfr_p->pact)
-      {  /* Pre-process */
-         msg_s.rec_p = (dbCommon *)wfr_p;
-         msg_s.func_e = PPN;
-         msg_s.crate = crate;
-         msg_s.slot  = slot;
-	 msg_s.parm_u.pp.indat_p = wfr_p->val;
-         if (epicsMessageQueueTrySend (piop_msgQId[crate][slot], &msg_s, sizeof(msg_s)) == -1)
-         {
-            recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("PIOP IPL Thread Error [%s]", wfr_p->name);
-         }
-         else
-         {
-            wfr_p->pact = TRUE;
-            rtn = 0;     /* Return OK */
-         }
+   if(!wfr_p->pact)
+   {  /* Pre-process */
+      msg_s.rec_p = (dbCommon *)wfr_p;
+      if (epicsMessageQueueTrySend (piop_msgQId[crate][slot], &msg_s, sizeof(msg_s)) == -1)
+      {
+         recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Wf_read_write Thread Error [%s]", wfr_p->name);
       }
       else
-      { /* post-process */
-         rtn = 0;     /* Always return good status */
-         if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
-         {
-            recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
-                         (unsigned int)pvt_p->status);
-         }
-      }   /* post-process */
-   } /* PPN waveform */ 
+      {
+         wfr_p->pact = TRUE;
+         rtn = 0;     /* Return OK */
+      }
+   }
+   else
+   { /* post-process */
+      rtn = 0;     /* Always return good status */
+      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      {
+         recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
+                      (unsigned int)pvt_p->status);
+      }
+   }   /* post-process */
    return (rtn);
 }
 
@@ -398,7 +442,7 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
    struct camacio *cam_ps = &(mbir_p->inp.value.camacio);
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
-   THREADMSG_TS msg_s;
+   PIOP_PVT *pvt_p;
    int status;
    /*------------------------------------------------*/
    if(mbir_p->inp.type!=CAMAC_IO)
@@ -415,8 +459,15 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
       mbir_p->pact=TRUE;
       return (S_db_badField);
    }
+   if (strcmp("SBISTATUS",parm_p) != 0)
+   {
+       recGblRecordError(S_db_badField, (void *)mbir_p, 
+                        "devMbiSBI Mbi_init_record, illegal parm string");
+      mbir_p->pact=TRUE;
+      return (S_db_badField);
+  }
    /*
-   ** Create SBI thread and send it an INIT msg if not already done
+   ** Create SBI thread if not already done
    */   
    if (sbi_msgQId == NULL)
    {
@@ -429,19 +480,11 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
       }
       epicsThreadMustCreate("threadSBI", epicsThreadPriorityMedium, 20480,
                             threadSBI, (void *)sbi_msgQId);
-      msg_s.rec_p = (dbCommon *)mbir_p;
-      msg_s.func_e = INIT;
-      msg_s.crate = crate;
-      msg_s.slot  = slot;
-      if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
-      {
-         recGblRecordError(S_db_badField, (void *)mbir_p, 
-                           "devMbiSBI Can't sent init message to SBI thread");
-         mbir_p->pact=TRUE;
-         return (S_db_badField);
-      }
    }
    status = PIOPDriverInit((dbCommon *)mbir_p, *cam_ps, EPICS_RECTYPE_MBBI);
+   pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
+   pvt_p->camfunc_e = SBISTATUS;
+   pvt_p->val_p = mbir_p->val;
    return (0);
 }
 
@@ -453,46 +496,39 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
    struct camacio *cam_ps = &(mbir_p->inp.value.camacio);
    short  crate = cam_ps->c;
    short  slot  = cam_ps->n;
-   char  *parm_p= cam_ps->parm; 
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
    int rtn = -1;        /* Assume bad */
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
    /*
-   ** Check for status read
+   ** Send msg to thread if not active else complete record processing.
    */
-   if (strcmp("STS",parm_p) == 0)
-   {
-      if(!mbir_p->pact)
-      {  /* Pre-process */
-         msg_s.rec_p = (dbCommon *)mbir_p;
-         msg_s.func_e = SBISTS;
-         msg_s.crate = crate;
-         msg_s.slot  = slot;
-         if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
-         {
-            recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] SBI STS can't send msg to thread", mbir_p->name);
-         }
-         else
-         {
-            mbir_p->pact = TRUE;
-            rtn = 0;     /* Return OK */
-         }
+   if(!mbir_p->pact)
+   {  /* Pre-process */
+      msg_s.rec_p = (dbCommon *)mbir_p;
+      if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
+      {
+         recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] SBI STATUS can't send msg to thread", mbir_p->name);
       }
       else
-      { /* post-process */
-         rtn = 0;     /* Always return good status */
-         mbir_p->val = pvt_p->val;   /* Get value from driver */
-         if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
-         {
-            recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", mbir_p->name, 
-                         (unsigned int)pvt_p->status);
-         }
-      }   /* post-process */
-   } /* SBI STS Mbbi */ 
+      {
+         mbir_p->pact = TRUE;
+         rtn = 0;     /* Return OK */
+      }
+   }
+   else
+   { /* post-process */
+      rtn = 0;     /* Always return good status */
+      mbir_p->val = pvt_p->val;   /* Get value from driver */
+      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      {
+         recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", mbir_p->name, 
+                      (unsigned int)pvt_p->status);
+      }
+   }   /* post-process */
    return (rtn);
 }
 
@@ -582,7 +618,6 @@ static long Li_init_record (struct longinRecord *lir_p)
       retval = S_db_badField;
       goto egress;;
    }
-   iss = PIOPDriverInit((dbCommon *)lir_p, *cam_ps, EPICS_RECTYPE_LI);
 egress:
    return (retval);
 }
@@ -595,23 +630,17 @@ static long Li_read (struct longinRecord *lir_p)
 {
    struct camacio *cam_ps = &(lir_p->inp.value.camacio);
    char  *parm_p= cam_ps->parm; 
-   PIOP_PVT *pvt_p = (PIOP_PVT *)(lir_p->dpvt);
-   int rtn = -1;        /* Assume bad */
+   int rtn = 0;
    int msgidx;
    /*---------------------*/
-   if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
-   rtn = 0;
    /*
-   ** Check for status read
+   ** Move the data from the Camac buffer to the record val.
    */
-   if (strncmp("MSG",parm_p, 3) == 0)
-   {
-      msgidx = atoi(&parm_p[3]);
-      lir_p->val = Piop_Msgs_s[msgidx].data;      
+   msgidx = atoi(&parm_p[3]);
+   lir_p->val = Piop_Msgs_s[msgidx].data;      
 #ifndef _X86_
-      lir_p->val = lir_p->val >> 16;
+   lir_p->val = lir_p->val >> 16; /* Msg code to lower 16 bits of long word */
 #endif
-   }
    return (rtn);
 }
 
@@ -632,6 +661,7 @@ static long Bi_init_record (struct biRecord *bir_p)
    struct camacio *cam_ps = &(bir_p->inp.value.camacio);
    char *parm_p= cam_ps->parm;  
    vmsstat_t iss = KLYS_OKOK;
+   pvt_p = *PIOP_PVT;
    long retval = 0;
    /*------------------------------------------------*/
    /*************************
@@ -657,6 +687,9 @@ static long Bi_init_record (struct biRecord *bir_p)
       goto egress;;
    }
    iss = PIOPDriverInit((dbCommon *)bir_p, *cam_ps, EPICS_RECTYPE_BI);
+   pvt_p = (PIOP_PVT *)(bir_p->dpvt);
+   pvt_p->camfunc_e = SBIMSGPIOP;
+   pvt_p->val_p = sor_p->val;
 egress:
    return (retval);
 }
@@ -669,50 +702,42 @@ static long Bi_read (struct biRecord *bir_p)
    struct camacio *cam_ps = &(bir_p->inp.value.camacio);
    short  crate = cam_ps->c;
    short  slot  = cam_ps->n;
-   char  *parm_p= cam_ps->parm; 
+   char  *parm_p= cam_ps->parm;
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(bir_p->dpvt);
    int rtn = -1;        /* Assume bad */
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
    /*
-   ** Check for status read
+   ** Send msg to thread if not active else complete record processing.
    */
-   if (strcmp("MSG",parm_p) == 0)
-   {
-      if(!bir_p->pact)
-      {  /* Pre-process */
-         msg_s.rec_p = (dbCommon *)bir_p;
-         msg_s.func_e = SBIMSG; 
-         msg_s.crate = crate;
-         msg_s.slot  = slot;
-         /* 
-	 ** This camac pkg reads the msg word for all PIOPS so we use the single 
-	 ** SBI thread so we don't have to use a specific PIOP thread.
-	 */
-         if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
-         {
-            recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] PIOP MSG can't send msg to thread", bir_p->name);
-         }
-         else
-         {
-            bir_p->pact = TRUE;
-            rtn = 0;     /* Return OK */
-         }
+   if(!bir_p->pact)
+   {  /* Pre-process */
+      /* 
+      /** This camac pkg reads the msg word for all PIOPS. Use the single 
+      ** SBI thread so we don't have to use a specific PIOP thread.
+      */
+      msg_s.rec_p = (dbCommon *)bir_p;
+      if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
+      {
+         recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] PIOP MSG can't send msg to thread", bir_p->name);
       }
       else
-      { /* post-process */
-         rtn = 0;     /* Always return good status */
-         if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
-         {
-            recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", bir_p->name, 
-                         (unsigned int)pvt_p->status);
-         }
-      }   /* post-process */
-   } /* PIOP MSG bi */ 
-    return (rtn);
+      {
+         bir_p->pact = TRUE;
+         rtn = 0;     /* Return OK */
+      }
+   }
+   else
+   { /* post-process */
+      rtn = 0;     /* Always return good status */
+      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      {
+         recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", bir_p->name, 
+                      (unsigned int)pvt_p->status);
+      }
+   }   /* post-process */
+   return (rtn);
 }
-
-

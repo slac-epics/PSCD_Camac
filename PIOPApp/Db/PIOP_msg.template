@@ -22,4 +22,12 @@ record(longin, "$(DEV1):PIOP:MSG1") {
   field(SCAN, "Passive")
   field(DTYP, "PIOP")
   field(INP,  "#B0 C$(CRATE1) N$(SLOT1) @MSG1")
+  field(FLNK, "$(DEV1):PIOP_PROC:MSG1.INPA")
+}
+
+record(sub, "$(DEV1):PIOP_PROC:MSG1") {
+  field(DESC, "$(DEV1) Process PIOP Msg")
+  field(SCAN, "Passive")
+  field(INAM, "PIOP_msg_init")
+  field(SNAM, "PIOP_msg_proc")
 }

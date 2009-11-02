@@ -82,13 +82,15 @@ typedef enum EPICS_RECTYPE
 }   E_EPICS_RECTYPE;
 
 /******************************************************
- ** Params for MessageQueue array by crates/slots & PIOPs
+ ** Params for MessageQueue array by crates/slots, 
+ ** PIOPs and types of FTPs.
  ****************************************************/
 
 #define MAX_CRATES 9
 #define MAX_SLOTS  24
 #define MAX_MODULES = MAX_CRATES * MAX_SLOTS
 #define MAX_PIOPS 9
+#define MAX_FTP_IDX 21
 
 /*
 ** Generic status/data structs
@@ -105,56 +107,38 @@ typedef struct
     unsigned short data;
 } STAT_DAT16;
 
-/**************************
- ** Driver private structure.
- **************************/
-typedef struct
-{
-  vmsstat_t  status; /* Status returned from driver */
-  unsigned long val; /* Simple value returned */
-} PIOP_PVT;
-
 /************************************************************************
-** Message sent to drvPIOP to execute the Camac PIOP function from devPIOP
-** device support.
-** Functions are for the PIOP thread unless preceeded by "SBIxxx" in which
-** they're for the SBI thread. All threads handle the INIT message.
+** Message sent to drvPIOP to execute the Camac PIOP function. CAMFUNC is
+** saved in the driver private struct at record init time and
+** tells the thread what Camac function to perform. CAMFUNC functions are 
+** for the PIOP thread unless preceeded by "SBIxxx" in which case they're
+** for the SBI thread.
 *************************************************************************/
 
-typedef enum {INIT, IPL, PPN, SBIMSG, SBISTS, LAST } FUNC_TE; /* Msgs to drvPIOP threads */
+typedef enum {IPL, PPNOFTP, PPFTP, STATUSBLOCK, FTP, PAD, MK2, TRIMSLED, FOXHOME, 
+              SBIMSGPIOP, SBISTATUS, INVALID } CAMFUNC_TE; /* Camac funcs to perform */
 
+/********************************************
+ ** Driver private structure for each record.
+ *******************************************/
 typedef struct
 {
-  char  fname[40];
-} IPLSTRUC_TS;
-
-typedef struct
-{
-  char  *indat_p;
-} PPSTRUC_TS;
-
-
-/*
-** Unify all parameters for the message to the PIOP thread.
-*/
-typedef union
-{
-  IPLSTRUC_TS ipl;
-  PPSTRUC_TS  pp;
-  int         dum;
-} THREADPARM_U;
+  vmsstat_t     status;   /* Status returned from driver */
+  unsigned long val;      /* Simple value returned */
+  short         crate;
+  short         slot;
+  void         *val_p;     /* Local record's val field */
+  CAMFUNC_TE    camfunc_e; /* Camac function */
+  short         ftpidx;    /* For FTP func, index of FTP to execute */
+} PIOP_PVT;
 
 /*
-** This is the general message. All functions get the record ptr,
-** crate, slot & function.
+** This is the message send to the thread. All that's needed is 
+** the record ptr. Other info is in driver private struct.
 */
 typedef struct
 {
-  dbCommon    *rec_p;
-  short crate;
-  short slot;
-  FUNC_TE      func_e;
-  THREADPARM_U parm_u;
+  dbCommon     *rec_p;
 } THREADMSG_TS;
 
 /*****************************************************************
@@ -168,6 +152,6 @@ void threadSBI  (void * msgQId);
 
 /* Record-specific driver init */
 
-int PIOPDriverInit (dbCommon *rec_p, struct camacio inout, enum EPICS_RECTYPE rtyp);
+int PIOPDriverInit (dbCommon *rec_p,  struct camacio *cam_ps, enum EPICS_RECTYPE rtyp);
 
 #endif
