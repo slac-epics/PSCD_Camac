@@ -12,7 +12,7 @@ record(bo, "$(RECNAME)") {
 }
 
 record(calcout, "$(RECNAME):CalcPulse") {
-  field(DESC, "Do set")
+  field(DESC, "Do pulse")
   field(VAL,  "0")
   field(CALC, "(A&31)|(B?64:0)|((C&255)<<8)")
   field(INPA, "$(CHNL)")
