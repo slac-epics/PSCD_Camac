@@ -21,6 +21,7 @@ Releases
 This package has been successfully tested with code built
 under EPICS R3.14.8.2 and RTEMS 4.7.1 (Tills version)
 
+
 Build Instructions
 --------------------
 The file RELEASE_SITE is included in the file configure/RELEASE
@@ -48,12 +49,21 @@ The EPICS drivers and device support for individual CAMAC modules
 are included in this package. The following table provides a list
 of module. See the sections on each application for further details.
 
-Module          Db definition    Db Templates   Libraries
-------         -------------    -------------   ------------
-Crate Verifier  CV.dbd          CV.template     CVlib
-SAM             SAM.dbd         SAM.template    SAMlib
-IDIM            IDIM.dbd        IDIM.template   IDIMlib
-PIOP            PIOP.dbd        PIOP.template   PIOPlib 
+Module          Db definition    Db Templates   Libraries      Source
+------         -------------    -------------   ------------   -------
+Crate Verifier  CV.dbd          CV.template     CVlib 		CVApp
+SAM             SAM.dbd         SAM.template    SAMlib		SAMApp
+IDIM            IDIM.dbd        IDIM.template   IDIMlib		IDIMApp
+PIOP            PIOP.dbd        PIOP.template   PIOPlib 	PIOPApp
+
+Additional 
+-----------
+CAM Library					CAMRoutines	CAMRoutineApp
+		genSubRoutine.dbd		genSub
+
+Note:
+-----
+In Epics version R3.14.10 the genSubRoutine will be replaced with aSubRoutine
 
 CVApp
 -------
@@ -67,7 +77,6 @@ template CV.template.
 
 Documentation for the CAMAC Module used at SLAC in the SLC Hardware Manual at
 http://www.slac.stanford.edu/grp/cd/soft/wwwman.hardwww/index.html
-
 
 
 IDIMApp
