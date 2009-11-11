@@ -2,7 +2,7 @@ record(mbbiDirect, "$(RECNAME)") {
   field(DESC, "LDIM Input")
   field(SCAN, "$(SCAN)")
   field(DTYP, "LDIM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A$(ADDR)@")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(ADDR) F0@")
   field(TSE,  "-2")
 }
 
