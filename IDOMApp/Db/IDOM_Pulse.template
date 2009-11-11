@@ -26,5 +26,5 @@ record(calcout, "$(RECNAME):CalcPulse") {
 record(mbboDirect, "$(RECNAME):HWPULSE") {
   field(DESC, "IDOM Pulse HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F17 A0@PULSE")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F17@PULSE")
 }

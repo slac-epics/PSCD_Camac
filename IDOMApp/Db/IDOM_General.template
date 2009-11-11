@@ -1,7 +1,7 @@
 record(bo, "$(MODULENAME):Reset") {
   field(DESC, "IDOM Reset")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F9 A0@RESET")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F9@RESET")
   field(ZNAM, "Reset")
   field(ONAM, "Reset")
 }
@@ -9,7 +9,7 @@ record(bo, "$(MODULENAME):Reset") {
 record(bo, "$(MODULENAME):ClearL16") {
   field(DESC, "IDOM Clear L16")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F10 A0@CLEAR")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F10@CLEAR")
   field(ZNAM, "Clear")
   field(ONAM, "Clear")
 }
@@ -17,7 +17,7 @@ record(bo, "$(MODULENAME):ClearL16") {
 record(bo, "$(MODULENAME):ClearH16") {
   field(DESC, "IDOM Clear H16")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F10 A1@CLEAR")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A1 F10@CLEAR")
   field(ZNAM, "Clear")
   field(ONAM, "Clear")
 }
@@ -26,14 +26,14 @@ record(mbbiDirect, "$(MODULENAME):L16") {
   field(DESC, "IDOM Latched L16")
   field(SCAN, "$(SCAN)")
   field(DTYP, "IDOM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0@LATCHED")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0@LATCHED")
 }
 
 record(mbbiDirect, "$(MODULENAME):H16") {
   field(DESC, "IDOM Latched H16")
   field(SCAN, "$(SCAN)")
   field(DTYP, "IDOM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A1@LATCHED")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A1 F0@LATCHED")
 }
 
 

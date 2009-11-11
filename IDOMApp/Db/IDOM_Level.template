@@ -28,7 +28,7 @@ record(calcout, "$(RECNAME):CalcSet") {
 record(mbboDirect, "$(RECNAME):HWSET") {
   field(DESC, "IDOM Set HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F18 A$(PORT)@LEVEL_SELECT")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F18@LEVEL_SELECT")
 }
 
 record(calcout, "$(RECNAME):CalcClear") {
@@ -45,6 +45,6 @@ record(calcout, "$(RECNAME):CalcClear") {
 record(mbboDirect, "$(RECNAME):HWCLEAR") {
   field(DESC, "IDOM Clear HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F21 A$(PORT)@LEVEL_SELECT")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F21@LEVEL_SELECT")
 }
 
