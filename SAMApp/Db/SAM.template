@@ -2,7 +2,7 @@ record(ai, "$(RECNAME)") {
   field(DESC, "SAM Input")
   field(SCAN, "$(SCAN)")
   field(DTYP, "SAM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F$(FUNC) A$(ADDR)@DATA")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(ADDR) F$(FUNC)@DATA")
   field(PREC, "3")
   field(EGUF, "$(EGUF)")
   field(EGUL, "$(EGUL)")
