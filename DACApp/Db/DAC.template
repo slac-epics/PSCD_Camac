@@ -1,7 +1,7 @@
 record(ao, "$(RECNAME)") {
   field(DESC, "DAC Output")
   field(DTYP, "DAC")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F16 A$(ADDR)@DATA")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(ADDR) F16@DATA")
   field(PREC, "3")
   field(EGUF, "$(EGUF)")
   field(EGUL, "$(EGUL)")
@@ -28,7 +28,7 @@ record(ao, "$(RECNAME)") {
 record(ai, "$(RECNAME):Rdbk") {
   field(DESC, "DAC reg")
   field(DTYP, "DAC")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A$(ADDR)@DATA")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(ADDR) F0@DATA")
   field(PREC, "3")
   field(EGUF, "$(EGUF)")
   field(EGUL, "$(EGUL)")
