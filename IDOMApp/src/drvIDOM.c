@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDOM.c,v 1.2 2009/09/04 03:35:32 pengs Exp $
+ *   $Id: drvIDOM.c,v 1.3 2009/11/02 04:40:03 pengs Exp $
  *   File:		drvIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -362,6 +362,8 @@ int IDOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 
     pIDOMRequest->a = inout.a & 0xF;
     pIDOMRequest->f = inout.f & 0x1F;
+    if(IDOM_DRV_DEBUG) printf("Add IDOM[%d,%d,%d] with F%d A%d\n",
+        pIDOMModule->b, pIDOMModule->c, pIDOMModule->n, pIDOMRequest->f, pIDOMRequest->a);
 
     /*pIDOMRequest->actTime*/
     pIDOMRequest->val = 0u;
