@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPPOM.c,v 1.1 2009/11/02 05:20:19 pengs Exp $
+ *   $Id: drvPPOM.c,v 1.2 2009/11/02 06:07:58 pengs Exp $
  *   File:		drvPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -115,7 +115,7 @@ UINT32 PPOM_RstClr(PPOM_REQUEST  *pPPOMRequest)
 	}
 	else
 	{
-            /* F9A0 does reset, F10A0/1 clear */
+            /* F9A0 does reset */
             ppomctlw = (pPPOMModule->n << 7) | (pPPOMModule->c << 12) |
 		    (pPPOMRequest->f << 16) | pPPOMRequest->a;
 	    bcnt = 0;
@@ -165,7 +165,7 @@ UINT32 PPOM_WriteData(PPOM_REQUEST  *pPPOMRequest)
 	}
 	else
 	{
-            /* F16, F17, (F18, F21), (F19, F23) A0/1 */
+            /* F16 A0 */
             ppomctlw = (pPPOMModule->n << 7) | (pPPOMModule->c << 12) |
 		    (pPPOMRequest->f << 16) | pPPOMRequest->a;
 	    bcnt = 2;
@@ -217,7 +217,7 @@ UINT32 PPOM_ReadData(PPOM_REQUEST * pPPOMRequest)
         }
         else
         {
-            /* F0 Aa to read PPOM, we don't use pPPOMRequest->f here to help init mbboDirect */
+            /* F0 A0 to read PPOM, we don't use pPPOMRequest->f here to help init mbboDirect */
             ppomctlw = (pPPOMModule->n << 7) | (pPPOMModule->c << 12) /*| (pPPOMRequest->f << 16)*/ | (pPPOMRequest->a);
             if(PPOM_DRV_DEBUG) printf("PPOM Operation control word is 0x%08x\n", ppomctlw);
             bcnt = 4;

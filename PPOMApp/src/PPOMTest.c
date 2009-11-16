@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PPOMTest.c,v 1.1 2009/09/04 00:51:29 pengs Exp $
+ *   $Id: PPOMTest.c,v 1.1 2009/11/02 05:20:18 pengs Exp $
  *   File:		PPOMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -66,7 +66,7 @@ UINT32 PPOM_Test()
     UINT32 rtn = 0;
 
     /* check if module exists */
-    if(isModuleExsit(0, 5, 16))
+    if(isModuleExsit(0, 5, 21))
     {
         unsigned int loop;
 
@@ -76,8 +76,7 @@ UINT32 PPOM_Test()
         UINT16 emask= 0xE0E0;
 
 
-        UINT32 ctlwF0A0 = 0x00005200;
-        UINT32 ctlwF0A1 = 0x00005201;
+        UINT32 ctlwF0A0 = 0x00005A80;
 
         STAS_DAT read_ppom[2];
         UINT16 nops = 0;
@@ -89,7 +88,7 @@ UINT32 PPOM_Test()
             goto egress;
         }
 
-        nops = 2;
+        nops = 1;
  
         /** Allocate package for PPOM reset */
 
@@ -101,16 +100,8 @@ UINT32 PPOM_Test()
         }
 
         read_ppom[0].data = 0;
-        read_ppom[1].data = 0;
 	bcnt = 4;
         if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_ppom[0], &bcnt, &emask, &pkg_p)))
-        {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-            rtn = (PPOM_CAM_ADD_FAIL|iss);
-            goto release_campkg;
-        }
-
-        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_ppom[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             rtn = (PPOM_CAM_ADD_FAIL|iss);
@@ -125,7 +116,7 @@ UINT32 PPOM_Test()
         }
 
 
-       printf("Raw: L:0x%08X H:0x%08X\n", read_ppom[0].data, read_ppom[1].data);
+       printf("Raw: 0x%08X\n", read_ppom[0].data);
  
 release_campkg: 
 
