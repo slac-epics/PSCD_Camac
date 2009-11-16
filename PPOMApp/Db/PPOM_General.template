@@ -1,0 +1,23 @@
+record(bo, "$(PPOMMOD):Reset") {
+  field(DESC, "PPOM Reset")
+  field(DTYP, "PPOM")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F9@RESET")
+  field(ZNAM, "Reset")
+  field(ONAM, "Reset")
+}
+
+
+# bit 15 is polarity, bit 0~4 are channel number
+record(mbbiDirect, "$(PPOMMOD):LastCmd") {
+  field(DESC, "PPOM Last Cmd")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "PPOM")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0@DATA")
+}
+
+record(mbboDirect, "$(PPOMMOD):HWPULSE") {
+  field(DESC, "PPOM Pulse HW")
+  field(DTYP, "PPOM")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F16@PULSE")
+}
+

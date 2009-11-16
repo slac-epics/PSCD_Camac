@@ -1,0 +1,23 @@
+# RECNAME is whatever you like
+# PPOMMOD has to be same as the one  to instantiate PPOM_General.template
+# CHNL is 0 ~ 31 to indicate which channel
+# WIDTH for PPOM is fixed 250ms
+
+record(bo, "$(RECNAME)") {
+  field(DESC, "Pulse PPOM")
+  field(ZNAM, "Pulse Negative")
+  field(ONAM, "Pulse Positive")
+  field(FLNK, "(RECNAME):CalcPulse")
+}
+
+record(calcout, "$(RECNAME):CalcPulse") {
+  field(DESC, "Do pulse")
+  field(VAL,  "0")
+  field(CALC, "(A&31)|(B << 15)")
+  field(INPA, "$(CHNL)")
+  field(INPB, "$(RECNAME)")
+  field(OUT, "$(PPOMMOD):HWPULSE PP")
+  field(DOPT, "Use CALC")
+  field(OOPT, "Every Time")
+}
+
