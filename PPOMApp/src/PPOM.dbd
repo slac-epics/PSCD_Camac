@@ -2,7 +2,7 @@
 # Include external dbds if required
 #device(ai,		VME_IO,devAiPPOM,"PPOM")
 #device(ao,		VME_IO,devAoPPOM,"PPOM")
-device(bo,		VME_IO,devBoPPOM,"PPOM")
+device(bo,		CAMAC_IO,devBoPPOM,"PPOM")
 #device(longin,		VME_IO,devLiPPOM,"PPOM")
 #device(longout,	VME_IO,devLoPPOM,"PPOM")
 device(mbbiDirect,	CAMAC_IO,devMiDPPOM,"PPOM")
