@@ -18,6 +18,7 @@ DBD += PPOM.dbd
 # specify all source files to be compiled and added to the library
 PPOM_SRCS += devPPOM.c
 PPOM_SRCS += drvPPOM.c
+PPOM_SRCS += PPOMTest.c
 
 PPOM_LIBS += $(EPICS_BASE_IOC_LIBS)
 
