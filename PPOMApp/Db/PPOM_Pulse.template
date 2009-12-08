@@ -5,8 +5,8 @@
 
 record(bo, "$(RECNAME)") {
   field(DESC, "Pulse PPOM")
-  field(ZNAM, "Pulse Negative")
-  field(ONAM, "Pulse Positive")
+  field(ZNAM, "Pulse Positive")
+  field(ONAM, "Pulse Negative")
   field(FLNK, "(RECNAME):CalcPulse")
 }
 
