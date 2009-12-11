@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDOM.c,v 1.2 2009/09/04 03:35:32 pengs Exp $
+ *   $Id: devIDOM.c,v 1.3 2009/11/02 04:40:02 pengs Exp $
  *   File:		devIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -278,7 +278,7 @@ static long write_mod(struct mbboDirectRecord *pmbbod)
     {/* post-process */
         if( (!pRequest->opDone) || pRequest->errCode )
         {
-            recGblSetSevr(pmbbod, READ_ALARM, INVALID_ALARM);
+            recGblSetSevr(pmbbod, WRITE_ALARM, INVALID_ALARM);
             errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pmbbod->name, pRequest->errCode);
             rtn = -1;
         }
