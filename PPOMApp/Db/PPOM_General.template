@@ -15,9 +15,16 @@ record(mbbiDirect, "$(PPOMMOD):LastCmd") {
   field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0@DATA")
 }
 
-record(mbboDirect, "$(PPOMMOD):HWPULSE") {
+record(longout, "$(PPOMMOD):HWPULSE") {
+  field(DESC, "PPOM Pulse HW")
+  field(FLNK, "$(PPOMMOD):HWPULSEMB")
+}
+
+record(mbboDirect, "$(PPOMMOD):HWPULSEMB") {
   field(DESC, "PPOM Pulse HW")
   field(DTYP, "PPOM")
   field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F16@DATA")
+  field(DOL,  "$(PPOMMOD):HWPULSE")
+  field(OMSL, "closed_loop")
 }
 
