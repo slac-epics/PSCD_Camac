@@ -9,6 +9,7 @@
 */
 
 #include <devPIOP.h>
+#include <drvPIOP.h>
 #include <cam_proto.h>
 #include <cctlwmasks.h>
 
@@ -16,7 +17,7 @@
 ** Local prototypes for ipl
 */
 static vmsstat_t iplPIOPRead (PIOP_PVT *pvt_p, char *img_name_p);
-static void iplPIOPDownload (PIOP_PVT *pvt_p, short crate, short slot);
+static vmsstat_t iplPIOPDownload (PIOP_PVT *pvt_p, short crate, short slot);
 
 /*
 ** PIOP image Read once on first IPL.
@@ -30,17 +31,19 @@ char *ImagePIOP_p = NULL;  /* Pointer to PIOP image in memory */
 /*************************************
  ** Top level IPL - Status returned to devPIOP via drvpvt 
  *************************************/
-void iplPIOPMain (PIOP_PVT *pvt_p, char *name, short crate, short slot)
+vmsstat_t iplPIOPMain (PIOP_PVT *pvt_p, short crate, short slot)
 {
+  char *name_p = (char *)pvt_p->val_p;
+  vmsstat_t iss;
   /*------------------------------*/
   /*
   ** Read in the image if not already done.
   */
-  if (!SUCCESS(iplPIOPRead(pvt_p, name)))
+  if (!SUCCESS(iss = iplPIOPRead(pvt_p, name_p)))
     goto egress;
-  iplPIOPDownload(pvt_p, crate, slot);
+  iss = iplPIOPDownload(pvt_p, crate, slot);
 egress:
-  return;
+  return (iss);
 }
 
 /*************************************************
@@ -55,33 +58,36 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
 #ifndef _X86_
   char tmp;           /* For byte swap */
   char *dat1_p;       /* Pointer for byte swap */
-  int  j;             /* Index for byte swap */
+  int  i,j;           /* Indexs for byte/word swap */
+  unsigned short stemp;    /* For word swap */
+  unsigned short *short_p; /* Pointer for word swap */
 #endif       
   int bytes_read;      /* Total bytes read */
-  vmsstat_t status = KLYS_OKOK;  /* Assume no error */
+  vmsstat_t iss = KLYS_OKOK;  /* Assume no error */
   char *fullpath_p;    /* Full path including env var PIOP_PATH */
   /*-------------------------------------*/
   if (ImagePIOP_p != NULL)    /* If already loaded then just exit with success */
     goto egress;
   if ( (fullpath_p = getenv("PIOP_PATH")) == NULL)
   {
-    errlogSevPrintf (errlogMajor, "iplPIOPRead - Missing environment variable PIOP_PATH; no PIOP image\n");
-    ppvt_p->status = status = KLYS_IPLNOIMG;
+    errlogSevPrintf (errlogMajor, 
+                     "iplPIOPRead - Missing environment variable PIOP_PATH; no PIOP image\n");
+    iss = KLYS_IPLNOIMG;
     goto egress;
   }
   fullpath_p = strcat(fullpath_p,img_name_p);
-  printf ("Entered iplPIOPRead with name %s\n", fullpath_p);
   if ((piop_f = fopen (fullpath_p, "r")) == NULL)
   {
-    errlogSevPrintf (errlogMajor, "iplPIOPRead - Error opening PIOP image file %s with error %s\n",
+    errlogSevPrintf (errlogMajor, 
+                    "iplPIOPRead - Error opening PIOP image file %s with error %s\n",
                     fullpath_p, strerror(errno));
-    ppvt_p->status = status = KLYS_IPLFNF;
+    iss = KLYS_IPLFNF;
     goto egress;
   }
   if ((ImagePIOP_p = calloc (1, IMG_MAX_SIZE)) == NULL)
   {
     errlogSevPrintf (errlogMajor, "iplPIOPRead - Cannot calloc for PIOP image.\n");
-    ppvt_p->status = status = KLYS_IPLNOIMG;
+    iss = KLYS_IPLNOIMG;
     goto egress;
   }
 
@@ -98,7 +104,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
     rlen_u.len[1] = tmp;
 #endif
     if (feof (piop_f))  /* Hit eof reading record length after last record */
-      goto egress;
+      goto swapbuf;
     /*
     ** Throw away the 2 bytes after the VMS RMX record length and decrement bytes to read.
     */
@@ -112,7 +118,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
       errlogSevPrintf (errlogMajor, "iplPIOPRead - Max PIOP image size exceeded %d\n", idx);
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
-      ppvt_p->status = status = KLYS_IPLNOEND;
+      iss = KLYS_IPLNOEND;
       goto egress;
     }
     if ((bytes_read = fread (&ImagePIOP_p[idx], 1, rlen_u.rlen, piop_f)) != rlen_u.rlen)
@@ -121,7 +127,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
                        rlen_u.rlen);
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
-      ppvt_p->status = status = KLYS_IPLFBAD;
+      iss = KLYS_IPLFBAD;
       goto egress;
     }
 #ifndef _X86_
@@ -139,25 +145,47 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
      }
 #endif
     idx += rlen_u.rlen;
+  }  /* EOF in data file */
+
+swapbuf:
+#ifndef _X86_
+  /*
+  ** The PCI bus in the PSCD reads 32 bit words little-endian so we also need 
+  ** to swap the data words in each data block.
+  */
+  for (j=0; j<IMG_MAX_BLOCKS; j++)
+  {
+     short_p = (unsigned short *)&(ImagePIOP_p[j*IMG_BLOCK_WC*2]); /* Point to ctl word */
+     short_p +=3;    /* Point to first data word in ftp or control block */
+     for (i=0; i<FBLK_LENW/2; i++)
+     { 
+        stemp = *short_p;
+        *short_p = *(short_p+1);
+        *(short_p+1) = stemp;
+        short_p += 2;
+     }
   }
+#endif
 egress:
   fclose (piop_f);
-  return status;
+  return (iss);
 }
 
 /***********************
 ** Download image to PIOP
 ***********************/
-static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
+static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
 {
   unsigned long ploc;           /* PIOP crate/slot location */
   unsigned long                 /* Camac control words */
            ctlw1, ctlw2, ctlwa, ctlwb;
   vmsstat_t iss = KLYS_OKOK;    /* Assume good status */
   int      i;                   /* looper */
-  unsigned int    ctlstat4;     /* Status from ctl op - 0 byte count */
+  unsigned int    ctlstat4;  /* Status from ctl op - 0 byte count */
   unsigned int   *statdat4_p;   /* Current stat/data as int4 */
   unsigned short *statdat2_p;   /* Current status/data as int2 */
+  unsigned char  *byte_p;       /* byte pointer */
+  int      block;               /* FTP/CTL block we're processing */
   int4u   statmsk = 0x007FBFFF; /* To check Camac status */
   int2u emaskf2e0 = 0xF2E0,     /* Various emasks */
         emaskf3e0 = 0xF3E0,
@@ -210,20 +238,20 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
      iss = KLYS_NORESET;
      goto egress;
   }
-  epicsThreadSleep(1.0);      /* Let PIOP finish init */
+  epicsThreadSleep(1.0);      /* Let PIOP finish reset */
   /*
   ** Get Camac pkg and download the image
   */
   if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
      goto egress;
-
   ctlw1 = ploc | CCTLW__F8  | CCTLW__F2  | CCTLW__F1;
   ctlw2 = ploc | CCTLW__F16 | CCTLW__QM2 | CCTLW__XM2;
 
   for (i=0; i<IMG_MAX_BLOCKS; i++)
   {
-     statdat2_p = &img_data2_p[i*IMG_BLOCK_WC];   /* Point to ctl word */
-     if ((*statdat2_p & 0x00ff) == 2) 
+     statdat2_p = &(img_data2_p[i*IMG_BLOCK_WC]);   /* Point to ctl word */
+     block = *statdat2_p >> 8;
+     if ((*statdat2_p & 0xFF) == 2)
      {
         ctlwa = ctlw1 | CCTLW__A1;
         ctlwb = ctlw2 | CCTLW__A1;
@@ -235,7 +263,9 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
         ctlwb = ctlw2;
         bcnt = 2*16;
      }
-     statdat2_p = statdat2_p+1;                 /* Increment past ctl word */
+     statdat2_p++;                 /* Increment past ctl word */
+     byte_p = (unsigned char*)statdat2_p; /* Make char ptr */
+     byte_p += 4; /* past status */
      statdat4_p = (unsigned int*) statdat2_p;   /* Actual stat/dat as int4u */
      if(!SUCCESS(iss = camadd(&ctlwa,&ctlstat4,&zero,&emaskf3e0,&pkg_p)))
         goto egress;
@@ -245,16 +275,14 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
         goto egress;
      ctlstat4    &= statmsk;
      *statdat4_p &= statmsk;
-     /******* Re-instate after check with Jeff !!!!!************
-     if ( (ctlstat4 << 16  != 0)    || (ctlstat4 >> 16     != 0x0013) ||
-          (*statdat4_p << 16 != 0)  || (*statdat4_p >> 16  != 0x0053) )
+     if ( ((ctlstat4 & 0xBFFF)  != 0)    || (((ctlstat4 >> 16) & 0x7F) != 0x0053) ||
+          ((*statdat4_p & 0xBFFF) != 0)  || (((*statdat4_p >> 16) & 0x7F)  != 0x0053) )
      {
-        errlogPrintf ("iplPIOPDownload - Bad status from PIOP download %08x %08x\n",
-                      ctlstat4, *statdat4_p);
+        errlogPrintf ("iplPIOPDownload - Block %x bad status from PIOP download %8.8x %8.8x\n",
+                      block, ctlstat4, *statdat4_p);
         iss = KLYS_NOIPL;
         goto egress;
      }
-     ********/
      /*
      ** Check if IPL is done
      */
@@ -262,7 +290,8 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
         break;
      if (!SUCCESS(iss = camalo_reset(&pkg_p)))
         goto egress;
-     epicsThreadSleep(0.020);
+
+     epicsThreadSleep(0.02);
   }  /* End of loop to download the image */
   /*
   ** This PIOP seems now to be IPL'ed.Sleep a bit so PIOP can digest the image.
@@ -270,6 +299,5 @@ static void iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
   epicsThreadSleep(0.050);
 egress:  
   camdel (&pkg_p);
-  pvt_p->status = iss;  /* Status for device support */
-  return;
+  return (iss);
 }

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.2 2009/06/09 22:27:06 pengs Exp $
+ *   $Id: drvPIOP.c,v 1.3 2009/11/02 08:09:02 pengs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -25,9 +25,9 @@ epicsMessageQueueId piop_msgQId[MAX_CRATES][MAX_SLOTS];
 ***************************************/
 epicsMessageQueueId sbi_msgQId;
 
-/**************************************************************************************************/
-/* Here we supply the driver initialization & report functions for epics                          */
-/**************************************************************************************************/
+/********************************************************************************************/
+/* Here we supply the driver initialization & report functions for epics                    */
+/********************************************************************************************/
 static  long    PIOP_EPICS_Init();
 static  long    PIOP_EPICS_Report(int level);
 
@@ -80,7 +80,7 @@ static long PIOP_EPICS_Init()
 
 static long PIOP_EPICS_Report(int level)
 {
-   printf ("Entered PIOP_EPICS_Report level %d\n", level);
+   printf ("\nCAMAC PIOP Driver V1.0\n");
    return 0;
 }
 
@@ -88,14 +88,14 @@ static long PIOP_EPICS_Report(int level)
  ** Driver init for each record type called by devPIOP
  ****************************************************/
 
-int PIOPDriverInit (dbCommon *pRec, struct camacio *cam_ps, enum EPICS_RECTYPE rtyp)
+void PIOPDriverInit (dbCommon *pRec, struct camacio *cam_ps, enum EPICS_RECTYPE rtyp)
 {
    PIOP_PVT *pvt_p;
    /*---------------------------------------------------*/ 
    pvt_p = callocMustSucceed (1, sizeof(PIOP_PVT), "calloc driver pvt");
    pvt_p->status = KLYS_OKOK;   /* Init status to good */
    pvt_p->crate = cam_ps->c;
-   pvt_p->slot =  cam_ps->s;
+   pvt_p->slot =  cam_ps->n;
    pRec->dpvt = (void *)pvt_p;
    return;
 }
@@ -110,10 +110,19 @@ void threadPIOP (void * msgQId)
    THREADMSG_TS msg_s;
    int msgQstat;
    CAMBLOCKS_TS *camblocks_ps = NULL;
-   vmsstat_t iss = KLYS_OKOK;
+   vmsstat_t iss;
    PIOP_PVT *pvt_p;    /* Driver private struct */
-   dbCommon *reccom_p  /* Record pointer */
+   dbCommon *reccom_p; /* Record pointer */
    int first_init = 0; /* Must do init first time */
+   unsigned short beam_any[CBLK_LENW-2] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,0xFFFF, 
+                          0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+   unsigned short beam_one[CBLK_LENW-2] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,2 };
+   unsigned short beam_noftp [CBLK_LENW-2] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+   unsigned short beam_loaded = 99;  /* 0=ANY 1=LCLS Beam. Force reload */
+   FTP_WAVE_TS *ftp_wave_ps;
+   FTP_CBLK_TS *ftp_cblk_ps;
+   FTP_INFO_TS *ftp_info_ps;
+   FTP_READ_TS *ftp_read_ps;
    /*----------------------------*/
    camblocks_ps = callocMustSucceed (1, sizeof(CAMBLOCKS_TS), "calloc camac blocks struct");
    while (TRUE)
@@ -123,9 +132,8 @@ void threadPIOP (void * msgQId)
          errlogSevPrintf(errlogFatal,"PIOP msgQ timeout for thread %s status %d. Suspending...\n", 
                          epicsThreadGetNameSelf(), msgQstat);
          epicsThreadSuspendSelf();
-      }
- 
-      reccom_p = msg_s.rec_p;  /* Record pointer for return to device support */
+      } 
+      reccom_p = msg_s.rec_p;  /* Record pointer */
       pvt_p = (PIOP_PVT *)reccom_p->dpvt;  /* Driver private pointer */
       /*************************************
       ** Check for first time initialization.
@@ -148,26 +156,108 @@ void threadPIOP (void * msgQId)
       {
          case IPL:
          {    
-            iplPIOPMain (ppvt_p, (char *)pvt_p->val_p, pvt_p->crate, pvt_p->slot);
-            dbScanLock(reccom_p);
-            (*(reccom_p->rset->process))(reccom_p);
-            dbScanUnlock(reccom_p);
+	    iss = iplPIOPMain (pvt_p, pvt_p->crate, pvt_p->slot);
+            if (SUCCESS(iss))
+               iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
+			            &beam_noftp, CBLK_LENB-4, 2, 0.01 );
+            epicsThreadSleep(.05);
+            if (SUCCESS(iss))
+               iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
+			            &beam_one, CBLK_LENB-4, 2, 0.01 );
+            epicsThreadSleep(.05);
+	    beam_loaded = 1;
+            pvt_p->status = iss;
             break;
          }
          case PPNOFTP:
          {
 	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
-                                           (char *)pvt_p->val_p);
-            dbScanLock(reccom_p);
-            (*(reccom_p->rset->process))(reccom_p);
-            dbScanUnlock(reccom_p);
+                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01 );
+            epicsThreadSleep(.05); /* Let PIOP digest bitmap */
+            break;
+         }           
+         case PPFTP:
+         {
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
+                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01);
+            epicsThreadSleep(.05); /* Let PIOP digest bitmap */
+            break;
+         }           
+         case STATUSBLOCK:
+         {
+	    pvt_p->status = blockPIOPSblk (camblocks_ps,pvt_p->val_p, 3, 0.1);
+            break;
+         }           
+         case FTP:
+         {
+	    /*
+	    ** Insure we have the correct PP bitmap loaded
+	    */
+	    iss = KLYS_OKOK;
+	    ftp_wave_ps = (FTP_WAVE_TS*) pvt_p->val_p;
+            ftp_cblk_ps = &(ftp_wave_ps->ftp_cblk_s);
+            ftp_info_ps = &(ftp_wave_ps->ftp_info_s);
+            ftp_read_ps = &(ftp_wave_ps->ftp_read_s);
+	    if (ftp_info_ps->pp != beam_loaded)
+            {
+	       if (ftp_info_ps->pp == 0)
+                  iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
+                                       beam_any, CBLK_LENB-4, 2, 0.01);
+	       else
+                  iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
+                                       beam_one, CBLK_LENB-4, 2, 0.01);
+               epicsThreadSleep(.05); 
+	    }
+	    if (SUCCESS(iss))
+	    {
+	       beam_loaded = ftp_info_ps->pp;
+               iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTP, ftp_cblk_ps, 
+				    sizeof(FTP_CBLK_TS), 2, 0.01);
+	       if (SUCCESS(iss))
+                  iss = blockPIOPFblk (camblocks_ps, ftp_read_ps,
+                                       ftp_info_ps->tries, ftp_info_ps->ms_per_try *.001);
+	    }            
+            pvt_p->status = iss; 
+            break;
+         }           
+         case PAD:
+         {
+            
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_PADPARAM, 
+                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01);
+            break;
+         }           
+         case MK2:
+         {
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_MK2PARAM, 
+                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01);
+            break;
+         }           
+         case TRIMSLED:
+         {
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TRIMSLED, 
+                                           pvt_p->val_p, 2, 2, 0.1);
+            break;
+         }           
+         case FOXHOME:
+         {
+	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FOXHOME, 
+                                           pvt_p->val_p, 0, 2, 0.1);
             break;
          }           
          default:
             errlogSevPrintf(errlogMinor, "Invalid camac function %d in threadPIOP\n",
                             pvt_p->camfunc_e);
       }   /* Switch on Camac function */
+      /*
+      ** Unlock and finish record processing
+      */
+      dbScanLock(reccom_p);
+      (*(reccom_p->rset->process))(reccom_p);
+      dbScanUnlock(reccom_p);
+
    }   /* End while (TRUE) */
+   printf ("Never get here!!\n");
 }   /* End threadPIOP */
 
 
@@ -196,8 +286,8 @@ void threadSBI (void * msgQId)
    STAT_DAT32 read_status_s, write_scan_s, read_scan_s;
    STAT_DAT16 read_status_only_s;   /* Just for periodic status read func SBISTS */
    PIOP_PVT *pvt_p;    /* Driver private struct */
-   dbCommon *reccom_p  /* Record pointer */
-   int first_init = 0;   /* must do init first time */
+   dbCommon *reccom_p; /* Record pointer */
+   int first_init = 0; /* must do init first time */
    /*----------------------------*/
    while (TRUE)
    {
@@ -206,7 +296,6 @@ void threadSBI (void * msgQId)
          errlogSevPrintf(errlogFatal,"SBI msgQ timeout status %d. Suspending...\n", msgQstat);
          epicsThreadSuspendSelf();
       }
- 
       reccom_p = msg_s.rec_p;   /* Record pointer for return to device support */
       pvt_p = (PIOP_PVT *)reccom_p->dpvt;   /* Local routines only know about driver private */
       /*************************************
@@ -223,7 +312,7 @@ void threadSBI (void * msgQId)
          if (SUCCESS(iss))
 	    iss = camalo(&nops, &stspkg_p);
 
-         unsigned long ploc = (msg_s.crate << CCTLW__C_shc) | (msg_s.slot << CCTLW__M_shc);
+         unsigned long ploc = (pvt_p->crate << CCTLW__C_shc) | (pvt_p->slot << CCTLW__M_shc);
 	 /*
 	 ** First the status only package
 	 */
@@ -270,32 +359,34 @@ void threadSBI (void * msgQId)
        ***************************************/ 
       switch (pvt_p->camfunc_e)
       {
-         case SBISTATUS:   /* Execute the SBI status package */
+         case SBIMSGPIOP:  /* Execute the PIOP MSG package that reads meg for all PIOPS */
          {
-            if (SUCCESS(iss = camgo (&stspkg_p)))
- 	    {
-               ppvt_p->val = read_status_only_s.data;
-#ifndef _X86_
-               ppvt_p->val = ppvt_p->val >> 16;
-#endif
-            }
-            ppvt_p->status = iss;
+  	    iss = camgo (&msgw_pkg_p);
+            pvt_p->status = iss;
             dbScanLock(reccom_p);
             (*(reccom_p->rset->process))(reccom_p);
             dbScanUnlock(reccom_p);
             break;
          }
-         case SBIMSG:  /* Execute the PIOP MSG package that reads meg for all PIOPS */
+         case SBISTATUS:   /* Execute the SBI status package */
          {
-  	    iss = camgo (&msgw_pkg_p);
-            ppvt_p->status = iss;
+            if (SUCCESS(iss = camgo (&stspkg_p)))
+ 	    {
+               unsigned short *us_p; /* To put data into void *val_p */
+	       us_p = pvt_p->val_p;
+               *us_p = read_status_only_s.data;
+#ifndef _X86_
+               *us_p = *us_p >> 16;
+#endif
+            }
+            pvt_p->status = iss;
             dbScanLock(reccom_p);
             (*(reccom_p->rset->process))(reccom_p);
             dbScanUnlock(reccom_p);
             break;
          }
          default:
-            errlogSevPrintf(errlogMinor, "Invalid function %d in threadSBI\n",msg_s.func_e);
+            errlogSevPrintf(errlogMinor, "Invalid function %d in threadSBI\n",pvt_p->camfunc_e);
       }
    }   /* End while (TRUE) */
 }      /* End threadSBI */

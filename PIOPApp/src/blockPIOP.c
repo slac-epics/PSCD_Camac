@@ -12,75 +12,196 @@
 #include <drvPIOP.h>
 
 /*
-** Length of the various PIOP blocks
-*/
-#define CBLK_LEN 32
-#define FTPB_LEN 134
-#define SBLK_LEN 64
-
-/*
 ** Construct the camac packages for the types of PIOP I/O we can do
 */
-vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblks_ps, unsigned short crate, unsigned short slot)
+vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblocks_ps, unsigned short crate, unsigned short slot)
 {
    vmsstat_t iss = KLYS_OKOK; /* Assume no error */
    unsigned short emaskf3c0 = 0xF3C0;  /* emask */
-   unsigned short bcntcblk = CBLK_LEN, /* control block byte count */
-                  bcntftpb = FTPB_LEN, /* FTP block byte count */
-                  bcntsblk = SBLK_LEN, /* Status block byte count */
-                  nops = 2,       /* Operations in each package */
-                  zero = 0;       /* A 0 by reference */
-   unsigned long ploc;           /* PIOP crate/slot location */
-   unsigned long ctlw;            /* Control word */ 
+   unsigned short bcntcblk = CBLK_LENB, /* control block byte count */
+                  bcntfblk = FBLK_LENB, /* FTP block byte count */
+                  bcntsblk = SBLK_LENB, /* Status block byte count */
+                  nops = 2,    /* Operations in each package */
+                  zero = 0;    /* A 0 by reference */
+   unsigned long ploc;         /* PIOP crate/slot location */
+   unsigned long ctlw;         /* Control word */ 
    /*-------------------------------------*/
 
    ploc  = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc);
    /****** Control Block *****/
-   if (!SUCCESS(iss = camalo(&nops, &(camblks_ps->cblk_pkg_p))))
+   if (!SUCCESS(iss = camalo(&nops, &(camblocks_ps->cblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F8 | CCTLW__F2 | CCTLW__F1 | CCTLW__A0;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat1), &zero, 
-                             &emaskf3c0, &(camblks_ps->cblk_pkg_p))))
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->stat32), &zero, 
+                             &emaskf3c0, &(camblocks_ps->cblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F16 | CCTLW__A0 | CCTLW__QM2 | CCTLW__XM2;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat2), &bcntcblk, 
-                             &emaskf3c0, &(camblks_ps->cblk_pkg_p)))) 
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->statdat), &bcntcblk, 
+                             &emaskf3c0, &(camblocks_ps->cblk_pkg_p)))) 
      goto egress;
    /******  FTP Block *****/
-   if (!SUCCESS(iss = camalo(&nops, &(camblks_ps->ftpb_pkg_p))))
+   if (!SUCCESS(iss = camalo(&nops, &(camblocks_ps->fblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F8 | CCTLW__F2 | CCTLW__F1 | CCTLW__A1;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat1), &zero, 
-                             &emaskf3c0, &(camblks_ps->ftpb_pkg_p))))
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->stat32), &zero, 
+                             &emaskf3c0, &(camblocks_ps->fblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F0 | CCTLW__A1 | CCTLW__QM2 | CCTLW__XM2;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat2), &bcntftpb, 
-                             &emaskf3c0, &(camblks_ps->ftpb_pkg_p)))) 
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->statdat), &bcntfblk, 
+                             &emaskf3c0, &(camblocks_ps->fblk_pkg_p)))) 
      goto egress;
    /****** Status Block *****/
-   if (!SUCCESS(iss = camalo(&nops, &(camblks_ps->sblk_pkg_p))))
+   if (!SUCCESS(iss = camalo(&nops, &(camblocks_ps->sblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F8 | CCTLW__F2 | CCTLW__F1 | CCTLW__A2;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat1), &zero, 
-                             &emaskf3c0, &(camblks_ps->sblk_pkg_p))))
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->stat32), &zero, 
+                             &emaskf3c0, &(camblocks_ps->sblk_pkg_p))))
       goto egress;
    ctlw = ploc | CCTLW__F0 | CCTLW__A2 | CCTLW__QM2 | CCTLW__XM2;
-   if (!SUCCESS(iss = camadd(&ctlw, &(camblks_ps->statdat2), &bcntsblk, 
-                             &emaskf3c0, &(camblks_ps->sblk_pkg_p)))) 
+   if (!SUCCESS(iss = camadd(&ctlw, &(camblocks_ps->statdat), &bcntsblk, 
+                             &emaskf3c0, &(camblocks_ps->sblk_pkg_p)))) 
      goto egress;
+   camblocks_ps->last_counter = 0;
 egress:
    return (iss);
 }
 
 /*
-** Send a control block with the requested function
+** Compute checksum for a block that's sent to the PIOP.
 */
-vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short func, char *dat_p)
+static void blockPIOPCksum (short *wdat_p, int wlen)
 {
-   vmsstat_t iss = KLYS_OKOK;
+   int i;
    /*-------------------------- code -------------------------*/
-   camblocks_ps->statdat2[2] = func;
-   memcpy (&(camblocks_ps->statdat2[3]), dat_p,  CBLK_LEN-2);
-   iss = camgo ( &(camblocks_ps->cblk_pkg_p));
+   wdat_p[wlen-1] = 0;
+   for (i=0; i<wlen-1; i++)
+      wdat_p[wlen-1] += wdat_p[i];
+   return;
+}
+
+/*
+** Send a control block with the requested function and data.
+*/
+vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short infunc, void *indat_p,
+                         int datalenb, int tries, float delay)
+{
+   vmsstat_t iss;
+   CAM_CBLK_TS *cam_cblk_ps = (CAM_CBLK_TS*) camblocks_ps->statdat;
+#ifndef _X86_
+   int            i;
+   unsigned short stemp;
+   unsigned short *short_p  = &(cam_cblk_ps->func); /* Pointer for word swap */
+#endif
+   /*-------------------------- code -------------------------*/
+   memset (cam_cblk_ps, 0, sizeof(CAM_CBLK_TS)); /* Clear the area */
+   cam_cblk_ps->func = infunc;
+   memcpy (&(cam_cblk_ps->dat), indat_p, datalenb);
+   blockPIOPCksum ( (short *) &(cam_cblk_ps->func), CBLK_LENW);
+#ifndef _X86_
+   /*
+   ** If big-endian, word swap the data.
+   */
+   for (i=0; i<CBLK_LENW/2; i++)
+   {
+      stemp = *short_p;
+      *short_p = *(short_p+1);
+      *(short_p+1) = stemp;
+      short_p += 2;
+   }
+#endif
+   do
+   {
+     if (!SUCCESS(iss = camgo (&(camblocks_ps->cblk_pkg_p))))
+        epicsThreadSleep(delay);
+   } while (!SUCCESS(iss) && (tries-- > 0));
    return (iss);
+}
+
+/*
+** Read the status block.
+*/
+vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
+                           int tries, float delay)
+{
+   vmsstat_t iss;
+   STS_BLK_TS *cam_sblk_ps = (STS_BLK_TS*) camblocks_ps->statdat;
+#ifndef _X86_
+   int            i;
+   unsigned short stemp;    /* For word swap */
+   unsigned short *short_p = &(cam_sblk_ps->sid); /* Pointer for word swap */
+#endif
+   /*-------------------------- code -------------------------*/
+   memset (cam_sblk_ps, 0, sizeof(STS_BLK_TS)); /* Clear the area */
+   do
+   {
+     if (!SUCCESS(iss = camgo (&(camblocks_ps->sblk_pkg_p))))
+        epicsThreadSleep(delay);
+   } while (!SUCCESS(iss) && (tries-- > 0));
+   if SUCCESS(iss)
+   {
+#ifndef _X86_
+      /*
+      ** Word swap the input
+      */
+      for (i=0; i<SBLK_LENW/2; i++)
+      {
+         stemp = *short_p;
+         *short_p = *(short_p+1);
+         *(short_p+1) = stemp;
+         short_p += 2;
+      }
+#endif
+      memcpy (outdat_p, &(cam_sblk_ps->sid), SBLK_LENB); /* Data to record */
+      /*
+      ** Make sure PIOP is still alive and incrementing its counter.
+      */
+      if (cam_sblk_ps->counter != camblocks_ps->last_counter)
+	camblocks_ps->last_counter = cam_sblk_ps->counter;  /* PIOP alive. Save last counter */
+      else
+      {
+	iss = KLYS_PIOP_DEAD;
+        camblocks_ps->last_counter = 0;
+      } 
+   }
+   return (iss);
+}
+
+/*
+** Read the FTP block.
+*/
+vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
+                           int tries, float delay)
+{
+   vmsstat_t iss;
+   FTP_CAMAC_TS *ftp_camac_ps = (FTP_CAMAC_TS*) camblocks_ps->statdat;
+
+#ifndef _X86_
+   int            i;
+   unsigned short stemp;    /* For word swap */
+   unsigned short *short_p = (unsigned short *) &(ftp_camac_ps->ftp_read_s);
+#endif
+   /*-------------------------- code -------------------------*/
+   do
+   {
+     if (!SUCCESS(iss = camgo (&(camblocks_ps->fblk_pkg_p))))
+        epicsThreadSleep(delay);
+   } while (!SUCCESS(iss) && (tries-- > 0));
+   if SUCCESS(iss)
+   {
+#ifndef _X86_
+      /*
+      ** Word swap the input
+      */
+      for (i=0; i<FBLK_LENW/2; i++)
+      {
+         stemp = *short_p;
+         *short_p = *(short_p+1);
+         *(short_p+1) = stemp;
+         short_p += 2;
+      }
+      *short_p = *(short_p+1);  /* Last odd word */
+#endif
+      memcpy (outdat_p, &(ftp_camac_ps->ftp_read_s), FBLK_LENB); /* Data to record */
+   }
+   return(iss);
 }

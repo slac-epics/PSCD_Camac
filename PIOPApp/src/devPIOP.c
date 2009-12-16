@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.3 2009/06/09 22:27:05 pengs Exp $
+ *   $Id: devPIOP.c,v 1.4 2009/11/02 08:09:01 pengs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -14,6 +14,7 @@
 
 #include <slc_macros.h>
 #include <devPIOP.h>    /* All other includes & PIOP definitions */
+#include <drvPIOP.h>    /* Temp for debugging!!! */
 
 /******************************************************************************************/
 /*********************      Externs defined in drvPIOP          ***************************/
@@ -35,13 +36,6 @@ extern epicsMessageQueueId sbi_msgQId;
 extern void *msgw_pkg_p;
 extern STAT_DAT16 Piop_Msgs_s[MAX_PIOPS];
 
-
-/******************************************************************************************/
-/********************* globals for this module's eyes only      ***************************/
-/******************************************************************************************/
-
-static char *wave_parms = {"PPNOFTP","PPFTP", "STATUSBLOCK", "PAD", "MK2", "NEWPHASE", "TRIMSLED", 
-                           "FOXHOME"}
 
 /******************************************************************************************/
 /***********************  local routine prototypes         ********************************/
@@ -86,12 +80,6 @@ static long Bi_read (struct biRecord *bir_p);
 static long Li_init (int); 
 static long Li_init_record (struct longinRecord *lir_p);
 static long Li_read (struct longinRecord *lir_p);
-
-/*
-** Local support routines
-*/
-
-static CAMFUNC_TE xlate_wf_parm (char *parm); 
 
 /******************************************************************************************/
 /*********************              implementation              ***************************/
@@ -145,6 +133,44 @@ DEV_SUP devMbiSBI = {6, NULL, Mbi_init, Mbi_init_record, NULL, Mbi_read, NULL};
 
 epicsExportAddress(dset, devMbiSBI);
 
+
+
+/***!!!! Debug routine. Called from record init
+ ** Fill waveforms with some dummy data !!!!!!*/
+void Dummy_WFdata(PIOP_PVT *pvt_p)
+{
+  /* Got these numbers from LI17 */
+  short paddata[14] = {0x6b62, 0x0121, 0x1006, 0x0002, 0xffeb, 0x098d, 0x0004,
+                       0x0066, 0x3599, 0x0012, 0x00e4, 0x2635, 0xb289, 0xfb6d};
+  short mk2data[14] = {0x4004, 0x0000, 0x0300, 0xfd34, 0x001b, 0x0143, 0x1800,
+                       0x022d, 0x0b0d, 0x0f63, 0x0000, 0x0000, 0x0000, 0x0000};
+  typedef struct {FTP_CBLK_TS cblk; FTP_INFO_TS info;} FTP_STATIC_TS;
+  FTP_STATIC_TS ftpstatic = { {2,7,8}, {100,3,0} };
+   /*---------- code ---------*/
+  switch (pvt_p->camfunc_e)
+  {
+     case PAD:
+     {
+        memcpy (pvt_p->val_p, paddata, sizeof(paddata));
+        break;
+     }
+     case MK2:
+     {
+        memcpy (pvt_p->val_p, mk2data, sizeof(mk2data));
+        break;
+     }
+     case FTP:
+     {
+        memcpy (pvt_p->val_p, &ftpstatic, sizeof(ftpstatic));
+
+     }
+     default:;
+  }
+  return;    
+}
+/*!!!!!!!!!!****/
+
+
 /*********************************************************
  *********** Stringout Record Support *******************
  ********************************************************/
@@ -175,7 +201,6 @@ static long So_init_record (struct stringoutRecord *sor_p)
    short slot  = cam_ps->n;
    char *parm_p= cam_ps->parm;  
    PIOP_PVT *pvt_p;
-   int status;
    /*------------------------------------------------*/
    /*************************
    ** First do error checking
@@ -227,7 +252,7 @@ static long So_init_record (struct stringoutRecord *sor_p)
    ** communication between record processing and the Camac thread.
    ** PIOPDriverInit sets crate, slot & inits status.
    */
-   PIOPDriverInit((dbCommon *)sor_p, *cam_ps, EPICS_RECTYPE_SO);
+   PIOPDriverInit((dbCommon *)sor_p, cam_ps, EPICS_RECTYPE_SO);
    pvt_p = (PIOP_PVT *)(sor_p->dpvt);
    pvt_p->camfunc_e = IPL;
    pvt_p->val_p = sor_p->val;
@@ -281,44 +306,50 @@ static long So_write (struct stringoutRecord *sor_p)
  *********** Waveform Record Support *********************
  ********************************************************/
 
-
 /*
-** Local routine to translate Waveform parm into a camac function CAMFUNC_TE
-**
-** Note that we explicitly check the length as FTP has other chars after the "FTP".
+** Local routine to translate Waveform parm into a camac function CAMFUNC_TE.
+** Explicitly check the length as FTP has other chars after the "FTP".
+** ftpidx_p is the FTP number if parm == FTP.
 */
-static struct ckparm_s
+typedef struct
 {
   char       *parm_p;
   int         lenparm;
   CAMFUNC_TE  func_e;
-} ckparm_as[] = { {"PPNOFTP",sizeof("PPNOFTP"),PPNOFTP},
-                  {"PPFTP",sizeof("PPFTP"),PPFTP},
-                  {"STATUSBLOCK",sizeof("STATUSBLOCK"),STATUSBLOCK},
+} CKPARM_S;
+
+static CKPARM_S ckparm_as[] = 
+                { {"PPN",sizeof("PPN"),PPNOFTP},
+                  {"PPF",sizeof("PPF"),PPFTP},
+                  {"STSB",sizeof("STSB"),STATUSBLOCK},
                   {"FTP",sizeof("FTP"),FTP},
                   {"PAD",sizeof("PAD"),PAD},
-                  {"MK2",sizeof("MK2"),MK2FTP},
-                  {"TRIMSLED",sizeof("TRIMDSLED"),TRIMSLEDP},
-                  {"FOXHOME",sizeof("FOXHOME"),FOXHOME} };
+                  {"MK2",sizeof("MK2"),MK2},
+                  {"SLED",sizeof("SLED"),TRIMSLED},
+                  {"FOX",sizeof("FOX"),FOXHOME}
+                };
 
-static CAMFUNC_TE xlate_wf_parm (char *inparm_p, short *outidx_p);
+static CAMFUNC_TE xlate_wf_parm (char *inparm_p, short *ftpidx_p)
 {
    int j;
-   CAMFUNC_TE camfunc_e = INVALID;
+   CAMFUNC_TE camfunc_e = INVALID; /* Assume error */
+   *ftpidx_p = MAX_FTP_IDX+1;      /* Set invalid */
    /*------------------------------------------------*/
-   for (j=0; j<(sizeof(ckparm_as)/sizeof(ckparm_s); j++) 
-      if (strncmp(ckparm_as[j].parm_p, inparm_p, ckparm_as[j].lenparm) == 0)
+   for (j=0; j<(sizeof(ckparm_as)/sizeof(CKPARM_S)); j++)
+   {
+      if (strncmp(ckparm_as[j].parm_p, inparm_p, ckparm_as[j].lenparm-1) == 0)
       {
-         camfunc_e = ckparm_as[j].func;
+         camfunc_e = ckparm_as[j].func_e;
          break;
       }
+   }
    /*
    ** If FTP, validate index.
    */
    if (camfunc_e == FTP)
    {
-      sprintf (&inparm_p[3], "%2.2u",*outidx_p);
-      if (*outidx_p > MAX_FTP_IDX)
+      sscanf (&inparm_p[3], "%hd", ftpidx_p);
+      if (*ftpidx_p > MAX_FTP_IDX)
          camfunc_e = INVALID;
    }
    return (camfunc_e);
@@ -343,7 +374,7 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    char *parm_p= cam_ps->parm;
    PIOP_PVT      *pvt_p;
    CAMFUNC_TE     camfunc_e;
-   short          ftpidx
+   short          ftpidx;
    /*------------------------------------------------*/
    if(wfr_p->inp.type!=CAMAC_IO)
    {
@@ -360,22 +391,22 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
       return(S_db_badField);
    }
    /*
-   ** Insure the PARM is one we know about.If ftp then we also need it's index. 
+   ** Insure the PARM is one we know about.If ftp also get its index. 
    */
    if ((camfunc_e = xlate_wf_parm(parm_p, &ftpidx)) == INVALID)
-   {   
+   {
       recGblRecordError(S_db_badField, (void *)wfr_p, 
                         "devWfPIOP Wf_init_record, invalid parameter");
       wfr_p->pact=TRUE;
       return (S_db_badField);
    }     
-   status = PIOPDriverInit((dbCommon *)wfr_p, *cam_ps, EPICS_RECTYPE_WF);
+   PIOPDriverInit((dbCommon *)wfr_p, cam_ps, EPICS_RECTYPE_WF);
    pvt_p = (PIOP_PVT *)(wfr_p->dpvt);
    pvt_p->camfunc_e = camfunc_e;
    pvt_p->ftpidx = ftpidx;
-   pvt_p->val_p = sor_p->val;
-egress:
-   return (retval);
+   pvt_p->val_p = wfr_p->bptr; /* Buffer pointer for waveform */
+   /** Test!!   Dummy_WFdata(pvt_p);   !!Temp fill waveform with dummy test data!! */
+   return (0);
 }
 
 /*
@@ -386,7 +417,6 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
    struct camacio *cam_ps = &(wfr_p->inp.value.camacio);
    short  crate = cam_ps->c;
    short  slot  = cam_ps->n;
-   char  *parm_p= cam_ps->parm; 
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(wfr_p->dpvt);
    int rtn = -1;        /* Assume bad */
@@ -442,8 +472,8 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
    struct camacio *cam_ps = &(mbir_p->inp.value.camacio);
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
+   char *parm_p= cam_ps->parm;
    PIOP_PVT *pvt_p;
-   int status;
    /*------------------------------------------------*/
    if(mbir_p->inp.type!=CAMAC_IO)
    {
@@ -481,10 +511,10 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
       epicsThreadMustCreate("threadSBI", epicsThreadPriorityMedium, 20480,
                             threadSBI, (void *)sbi_msgQId);
    }
-   status = PIOPDriverInit((dbCommon *)mbir_p, *cam_ps, EPICS_RECTYPE_MBBI);
+   PIOPDriverInit((dbCommon *)mbir_p, cam_ps, EPICS_RECTYPE_MBBI);
    pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
    pvt_p->camfunc_e = SBISTATUS;
-   pvt_p->val_p = mbir_p->val;
+   pvt_p->val_p = &(mbir_p->val);
    return (0);
 }
 
@@ -493,12 +523,10 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
 */
 static long Mbi_read (struct mbbiRecord *mbir_p)
 {
-   struct camacio *cam_ps = &(mbir_p->inp.value.camacio);
-   short  crate = cam_ps->c;
-   short  slot  = cam_ps->n;
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
-   int rtn = -1;        /* Assume bad */
+   int *mbival_p;  /* To retrieve value from dev pvt struct */
+   int rtn = -1;   /* Assume bad */
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
    /*
@@ -521,8 +549,9 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
    else
    { /* post-process */
       rtn = 0;     /* Always return good status */
-      mbir_p->val = pvt_p->val;   /* Get value from driver */
-      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      mbival_p = pvt_p->val_p;  /* Value ptr from pvt */
+      mbir_p->val = *mbival_p;  /* Get value from driver */
+      if (!SUCCESS(pvt_p->status))    /* Check for different error options?? */
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", mbir_p->name, 
@@ -555,7 +584,6 @@ static long Li_init_record (struct longinRecord *lir_p)
    unsigned long ctlw;
    unsigned short twobytes = 2;
    unsigned short emaskzero = 0;
-   long retval = 0;
    /*------------------------------------------------*/
 
    /**********************************
@@ -566,16 +594,14 @@ static long Li_init_record (struct longinRecord *lir_p)
       recGblRecordError(S_db_badField, (void *)lir_p, 
                          "devLiPIOP Li_init_record, not CAMAC");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
    {
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record, illegal crate or slot");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    /*
    ** Check if is "MSG" param.
@@ -585,8 +611,7 @@ static long Li_init_record (struct longinRecord *lir_p)
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record, illegal param name");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    msgidx = atoi(&parm_p[3]);      
    if (msgidx > MAX_PIOPS)
@@ -594,16 +619,14 @@ static long Li_init_record (struct longinRecord *lir_p)
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record MSG, bad PIOP number");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    if (Piop_Msgs_s[msgidx].stat != 0xFFFFFFFF)
    {
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record MSG, duplicate PIOP number");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    /*
    ** All params look OK. Add the packet pointing the stat/data to the specified index
@@ -615,11 +638,9 @@ static long Li_init_record (struct longinRecord *lir_p)
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record MSG, Camadd failure");
       lir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_noMemory);
    }
-egress:
-   return (retval);
+   return (0);
 }
 
 
@@ -660,9 +681,7 @@ static long Bi_init_record (struct biRecord *bir_p)
 {
    struct camacio *cam_ps = &(bir_p->inp.value.camacio);
    char *parm_p= cam_ps->parm;  
-   vmsstat_t iss = KLYS_OKOK;
-   pvt_p = *PIOP_PVT;
-   long retval = 0;
+   PIOP_PVT *pvt_p;
    /*------------------------------------------------*/
    /*************************
    ** Standard error checking
@@ -672,8 +691,7 @@ static long Bi_init_record (struct biRecord *bir_p)
       recGblRecordError(S_db_badField, (void *)bir_p, 
                          "devBiPIOP Bi_init_record, not CAMAC");
       bir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
    /*
    ** Check if is "MSG" param.
@@ -683,15 +701,13 @@ static long Bi_init_record (struct biRecord *bir_p)
       recGblRecordError(S_db_badField, (void *)bir_p, 
                         "devBiPIOP Bi_init_record, illegal param name");
       bir_p->pact=TRUE;
-      retval = S_db_badField;
-      goto egress;;
+      return (S_db_badField);
    }
-   iss = PIOPDriverInit((dbCommon *)bir_p, *cam_ps, EPICS_RECTYPE_BI);
+   PIOPDriverInit((dbCommon *)bir_p, cam_ps, EPICS_RECTYPE_BI);
    pvt_p = (PIOP_PVT *)(bir_p->dpvt);
    pvt_p->camfunc_e = SBIMSGPIOP;
-   pvt_p->val_p = sor_p->val;
-egress:
-   return (retval);
+   pvt_p->val_p = &(bir_p->val);
+   return (0);
 }
 
 /*
@@ -699,10 +715,6 @@ egress:
 */
 static long Bi_read (struct biRecord *bir_p)
 {
-   struct camacio *cam_ps = &(bir_p->inp.value.camacio);
-   short  crate = cam_ps->c;
-   short  slot  = cam_ps->n;
-   char  *parm_p= cam_ps->parm;
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(bir_p->dpvt);
    int rtn = -1;        /* Assume bad */
@@ -713,8 +725,8 @@ static long Bi_read (struct biRecord *bir_p)
    */
    if(!bir_p->pact)
    {  /* Pre-process */
-      /* 
-      /** This camac pkg reads the msg word for all PIOPS. Use the single 
+     /* 
+      ** This camac pkg reads the msg word for all PIOPS. Use the single 
       ** SBI thread so we don't have to use a specific PIOP thread.
       */
       msg_s.rec_p = (dbCommon *)bir_p;

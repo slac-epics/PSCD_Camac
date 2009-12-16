@@ -59,6 +59,7 @@
 #include <longinRecord.h>
 #include <waveformRecord.h>
 #include <mbbiRecord.h>
+#include <subRecord.h>
 
 /******************************************************************************************/
 /*********************       EPICS device support return        ***************************/
@@ -124,7 +125,6 @@ typedef enum {IPL, PPNOFTP, PPFTP, STATUSBLOCK, FTP, PAD, MK2, TRIMSLED, FOXHOME
 typedef struct
 {
   vmsstat_t     status;   /* Status returned from driver */
-  unsigned long val;      /* Simple value returned */
   short         crate;
   short         slot;
   void         *val_p;     /* Local record's val field */
@@ -152,6 +152,6 @@ void threadSBI  (void * msgQId);
 
 /* Record-specific driver init */
 
-int PIOPDriverInit (dbCommon *rec_p,  struct camacio *cam_ps, enum EPICS_RECTYPE rtyp);
+void PIOPDriverInit (dbCommon *rec_p,  struct camacio *cam_ps, enum EPICS_RECTYPE rtyp);
 
 #endif

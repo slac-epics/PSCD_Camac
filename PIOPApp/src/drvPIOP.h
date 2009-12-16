@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.1 2009/08/13 06:19:43 pengs Exp $
+ *   $Id: drvPIOP.h,v 1.2 2009/11/02 08:09:02 pengs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -40,52 +40,131 @@
 #define PIOP_CBLK_TRIMSLED      0x17
 #define PIOP_CBLK_NEWPHASE      0x18
 
-/*************************************************************************
-**
-** Carry over these struct and comments from the old code for reference.
-**
-** Structure piop_cblk_ppbitmap_ts of PIOP control block for transmitting
-** PP bitmap, like any other PIOP CBLK, cant be longer than 16 words. 
-** Func word must contain either PIOP_CBLK_FTBITMAP (for conditioning FTP
-** data) or PIOP_CBLK_TKBITMAP (for conditioning non-FTP (hsta_1beam) data
-** collection).
-**
-** Note on structure piop_base_ppbitmap_ts:  Member bitmapb covers exactly
-** all possible substitute beamcodes, which we assume to be 32-247, defined
-** by RGBM_SUBSPP_MIN and RGBM_SUBSPP in rgbm_defines.hc.  We also
-** assume N_BEAMS = 32.  Any element of base_pp having value 0 is ignored.
-** If base_pp[0] >= 32 then base_pp[1] and base_pp[2] are ignored.
-** If base_pp[0] = 32 then PIOP assumes all base beamcodes 1-31.
-** If base_pp[0] > 32 then PIOP assumes all base beamcodes 1-31 plus
-** beamcodes 0 and 248-255.  We dont have a way of specifying beamcode 0
-** alone.  Note length of piop_base_ppbitmap_ts = exactly 30 bytes.
 
-#define PPBITMAP_BASEPPS_MAXN  3            Max # of base beamcodes   
-                                            specifiable in ppbitmap cblk.
- typedef struct
- {   unsigned char  base_pp[PPBITMAP_BASEPPS_MAXN],
-                    bitmapb[30-PPBITMAP_BASEPPS_MAXN];
- } piop_base_ppbitmap_ts;
-
- typedef struct
- {   unsigned short        func;
-     piop_base_ppbitmap_ts strng;
- } piop_cblk_ppbitmap_ts;
-***********************************************************************/
-
-/*
+/*******************************************************************
 ** Structure containing Camac package pointers and stat/data for
 ** all of the PIOP control block operations. Each thread allocates
-** struct so that each thread gets it's own set of Camac packages.
-*/
+** the struct so that each thread gets it's own set of Camac packages.
+********************************************************************/
 
+/*
+** Length of the various PIOP blocks in bytes and words
+*/
+#define CBLK_LENB 32
+#define FBLK_LENB 134
+#define SBLK_LENB 64
+#define CBLK_LENW CBLK_LENB/2
+#define FBLK_LENW FBLK_LENB/2
+#define SBLK_LENW SBLK_LENB/2
+
+/*
+** Generic control block sent to PIOP
+** Note that the checksum goes after the last data word.
+** That data after the function is function dependent.
+*/
+typedef struct
+{
+   unsigned int   stat32;
+   unsigned short func;
+   unsigned short dat[CBLK_LENW-2];
+   unsigned short cksum;
+} CAM_CBLK_TS;
+
+
+/*
+** Status block received from PIOP
+*/
+typedef struct
+{
+   unsigned int   stat32;
+   unsigned short sid;
+   unsigned short padid;
+   unsigned short ts;
+   unsigned short swrd;
+   unsigned short spare1;
+   short          bvlt;
+   short          bcur;
+   short          amp_mean;
+   short          amp_jitter;
+   short          phase_mean;
+   short          phase_jitter;
+   short          mk2_phase;
+   unsigned short dsta[4];
+   unsigned short mksu_id;
+   unsigned short counter;
+   unsigned short spare14[14];
+} STS_BLK_TS;
+
+/*
+** FTP info sent in CBLK
+*/
+typedef struct
+{
+   unsigned short channel;
+   unsigned short start_delay_out;
+   unsigned short step_size_out;
+} FTP_CBLK_TS;
+
+/*
+** FTP info for beam PP map and tries
+*/
+typedef struct
+{
+   unsigned short ms_per_try;
+   unsigned short tries;
+   unsigned short pp;    /* 0=ANY 1=LCLS Beam */
+   unsigned short spare[7];
+} FTP_INFO_TS;
+
+/*
+** FTP data read (past tense)
+*/
+typedef struct
+{
+   unsigned short status_in;
+   unsigned short start_delay_in;
+   unsigned short step_size_in;
+   unsigned short dat[64];
+} FTP_READ_TS;
+
+/*
+** FTP Camac read struct.
+*/
+typedef struct
+{
+  unsigned int stat32;
+  FTP_READ_TS ftp_read_s;
+} FTP_CAMAC_TS;
+
+/*
+** Waveform block for PIOP. First struct is info to
+** set up the FTP in the CBLK. Second struct give PP map info
+** and delay/tries for the read.
+*/
+typedef struct
+{
+   FTP_CBLK_TS ftp_cblk_s;
+   FTP_INFO_TS ftp_info_s;
+   FTP_READ_TS ftp_read_s;
+} FTP_WAVE_TS;
+
+/*
+** All the camac packages we use. Since only one at a time can be active, all use
+** the same stat32 for those packets that don't xfer data and statdat for those
+** that do. We keep the last counter to insure that the PIOP hasn't died.
+*/ 
 typedef struct
 {
    void *cblk_pkg_p;    /* Control block package */
-   void *ftpb_pkg_p;    /* FTP block pakage */
+   void *fblk_pkg_p;    /* FTP block pakage */
    void *sblk_pkg_p;    /* Status block package */
-   unsigned short statdat1[2];
-   unsigned short statdat2[69];
+   unsigned int stat32;              /* Just status */
+  /**
+   ** Camac status + ftp or sblk data.
+   ** Nota bene!! we add an extra word in case of big-endian word swap.
+   */
+   unsigned short statdat[FBLK_LENW+3];
+   unsigned short last_counter;  /* Last counter from status block */
 }  CAMBLOCKS_TS;
 
 /*****************************************************************
@@ -94,14 +173,25 @@ typedef struct
  
 /* Init PIOP Camac packages for each PIOP thread */
 
-vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblks_ps, unsigned short crate, unsigned short slot);
-
-/* Write a PIOP control block */
-
-vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short func, char *dat_p);
+vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblocks_ps, unsigned short crate, unsigned short slot);
 
 /* Main routine to IPL a PIOP */
 
-void iplPIOPMain (PIOP_PVT *pvt_p,char *name, short crate, short slot);
+vmsstat_t iplPIOPMain (PIOP_PVT *pvt_p, short crate, short slot);
+
+/* Write a PIOP control block */
+
+vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short func, void *indat_p,
+                         int inlen, int tries, float delay);
+
+/* Read a PIOP status block */
+
+vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
+			 int tries, float delay);
+
+/* Read a PIOP FTP block */
+
+vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
+			 int tries, float delay);
 
 #endif
