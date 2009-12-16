@@ -16,17 +16,26 @@ record(stringout, "$(DEV):IMG:DWNLD") {
   field(OMSL, "supervisory")
   field(VAL, "$(IMAGENAME)")
   field(DTYP, "PIOP")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) @IPL")
-  field(FLNK, "$(DEV):PP:DWNLD.PROC")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @IPL")
+  field(FLNK, "$(DEV):PAD:UPDATE.PROC")
 }
 
-record(waveform, "$(DEV):PP:DWNLD") {
-  field(DESC, "PIOP PP Download")
+record(waveform, "$(DEV):PAD:UPDATE") {
+  field(DESC, "PIOP PAD Update")
   field(SCAN, "Passive")
+  field(NELM, "14")
+  field(FTVL, "SHORT")
   field(DTYP, "PIOP")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) @PPN")
-  field(NELM, "30")
-  field(FTVL, "CHAR")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @PAD")
+  field(FLNK, "$(DEV):MK2:UPDATE.PROC")
 }
 
 
+record(waveform, "$(DEV):MK2:UPDATE") {
+  field(DESC, "PIOP MK2 Update")
+  field(SCAN, "Passive")
+  field(NELM, "14")
+  field(FTVL, "SHORT")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @MK2")
+}
