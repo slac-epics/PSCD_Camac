@@ -24,7 +24,7 @@ record (mbbi, "$(DEV):STATUS") {
   field(SVSV,"NO_ALARM")
   field(EISV,"NO_ALARM")
   field(DTYP, "SBI")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) @STS")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @STS")
   field(PINI, "YES")
 }
 
