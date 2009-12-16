@@ -7,5 +7,7 @@ device(bi,        CAMAC_IO,devBiPIOP,"PIOP")
 device(mbbi,      CAMAC_IO,devMbiSBI,"SBI")
 
 driver(drvPIOP)
+function(msgPIOPinit)
+function(msgPIOPproc)
 #registrar(myRegistrar)
 #variable(myVariable)
