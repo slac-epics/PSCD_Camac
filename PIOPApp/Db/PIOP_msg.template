@@ -8,7 +8,7 @@ record(bi,     "$(IOC):PIOP:MSG:BI")  {
   field(DESC, "PIOP Msg Read")
   field(SCAN, "1 second")
   field(DTYP, "PIOP")
-  field(INP,  "#B0 C0 N0 @MSG")
+  field(INP,  "#B0 C0 N0 A0 F0 @MSG")
   field(FLNK, "$(IOC):PIOP:MSG:FAN.PROC")
 }
 record(fanout, "$(IOC):PIOP:MSG:FAN") {
@@ -21,13 +21,13 @@ record(longin, "$(DEV1):PIOP:MSG1") {
   field(DESC, "$(DEV1) PIOP Msg 1")
   field(SCAN, "Passive")
   field(DTYP, "PIOP")
-  field(INP,  "#B0 C$(CRATE1) N$(SLOT1) @MSG1")
+  field(INP,  "#B0 C$(CRATE1) N$(SLOT1) A0 F0 @MSG1")
   field(FLNK, "$(DEV1):PIOP_PROC:MSG1.INPA")
 }
 
 record(sub, "$(DEV1):PIOP_PROC:MSG1") {
   field(DESC, "$(DEV1) Process PIOP Msg")
   field(SCAN, "Passive")
-  field(INAM, "PIOP_msg_init")
-  field(SNAM, "PIOP_msg_proc")
+  field(INAM, "msgPIOPinit")
+  field(SNAM, "msgPIOPproc")
 }
