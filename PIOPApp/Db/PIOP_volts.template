@@ -1,0 +1,97 @@
+# Records required for a Phase FTP for a PIOP
+
+# A button to push
+record (bo, "$(DEV):VOLTS_Rqst") {
+  field(DESC, "Volts FTP request")
+  field(DTYP, "Soft Channel")
+  field(ZNAM, "No VOLTS in Progress")
+  field(ONAM, "VOLTS in Progress")
+  field(HIGH, "1.0")
+  field(FLNK, "$(DEV):VOLTS_WAVE.PROC")
+}
+
+record(waveform, "$(DEV):VOLTS_WAVE") {
+  field(DESC, "FTP Volts")
+  field(SCAN, "Passive")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @FTP20")
+  field(NELM, "67")
+  field(FTVL, "SHORT")
+  field(FLNK, "$(DEV):VOLTS_FAN.PROC")
+}
+
+record(fanout, "$(DEV):VOLTS_FAN") {
+  field(DESC, "PIOP Volts Fanout")
+  field(LNK1,"$(DEV):VOLTS_TIME")
+  field(LNK2,"$(DEV):VOLTS_PAD_GND_SA")
+  field(LNK3,"$(DEV):VOLTS_PAD_P15_SA")
+  field(LNK4,"$(DEV):VOLTS_PAD_N15_SA")
+}
+
+#VOLTS FTP waveform timestamp
+record(stringin, "$(DEV):VOLTS_TIME") {
+  field(DESC, "Volts Timestamp")
+  field(DTYP, "Soft Timestamp")
+  field(INP, "@%m/%d/%Y %H:%M:%S")
+}
+
+# Subarrays for the three PAD values
+ 
+record(subArray, "$(DEV):VOLTS_PAD_GND_SA") {
+  field(DESC, "$(DEV):Volts PAD ground")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):VOLTS_WAVE")
+  field(MALM, "67")
+  field(INDX, "3")
+  field(NELM, "1")
+}
+
+record(subArray, "$(DEV):VOLTS_PAD_P15_SA") {
+  field(DESC, "$(DEV):Volts PAD +15")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):VOLTS_WAVE")
+  field(MALM, "67")
+  field(INDX, "4")
+  field(NELM, "1")
+}
+
+record(subArray, "$(DEV):VOLTS_PAD_N15_SA") {
+  field(DESC, "$(DEV):Volts PAD -15")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):VOLTS_WAVE")
+  field(MALM, "67")
+  field(INDX, "5")
+  field(NELM, "1")
+}
+
+# Calc records to process the three PAD values
+
+record(calc, "$(DEV):VOLTS_PAD_GND_CALC") {
+  field(DESC, "$(DEV):Volts PAD Ground Calc")
+  field(SCAN, "Passive")
+  field(INPA, "$(DEV):VOLTS_PAD_GND_SA.VAL")
+  field(EGU,  "Volts")
+  field(CALC, "A * .002441406")
+}
+
+record(calc, "$(DEV):VOLTS_PAD_P15_CALC") {
+  field(DESC, "$(DEV):Volts PAD +15 Calc")
+  field(SCAN, "Passive")
+  field(INPA, "$(DEV):VOLTS_PAD_P15_SA.VAL")
+  field(EGU,  "Volts")
+  field(CALC, "A * .002441406")
+}
+
+record(calc, "$(DEV):VOLTS_PAD_N15_CALC") {
+  field(DESC, "$(DEV):Volts PAD -15 Calc")
+  field(SCAN, "Passive")
+  field(INPA, "$(DEV):VOLTS_PAD_N15_SA.VAL")
+  field(EGU,  "Volts")
+  field(CALC, "A * .002441406")
+}

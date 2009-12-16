@@ -1,0 +1,69 @@
+# Sample records required for PAD update to the PIOP
+
+# A button to push
+record (bo, "$(DEV):UPDT_Rqst") {
+  field(DESC, "PAD Update request")
+  field(DTYP, "Soft Channel")
+  field(ZNAM, "No PAD update in Progress")
+  field(ONAM, "PAD in Progress")
+  field(HIGH, "1.0")
+  field(FLNK, "$(DEV):PAD_UPDATE_GENSUB.PROC")
+}
+
+#AMP_JITTER Ai record. Linear conversion.
+
+record(ai, "$(DEV):AMP_JITTER_AI") {
+  field(DESC, "$(DEV):Amplitude jitter")
+  field(SCAN, "Passive")
+  field(DTYP, "Raw Soft Channel")
+  field(INP,  "0.2")
+  field(LINR, "LINEAR")
+  field(ESLO, "$(INV_AMP_CONSTANT)")
+  field(EGUL, "0.0")
+}
+
+#XXXX_DRIVE Ai and calc record to build the 2 bytes
+
+record(ai, "$(DEV):XXXX_DRIVE_AI") {
+  field(DESC, "$(DEV):Drive Request")
+  field(SCAN, "Passive")
+  field(DTYP, "Soft Channel")
+  field(INP,  "61.90476")
+  field(LINR, "LINEAR")
+  field(FLNK, "$(DEV):XXXX_DRIVE_CALC")
+}
+
+record(calc,  "$(DEV):XXXX_DRIVE_CALC") {
+  field(DESC, "$(DEV):Drive index and remainder")
+  field(SCAN, "Passive")
+  field(INPA, "$(DEV):XXXX_DRIVE_AI.VAL")
+  field(CALC, "A & 255 |<<8((FLOOR(A) - A) *255)")
+}
+
+record(sub, "$(DEV):PAD_UPDATE_GENSUB") {
+  field(DESC, "$(DEV):Collect PAD update parameters")
+  field(SCAN, "Passive")
+  field(SNAM, "UpdatePAD")
+  field(INPA, "$(DEV):AMP_JITTER_AI.VAL")
+  field(INPB, "$(DEV):XXXX_DRIVE_CALC.VAL")
+  field(INPL, "$(DEV):PAD_UPDATE_WAVE")
+  field(FLNK, "$(DEV):PAD_UPDATE_WAVE")
+}
+
+record(waveform, "$(DEV):PAD_UPDATE_WAVE") {
+  field(DESC, "PAD Update wavveform")
+  field(SCAN, "Passive")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @PAD")
+  field(NELM, "16")
+  field(FTVL, "SHORT")
+  field(FLNK, "$(DEV):PAD_UPDT_TIME.PROC")
+}
+
+#PAD update waveform timestamp
+record(stringin, "$(DEV):PAD_UPDT_TIME") {
+  field(DESC, "PAD update Timestamp")
+  field(DTYP, "Soft Timestamp")
+  field(INP, "@%m/%d/%Y %H:%M:%S")
+}
+

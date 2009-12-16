@@ -1,0 +1,56 @@
+# Records required for a Phase FTP for a PIOP
+
+# A button to push
+record (bo, "$(DEV):AMPLFTPNJ1_Rqst") {
+  field(DESC, "Phase FTP request")
+  field(DTYP, "Soft Channel")
+  field(ZNAM, "No FTP in Progress")
+  field(ONAM, "FTP in Progress")
+  field(HIGH, "1.0")
+  field(FLNK, "$(DEV):AMPLFTPNJ1RAW.PROC")
+}
+
+record(waveform, "$(DEV):AMPLFTPNJ1RAW") {
+  field(DESC, "FTP Phase Nornal Jitter BC 1")
+  field(SCAN, "Passive")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @FTP01")
+  field(NELM, "81")
+  field(FTVL, "SHORT")
+  field(FLNK, "$(DEV):AMPLFTPNJ1TS.PROC")
+}
+
+#RAW FTP waveform timestamp
+record(stringin, "$(DEV):AMPLFTPNJ1TS") {
+  field(DESC, "AMPLFTPNJ1 Timestamp")
+  field(DTYP, "Soft Timestamp")
+  field(INP, "@%m/%d/%Y %H:%M:%S")
+}
+
+# Subarray and mbbo for FTP status
+ 
+record(subArray, "$(DEV):AMPLFTPNJ1STAT") {
+  field(DESC, "$(DEV):AMPLFTPNJ1 Status ")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):AMPLFTPNJ1RAW")
+  field(INDX, "1")
+  field(NELM, "1")
+  field(FLNK, "$(DEV):AMPLFTPNJ1S")
+}
+
+record(mbbo, "$(DEV):AMPLFTPNJ1S") {
+  field(DESC, "AMPLFTPNJ1 Status")
+  field(ZRST, "Good")
+  field(ONST, "Phase Jitter")
+  field(TWST, "Phase Drift")
+  field(THST, "Amplitude Jitter")
+  field(FRST, "Amplitude Drift")
+  field(FVST, "Low RF")
+  field(SXST, "No Trigger")
+  field(SVST, "Mod Fault")
+  field(EIST, "Lost Accel")
+  field(VAL, "0")
+  field(PINI, "YES")
+} 

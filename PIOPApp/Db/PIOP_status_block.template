@@ -1,0 +1,60 @@
+# Records required to process the status block
+
+record(waveform, "$(DEV):STATUS:BLOCK") {
+  field(DESC, "PIOP PP Download")
+  field(SCAN, "Passive")
+  field(DTYP, "PIOP")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @STSB")
+  field(NELM, "32")
+  field(FTVL, "SHORT")
+  field(FLNK, "$(DEV):STATUS:FAN.PROC")
+}
+
+record(fanout, "$(DEV):STATUS:FAN") {
+  field(DESC, "Status Fanout 1")
+  field(LNK1,"$(DEV):STATUS:AMP_MEAN.PROC")
+  field(LNK2,"$(DEV):STATUS:AMP_JITTER.PROC")
+  field(LNK3,"$(DEV):STATUS:PHASE_MEAN.PROC")
+  field(LNK4,"$(DEV):STATUS:PHASE_JITTER.PROC")    
+  field(SELN, "4")
+}
+
+record(subArray, "$(DEV):STATUS:AMP_MEAN") {
+  field(DESC, "Status Amplitude Mean")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):STATUS:BLOCK")
+  field(INDX, "8")
+  field(NELM, "1")
+}
+
+record(subArray, "$(DEV):STATUS:AMP_JITTER") {
+  field(DESC, "Status Amplitude Jitter")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):STATUS:BLOCK")
+  field(INDX, "9")
+  field(NELM, "1")
+}
+
+record(subArray, "$(DEV):STATUS:PHASE_MEAN") {
+  field(DESC, "Status Phase Mean")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):STATUS:BLOCK")
+  field(INDX, "10")
+  field(NELM, "1")
+}
+
+record(subArray, "$(DEV):STATUS:PHASE_JITTER") {
+  field(DESC, "Status Phase Jitter")
+  field(SCAN, "Passive")
+  field(FTVL, "SHORT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "$(DEV):STATUS:BLOCK")
+  field(INDX, "11")
+  field(NELM, "1")
+}
