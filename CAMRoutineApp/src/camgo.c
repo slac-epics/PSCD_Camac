@@ -406,18 +406,15 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
          /* codes to be logged and error code to be returned. */
 
          if (mbcd_stat != 0)
-            eflag = ((mbcd_stat >>16) ^ 0x1F) & 0x3F;
+            eflag = (((mbcd_stat >>16) ^ 0x1F) & 0x3F) | mbcd_stat >> 8;
          else           /* S/W timeout */
              eflag = 0x40;
 
          /* Low byte of emask conditions err_send's done here.  High byte */
          /* of emask conditions the code returned to caller.  Caller will */
          /* get first bad error code seen, or ok.                         */
-#ifdef _X86_
+
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask)))
-#else
-         if (!SUCCESS(issx = cam_get_errcod(eflag & (savep_p[jp].emask << 8))))
-#endif
          {
              parmdw[0] = (mbcd_pkt_p[jp].cctlw & CCTLW__C) >> CCTLW__C_shc;
              parmdw[1] = (mbcd_pkt_p[jp].cctlw & CCTLW__M) >> CCTLW__M_shc;
@@ -463,13 +460,8 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
              }
 
          }
-#ifdef __X86  
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask >> 8))  &&
              SUCCESS(iss))
-#else
-         if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask))  &&
-             SUCCESS(iss))
-#endif
          {
              iss = issx;
          }
