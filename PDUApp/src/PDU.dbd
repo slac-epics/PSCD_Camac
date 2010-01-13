@@ -1,4 +1,4 @@
 # provide definitions such as
 variable(PDU_F19_DEBUG)
-variable(PDU_F19_ENABLE)
+variable(PDU_F19_CRATE)
 driver(drvPDU)
