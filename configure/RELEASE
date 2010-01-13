@@ -7,6 +7,10 @@
 # "gnumake clean uninstall install" in the top directory
 # each time EPICS_BASE, SNCSEQ, or any other external
 # module defined in the RELEASE file is rebuilt.
+# This is where EPICS lives at your site.
+include $(TOP)/RELEASE_SITE
+
+EPICS_MODULES=$(EPICS_SITE_TOP)/modules
 
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
@@ -16,10 +20,16 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 #If using the sequencer, point SNCSEQ at its top directory:
 #SNCSEQ=$(EPICS_BASE)/../modules/soft/seq
+EVENT_MODULE_VERSION=event-R3-0-0
+MISCUTILS_MODULE_VERSION=miscUtils-R2-0-0
+
+EVENT=$(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
+MISCUTILS=$(EPICS_MODULES)/miscUtils/$(MISCUTILS_MODULE_VERSION)
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/afs/slac/g/lcls/epics/base/base-R3-14-8-2-lcls2
+EPICS_BASE=/afs/slac/g/lcls/epics/base/base-R3-14-8-2-lcls3
 
 #Capfast users may need the following definitions
 #CAPFAST_TEMPLATES=
 #SCH2EDIF_PATH=
+
