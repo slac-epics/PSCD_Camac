@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.2 2009/11/02 08:09:02 pengs Exp $
+ *   $Id: drvPIOP.h,v 1.3 2009/12/16 19:15:29 rcs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -100,9 +100,9 @@ typedef struct
 */
 typedef struct
 {
-   unsigned short channel;
-   unsigned short start_delay_out;
-   unsigned short step_size_out;
+   short channel;
+   short start_delay_out;
+   short step_size_out;
 } FTP_CBLK_TS;
 
 /*
@@ -110,10 +110,10 @@ typedef struct
 */
 typedef struct
 {
-   unsigned short ms_per_try;
-   unsigned short tries;
-   unsigned short pp;    /* 0=ANY 1=LCLS Beam */
-   unsigned short spare[7];
+   short ms_per_try;
+   short tries;
+   short pp;    /* 0=ANY 1=LCLS Beam */
+   short spare[7];
 } FTP_INFO_TS;
 
 /*
@@ -121,10 +121,10 @@ typedef struct
 */
 typedef struct
 {
-   unsigned short status_in;
-   unsigned short start_delay_in;
-   unsigned short step_size_in;
-   unsigned short dat[64];
+   short status_in;
+   short start_delay_in;
+   short step_size_in;
+   short dat[64];
 } FTP_READ_TS;
 
 /*
