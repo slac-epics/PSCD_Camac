@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.3 2009/11/02 08:09:02 pengs Exp $
+ *   $Id: drvPIOP.c,v 1.4 2009/12/16 19:15:29 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -155,17 +155,22 @@ void threadPIOP (void * msgQId)
       switch (pvt_p->camfunc_e)
       {
          case IPL:
-         {    
+         {
 	    iss = iplPIOPMain (pvt_p, pvt_p->crate, pvt_p->slot);
             if (SUCCESS(iss))
+	    {
                iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
 			            &beam_noftp, CBLK_LENB-4, 2, 0.01 );
-            epicsThreadSleep(.05);
+               epicsThreadSleep(.05);
+	    }
             if (SUCCESS(iss))
+            {
                iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
 			            &beam_one, CBLK_LENB-4, 2, 0.01 );
-            epicsThreadSleep(.05);
-	    beam_loaded = 1;
+               epicsThreadSleep(.05);
+	    }
+            if (SUCCESS(iss))
+	       beam_loaded = 1;
             pvt_p->status = iss;
             break;
          }
