@@ -62,35 +62,51 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   unsigned short stemp;    /* For word swap */
   unsigned short *short_p; /* Pointer for word swap */
 #endif       
-  int bytes_read;      /* Total bytes read */
+  int bytes_read;        /* Total bytes read */
   vmsstat_t iss = KLYS_OKOK;  /* Assume no error */
-  char *fullpath_p;    /* Full path including env var PIOP_PATH */
+  char *envpath_p;  /* Path of file from env var */
+  char *fullpath_p; /* Full path including env var PIOP_PATH */
   /*-------------------------------------*/
   if (ImagePIOP_p != NULL)    /* If already loaded then just exit with success */
     goto egress;
-  if ( (fullpath_p = getenv("PIOP_PATH")) == NULL)
+  if ( (envpath_p = getenv("PIOP_PATH")) == NULL)
   {
     errlogSevPrintf (errlogMajor, 
                      "iplPIOPRead - Missing environment variable PIOP_PATH; no PIOP image\n");
     iss = KLYS_IPLNOIMG;
     goto egress;
   }
-  fullpath_p = strcat(fullpath_p,img_name_p);
+  /*
+  ** Machinations to build the full file path to the image file.
+  */
+  if ((fullpath_p = calloc (1, strlen(envpath_p) + strlen(img_name_p) + 1)) == NULL)
+  {
+    errlogSevPrintf (errlogMajor, 
+		     "iplPIOPRead - Cannot calloc image full pathname string\n");
+    iss = KLYS_IPLFNF;
+    goto egress;
+  }
+  memcpy (fullpath_p, envpath_p, strlen(envpath_p));
+  strcat(fullpath_p,img_name_p);
   if ((piop_f = fopen (fullpath_p, "r")) == NULL)
   {
     errlogSevPrintf (errlogMajor, 
                     "iplPIOPRead - Error opening PIOP image file %s with error %s\n",
                     fullpath_p, strerror(errno));
     iss = KLYS_IPLFNF;
+    free (fullpath_p);
     goto egress;
   }
+  free (fullpath_p);
   if ((ImagePIOP_p = calloc (1, IMG_MAX_SIZE)) == NULL)
   {
     errlogSevPrintf (errlogMajor, "iplPIOPRead - Cannot calloc for PIOP image.\n");
     iss = KLYS_IPLNOIMG;
-    goto egress;
+    goto egress_close;
   }
-
+  /*
+  ** We're at last ready to read in the PIOP image file.
+  */
   while (!feof (piop_f))
   {
     /*
@@ -119,7 +135,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
       iss = KLYS_IPLNOEND;
-      goto egress;
+      goto egress_close;
     }
     if ((bytes_read = fread (&ImagePIOP_p[idx], 1, rlen_u.rlen, piop_f)) != rlen_u.rlen)
     {
@@ -128,7 +144,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
       iss = KLYS_IPLFBAD;
-      goto egress;
+      goto egress_close;
     }
 #ifndef _X86_
     /*
@@ -166,8 +182,9 @@ swapbuf:
      }
   }
 #endif
-egress:
+egress_close:
   fclose (piop_f);
+egress:
   return (iss);
 }
 
@@ -188,8 +205,7 @@ static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
   int      block;               /* FTP/CTL block we're processing */
   int4u   statmsk = 0x007FBFFF; /* To check Camac status */
   int2u emaskf2e0 = 0xF2E0,     /* Various emasks */
-        emaskf3e0 = 0xF3E0,
-        emaske6e0 = 0xE6E0;
+        emaskf3e0 = 0xF3E0;
   unsigned short bcnt = 0,      /* running byte count and #ops in pkg */
                  nops = 2,      /* Operations in our package */
                  zero = 0;      /* Pass 0 bcnt */
@@ -269,7 +285,7 @@ static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
      statdat4_p = (unsigned int*) statdat2_p;   /* Actual stat/dat as int4u */
      if(!SUCCESS(iss = camadd(&ctlwa,&ctlstat4,&zero,&emaskf3e0,&pkg_p)))
         goto egress;
-     if(!SUCCESS(iss = camadd(&ctlwb, statdat4_p, &bcnt, &emaske6e0,&pkg_p)))
+     if(!SUCCESS(iss = camadd(&ctlwb, statdat4_p, &bcnt, &emaskf3e0,&pkg_p)))
         goto egress;
      if(!SUCCESS(iss = camgo(&pkg_p)))
         goto egress;
@@ -290,7 +306,6 @@ static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
         break;
      if (!SUCCESS(iss = camalo_reset(&pkg_p)))
         goto egress;
-
      epicsThreadSleep(0.02);
   }  /* End of loop to download the image */
   /*
