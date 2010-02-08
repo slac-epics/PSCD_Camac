@@ -199,9 +199,8 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
          *(short_p+1) = stemp;
          short_p += 2;
       }
-      *short_p = *(short_p+1);  /* Last odd word */
 #endif
-      memcpy (outdat_p, &(ftp_camac_ps->ftp_read_s), FBLK_LENB); /* Data to record */
+      memcpy (outdat_p, &(ftp_camac_ps->ftp_read_s), sizeof(FTP_READ_TS)); /* Data to record */
    }
    return(iss);
 }
