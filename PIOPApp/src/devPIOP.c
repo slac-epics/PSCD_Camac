@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.4 2009/11/02 08:09:01 pengs Exp $
+ *   $Id: devPIOP.c,v 1.5 2009/12/16 19:14:34 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -140,12 +140,12 @@ epicsExportAddress(dset, devMbiSBI);
 void Dummy_WFdata(PIOP_PVT *pvt_p)
 {
   /* Got these numbers from LI17 */
-  short paddata[14] = {0x6b62, 0x0121, 0x1006, 0x0002, 0xffeb, 0x098d, 0x0004,
-                       0x0066, 0x3599, 0x0012, 0x00e4, 0x2635, 0xb289, 0xfb6d};
-  short mk2data[14] = {0x4004, 0x0000, 0x0300, 0xfd34, 0x001b, 0x0143, 0x1800,
-                       0x022d, 0x0b0d, 0x0f63, 0x0000, 0x0000, 0x0000, 0x0000};
+  short paddata[14] = {0x1936, 0x0121, 0x0903, 0x0002, 0xffee, 0x0000, 0x00cd,
+                       0x00cd, 0x2d51, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
+  short mk2data[14] = {0x4004, 0x0000, 0x0300, 0xfd04, 0x00b2, 0x00d2, 0x17ae,
+                       0x023d, 0x0c5a, 0x1737, 0x0000, 0x0000, 0x0000, 0x0000};
   typedef struct {FTP_CBLK_TS cblk; FTP_INFO_TS info;} FTP_STATIC_TS;
-  FTP_STATIC_TS ftpstatic = { {2,7,8}, {100,3,0} };
+  /*FTP_STATIC_TS ftpstatic = { {2,7,8}, {100,3,0} };*/
    /*---------- code ---------*/
   switch (pvt_p->camfunc_e)
   {
@@ -161,7 +161,7 @@ void Dummy_WFdata(PIOP_PVT *pvt_p)
      }
      case FTP:
      {
-        memcpy (pvt_p->val_p, &ftpstatic, sizeof(ftpstatic));
+       /* memcpy (pvt_p->val_p, &ftpstatic, sizeof(ftpstatic));*/
 
      }
      default:;
@@ -308,49 +308,36 @@ static long So_write (struct stringoutRecord *sor_p)
 
 /*
 ** Local routine to translate Waveform parm into a camac function CAMFUNC_TE.
-** Explicitly check the length as FTP has other chars after the "FTP".
-** ftpidx_p is the FTP number if parm == FTP.
 */
 typedef struct
 {
   char       *parm_p;
-  int         lenparm;
   CAMFUNC_TE  func_e;
 } CKPARM_S;
 
 static CKPARM_S ckparm_as[] = 
-                { {"PPN",sizeof("PPN"),PPNOFTP},
-                  {"PPF",sizeof("PPF"),PPFTP},
-                  {"STSB",sizeof("STSB"),STATUSBLOCK},
-                  {"FTP",sizeof("FTP"),FTP},
-                  {"PAD",sizeof("PAD"),PAD},
-                  {"MK2",sizeof("MK2"),MK2},
-                  {"SLED",sizeof("SLED"),TRIMSLED},
-                  {"FOX",sizeof("FOX"),FOXHOME}
+                { {"PPN",PPNOFTP},
+                  {"PPF",PPFTP},
+                  {"STSB",STATUSBLOCK},
+                  {"FTP",FTP},
+                  {"PAD",PAD},
+                  {"MK2",MK2},
+                  {"SLED",TRIMSLED},
+                  {"FOX",FOXHOME}
                 };
 
-static CAMFUNC_TE xlate_wf_parm (char *inparm_p, short *ftpidx_p)
+static CAMFUNC_TE xlate_wf_parm (char *inparm_p)
 {
    int j;
    CAMFUNC_TE camfunc_e = INVALID; /* Assume error */
-   *ftpidx_p = MAX_FTP_IDX+1;      /* Set invalid */
    /*------------------------------------------------*/
    for (j=0; j<(sizeof(ckparm_as)/sizeof(CKPARM_S)); j++)
    {
-      if (strncmp(ckparm_as[j].parm_p, inparm_p, ckparm_as[j].lenparm-1) == 0)
+      if (strcmp(ckparm_as[j].parm_p, inparm_p) == 0)
       {
          camfunc_e = ckparm_as[j].func_e;
          break;
       }
-   }
-   /*
-   ** If FTP, validate index.
-   */
-   if (camfunc_e == FTP)
-   {
-      sscanf (&inparm_p[3], "%hd", ftpidx_p);
-      if (*ftpidx_p > MAX_FTP_IDX)
-         camfunc_e = INVALID;
    }
    return (camfunc_e);
 }
@@ -393,7 +380,7 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    /*
    ** Insure the PARM is one we know about.If ftp also get its index. 
    */
-   if ((camfunc_e = xlate_wf_parm(parm_p, &ftpidx)) == INVALID)
+   if ((camfunc_e = xlate_wf_parm(parm_p)) == INVALID)
    {
       recGblRecordError(S_db_badField, (void *)wfr_p, 
                         "devWfPIOP Wf_init_record, invalid parameter");
@@ -405,7 +392,7 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    pvt_p->camfunc_e = camfunc_e;
    pvt_p->ftpidx = ftpidx;
    pvt_p->val_p = wfr_p->bptr; /* Buffer pointer for waveform */
-   /** Test!!   Dummy_WFdata(pvt_p);   !!Temp fill waveform with dummy test data!! */
+   Dummy_WFdata(pvt_p); /* !!Temp fill waveform with dummy test data!! */
    return (0);
 }
 
