@@ -181,6 +181,7 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    unsigned short *short_p = (unsigned short *) &(ftp_camac_ps->ftp_read_s);
 #endif
    /*-------------------------- code -------------------------*/
+   epicsThreadSleep(delay); /* Delay before first read attempt */
    do
    {
      if (!SUCCESS(iss = camgo (&(camblocks_ps->fblk_pkg_p))))
