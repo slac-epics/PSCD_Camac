@@ -129,7 +129,6 @@ typedef struct
   short         slot;
   void         *val_p;     /* Local record's val field */
   CAMFUNC_TE    camfunc_e; /* Camac function */
-  short         ftpidx;    /* For FTP func, index of FTP to execute */
 } PIOP_PVT;
 
 /*
