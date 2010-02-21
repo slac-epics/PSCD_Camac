@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.5 2009/12/16 19:14:34 rcs Exp $
+ *   $Id: devPIOP.c,v 1.6 2010/02/08 19:29:28 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -140,10 +140,10 @@ epicsExportAddress(dset, devMbiSBI);
 void Dummy_WFdata(PIOP_PVT *pvt_p)
 {
   /* Got these numbers from LI17 */
-  short paddata[14] = {0x1936, 0x0121, 0x0903, 0x0002, 0xffee, 0x0000, 0x00cd,
-                       0x00cd, 0x2d51, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
-  short mk2data[14] = {0x4004, 0x0000, 0x0300, 0xfd04, 0x00b2, 0x00d2, 0x17ae,
-                       0x023d, 0x0c5a, 0x1737, 0x0000, 0x0000, 0x0000, 0x0000};
+  short paddata[14] = {0x3e6d, 0x0121, 0x0903, 0x0002, 0xffee, 0x0000, 0x00cd,
+                       0x00cd, 0x30d5, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
+  short mk2data[14] = {0x0040, 0x4004, 0x0000, 0x0300, 0xfd04, 0x00b2, 0x00d2, 
+                       0x17ae, 0x023d, 0x0c5a, 0x1737, 0x0000, 0x0000, 0x0000};
   typedef struct {FTP_CBLK_TS cblk; FTP_INFO_TS info;} FTP_STATIC_TS;
   /*FTP_STATIC_TS ftpstatic = { {2,7,8}, {100,3,0} };*/
    /*---------- code ---------*/
@@ -361,7 +361,6 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    char *parm_p= cam_ps->parm;
    PIOP_PVT      *pvt_p;
    CAMFUNC_TE     camfunc_e;
-   short          ftpidx;
    /*------------------------------------------------*/
    if(wfr_p->inp.type!=CAMAC_IO)
    {
@@ -390,7 +389,6 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    PIOPDriverInit((dbCommon *)wfr_p, cam_ps, EPICS_RECTYPE_WF);
    pvt_p = (PIOP_PVT *)(wfr_p->dpvt);
    pvt_p->camfunc_e = camfunc_e;
-   pvt_p->ftpidx = ftpidx;
    pvt_p->val_p = wfr_p->bptr; /* Buffer pointer for waveform */
    Dummy_WFdata(pvt_p); /* !!Temp fill waveform with dummy test data!! */
    return (0);
@@ -434,6 +432,10 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
          recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
                       (unsigned int)pvt_p->status);
+      }
+      else
+      {
+         wfr_p->nord = wfr_p->nelm;
       }
    }   /* post-process */
    return (rtn);
