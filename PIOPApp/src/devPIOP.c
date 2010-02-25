@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.6 2010/02/08 19:29:28 rcs Exp $
+ *   $Id: devPIOP.c,v 1.7 2010/02/21 00:26:06 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -132,8 +132,6 @@ epicsExportAddress(dset, devBiPIOP);
 DEV_SUP devMbiSBI = {6, NULL, Mbi_init, Mbi_init_record, NULL, Mbi_read, NULL};
 
 epicsExportAddress(dset, devMbiSBI);
-
-
 
 /***!!!! Debug routine. Called from record init
  ** Fill waveforms with some dummy data !!!!!!*/
@@ -418,7 +416,7 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
          recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Wf_read_write Thread Error [%s]", wfr_p->name);
       }
-      else
+      else 
       {
          wfr_p->pact = TRUE;
          rtn = 0;     /* Return OK */
@@ -433,7 +431,7 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
                       (unsigned int)pvt_p->status);
       }
-      else
+      else if (pvt_p->camfunc_e == STATUSBLOCK)
       {
          wfr_p->nord = wfr_p->nelm;
       }
@@ -485,21 +483,6 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
       mbir_p->pact=TRUE;
       return (S_db_badField);
   }
-   /*
-   ** Create SBI thread if not already done
-   */   
-   if (sbi_msgQId == NULL)
-   {
-      if ((sbi_msgQId = epicsMessageQueueCreate (10,sizeof(THREADMSG_TS))) == NULL)
-      {
-         recGblRecordError(S_db_noMemory, (void *)mbir_p, 
-                        "devMbiSBI Mbi_init_record, can't create MessageQueue");
-            mbir_p->pact=TRUE;
-            return (S_db_noMemory);
-      }
-      epicsThreadMustCreate("threadSBI", epicsThreadPriorityMedium, 20480,
-                            threadSBI, (void *)sbi_msgQId);
-   }
    PIOPDriverInit((dbCommon *)mbir_p, cam_ps, EPICS_RECTYPE_MBBI);
    pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
    pvt_p->camfunc_e = SBISTATUS;
@@ -647,10 +630,7 @@ static long Li_read (struct longinRecord *lir_p)
    ** Move the data from the Camac buffer to the record val.
    */
    msgidx = atoi(&parm_p[3]);
-   lir_p->val = Piop_Msgs_s[msgidx].data;      
-#ifndef _X86_
-   lir_p->val = lir_p->val >> 16; /* Msg code to lower 16 bits of long word */
-#endif
+   lir_p->val = Piop_Msgs_s[msgidx].data;
    return (rtn);
 }
 
