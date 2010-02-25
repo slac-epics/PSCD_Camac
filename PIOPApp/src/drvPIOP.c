@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.4 2009/12/16 19:15:29 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.5 2010/02/08 21:48:56 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -73,7 +73,18 @@ static long PIOP_EPICS_Init()
    for (c=0; c<MAX_CRATES; c++)
       for (s=0; s<MAX_SLOTS; s++) 
          piop_msgQId[c][s] = NULL;
-   sbi_msgQId = NULL;
+   /*
+   ** Create the SBI msgQ
+   */
+   if ((sbi_msgQId = epicsMessageQueueCreate (10,sizeof(THREADMSG_TS))) == NULL)
+   {
+      errlogSevPrintf(errlogFatal,
+         "Failed to create SBI message queue. Don't expect much success from here on.\n");
+      goto egress;
+   }
+   epicsThreadMustCreate("threadSBI", epicsThreadPriorityMedium, 20480,
+                          threadSBI, (void *)sbi_msgQId);
+egress:
    return 0;
 }
 
@@ -116,7 +127,7 @@ void threadPIOP (void * msgQId)
    int first_init = 0; /* Must do init first time */
    unsigned short beam_any[CBLK_LENW-2] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,0xFFFF, 
                           0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
-   unsigned short beam_one[CBLK_LENW-2] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,2 };
+   unsigned short beam_one[CBLK_LENW-2] =  { 0,0,0,0,0,0,0,0,0,0,0,0,0,2 };
    unsigned short beam_noftp [CBLK_LENW-2] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
    unsigned short beam_loaded = 99;  /* 0=ANY 1=LCLS Beam. Force reload */
    FTP_WAVE_TS *ftp_wave_ps;
@@ -364,7 +375,7 @@ void threadSBI (void * msgQId)
        ***************************************/ 
       switch (pvt_p->camfunc_e)
       {
-         case SBIMSGPIOP:  /* Execute the PIOP MSG package that reads meg for all PIOPS */
+         case SBIMSGPIOP:  /* Execute the PIOP MSG package that reads msg for all PIOPS */
          {
   	    iss = camgo (&msgw_pkg_p);
             pvt_p->status = iss;
