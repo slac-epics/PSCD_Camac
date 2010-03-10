@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDU.h,v 1.3 2009/11/02 04:40:03 pengs Exp $
+ *   $Id: devPDU.h,v 1.1 2010/01/13 05:58:29 pengs Exp $
  *   File:		devPDU.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -56,6 +56,7 @@
 #endif
 
 #include "genType.h"
+
 #include "drvPSCDLib.h"
 
 #ifdef __cplusplus
@@ -110,6 +111,7 @@ typedef enum {
     PDU_MBBOD_PULSE
 } PDUFUNC;
 
+/*********
 static struct PARAM_MAP
 {
     char param[MAX_FUNC_STRING_LEN];
@@ -124,7 +126,9 @@ static struct PARAM_MAP
     {"PULSE_SELECT",	EPICS_RECTYPE_MBBOD, PDU_MBBOD_PULSE_SELECT},
     {"PULSE",		EPICS_RECTYPE_MBBOD, PDU_MBBOD_PULSE}
 };
+
 #define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
+*****************/
 
 typedef struct PDU_REQUEST
 {
