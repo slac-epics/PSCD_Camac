@@ -10,7 +10,10 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------------------
 # Create and install (or just install) into <top>/db
 # databases, templates, substitutions like this
-#DB += xxx.db
+DB += PDUII_Module.template
+DB += PDUII_Channel.template
+DB += PDUII_Rule.template
+DB += PDUII_PTT.template
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
