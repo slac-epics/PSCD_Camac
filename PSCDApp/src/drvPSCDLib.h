@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* $Id: drvPSCDLib.h,v 1.3 2009/03/08 01:44:16 pengs Exp $           */
+/* $Id: drvPSCDLib.h,v 1.4 2009/08/13 06:15:45 pengs Exp $           */
 /* This file defines the internal hw/sw struct of PSCD module        */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847         */
 /*********************************************************************/
@@ -57,6 +57,8 @@ typedef struct PSCD_CARD
     UINT32		fwDate;
     UINT32		fwID;
 
+    UINT32		portMap[2];
+
     UINT32 *		sio_p[3];	/* for SIO, 0 is the highest priority */
     UINT32 *		tdv_p[3];	/* for TDV, 0 is the highest priority */
     unsigned char *	sram_p;
@@ -72,6 +74,7 @@ typedef struct PSCD_CARD * PSCD_ID;
 
 int pscdCreate(unsigned int portMap0, unsigned int portMap1);
 int isModuleExsit(short b, short c, short n);
+int branchOfCrate(unsigned short c);
 
 #define MEMPARTADRS_TO_SIO(addr)        ((int)((char *)(addr)-(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)-0x100000))
 #define SIO_TO_MEMPARTADRS(addr)        ((int)((char *)(addr)+(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr)+0x100000))

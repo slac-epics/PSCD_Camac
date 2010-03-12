@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.5 2009/04/09 23:47:26 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.6 2009/08/13 06:15:45 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -82,7 +82,9 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
 
     /* Init Port Mapping */
     PSCD_SETREG(PSCD_PMAP0_OFFSET, portMap0);
+    pscd_card.portMap[0]=portMap0;
     PSCD_SETREG(PSCD_PMAP1_OFFSET, portMap1);
+    pscd_card.portMap[1]=portMap1;
 
     /* assign sio_p, tdv_p and sram_p */
     pscd_card.sio_p[0] = (UINT32 *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_SIO0_OFFSET & 0x0FFFFFFF));
@@ -201,36 +203,6 @@ static void pscdIsr(void * parg)
 	}
     }
 
-#if 0
-    if(BOARD_STATUS_IRQ_SET & pscdIntStatus)/* Yes, this board requests IRQ */
-    {
-        PSCD_SETREG(index, BOARD_STATUS_OFFSET, pscdIntStatus&BOARD_STATUS_IRQ_SET);/* clear IRQ */
- 
-        if(pscdIntStatus & BOARD_STATUS_CFG_SENT)
-        {/* Configuration was just sent */
-            for(loopfeb=0;loopfeb<MAX_NUM_FEB;loopfeb++)
-            {
-                PSCD_SETREG(index, FEB0_CONF_INFO_OFFSET+loopfeb*FEB_CONF_INFO_SIZE+FEB_CONF_FEB_RESET, pscd_card.FEBBuffer[loopfeb].FEBReset);
-                pscd_card.FEBBuffer[loopfeb].FEBReset = 0;
-
-                PSCD_SETREG(index, FEB0_CONF_INFO_OFFSET+loopfeb*FEB_CONF_INFO_SIZE+FEB_CONF_DOUT_SSR, pscd_card.FEBBuffer[loopfeb].SSRSet);
-                pscd_card.FEBBuffer[loopfeb].SSRSet = 0;
-
-                PSCD_SETREG(index, FEB0_CONF_INFO_OFFSET+loopfeb*FEB_CONF_INFO_SIZE+FEB_CONF_DOUT_TTL, pscd_card.FEBBuffer[loopfeb].TTLSet);
-                pscd_card.FEBBuffer[loopfeb].TTLSet = 0;
-
-                PSCD_SETREG(index, FEB0_CONF_INFO_OFFSET+loopfeb*FEB_CONF_INFO_SIZE+FEB_CONF_GEN_UPDATE, pscd_card.FEBBuffer[loopfeb].genConfUpdate);
-                pscd_card.FEBBuffer[loopfeb].genConfUpdate = 0;
-
-                PSCD_SETREG(index, FEB0_CONF_INFO_OFFSET+loopfeb*FEB_CONF_INFO_SIZE+FEB_CONF_DAC_UPDATE, pscd_card.FEBBuffer[loopfeb].DACWfUpdate);
-                pscd_card.FEBBuffer[loopfeb].DACWfUpdate = 0;
-            }
-        }
-
-        epicsMessageQueueTrySend(pscd_card.msgQId, (void *)&pscdIntStatus, sizeof(UINT32));
-        if(PSCD_DRV_DEBUG) epicsInterruptContextMessage("IRQ!\n");
-    }
-#endif
     return;
 }
 
@@ -239,75 +211,11 @@ int isModuleExsit(short b, short c, short n)
     return TRUE;
 }
 
-static void pscdOpTaskLow(void *parm)
+int branchOfCrate(unsigned short c)
 {
-#if 0
-    int index = (int)parm;      /* pscd index */
-
-    epicsMessageQueueId qId = pscd_card.msgQId;
-
-    UINT32 pscdIntStatus;
-
-    int loopfeb;
-
-    if(index<0 || index>=MAX_NUM_PSCD || (!pscd_card.firmwareVer))
-    {
-        errlogPrintf ("pscdOpTaskLow: index %d is illegal!\n", index);
-        return;
-    }
-
-    while(1)
-    {
-        if(epicsMessageQueueReceive(qId, (void *)&pscdIntStatus, sizeof(UINT32)) == -1)
-        {/* give up CPU for a bit */
-            errlogPrintf("PSCD[%d] msgQ returns ERROR!\n", index);
-            epicsThreadSleep(1.0);
-            continue;
-        }
-        else
-        {
-            /* Got board status */
-            if(PSCD_DRV_DEBUG) errlogPrintf("Board Status 0x%0X for PSCD[%d]!\n", pscdIntStatus, index);
-            for(loopfeb=0;loopfeb<MAX_NUM_FEB;loopfeb++)
-            {
-                if(pscdIntStatus & (BOARD_STATUS_SFP0_SADC<<loopfeb))
-                {
-                    /* Read FADC data */
-                    pscdDDRRead(index, (UINT32*)(pscd_card.FEBBuffer[loopfeb].fADCData[pscd_card.FEBBuffer[loopfeb].fADCDataIndex].pPingPongBuf),
-                                          DDR_FADC_MAX_SIZE/4, DDR_FEB0_FADC_OFFSET + loopfeb*DDR_FEB_DATA_SIZE); 
-                    pscd_card.FEBBuffer[loopfeb].fADCDataIndex = 1 - pscd_card.FEBBuffer[loopfeb].fADCDataIndex;
-                    scanIoRequest(pscd_card.FEBBuffer[loopfeb].fADCIoScan);
-
-                    /* Read SADC data */
-                    pscdDDRRead(index, (UINT32*)(pscd_card.FEBBuffer[loopfeb].sADCData[pscd_card.FEBBuffer[loopfeb].sADCDataIndex].pPingPongBuf),
-                                          DDR_SADC_MAX_SIZE/4, DDR_FEB0_SADC_OFFSET + loopfeb*DDR_FEB_DATA_SIZE); 
-                    pscd_card.FEBBuffer[loopfeb].sADCDataIndex = 1 - pscd_card.FEBBuffer[loopfeb].sADCDataIndex;
-                    scanIoRequest(pscd_card.FEBBuffer[loopfeb].sADCIoScan);
-                }
-            }
-        }
-    }
-#endif
-    return;
-}
-
-int pageFaultGen()
-{
-#if 0
-    char * pSrc;
-    void * pDest;
-
-    pDest = (char *)calloc(500,4);
-    pSrc = (char *)malloc(0x8000);/*cacheDmaMalloc*/
-
-    UINT16 *pU16Temp = (UINT16 *)pSrc;
-    float *pFTemp = (float *)pDest; 
-
-    UINT16 U16Temp = pU16Temp[0];
-    pFTemp[0] = U16Temp;
-    /* pFTemp[0] = pU16Temp[0]; */
-#endif
-    return 0;
+    if(!pscd_card_inited) return -1;
+    else
+        return (pscd_card.portMap[(c&0xF)/8] >> (((c&0xF)%8)*4))&0x3;
 }
 
 static  long    PSCD_EPICS_Init();
