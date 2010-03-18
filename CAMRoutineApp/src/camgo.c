@@ -7,12 +7,14 @@
  
   Name: CAMGO (module)
         cam_ini (public)              Must be called once to init for PSCD access
-        camgo_start_pscd (public)   Wait until PSCD's fifo looks empty, and
-                                      then initiate execution of PSCD package.
-        camgo  (public)              Execute PSCD package previously built by
+        camgo_start_pscd (public)     Copy user data if write, Wait until PSCD's fifo 
+                                      is empty and initiate execution of PSCD package.
+        camgo  (public)               Execute PSCD package previously built by
                                       camalo and camadd, and check errors.
-        cam_get_errcod (local)       Translate flag bits into VMS status code.
-        camgo_spin_errs (local)      Wait for completion and summarize errors.
+        camgo_get_data (public)       Copy status/data from dual-port memory after I/O
+                                      is complete.
+        cam_get_errcod (local)        Translate flag bits into VMS status code.
+        camgo_spin_errs (local)       Wait for completion and summarize errors.
  
   Rem:
  
@@ -223,19 +225,17 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
 
         /**************************************************************/
         /*                                                            */
-        /* Abs:  Initiate execution of given PSCD package, trying to  */
-        /*       minimize PSCD latency as seen by interrupt-driven    */
-        /*       code. If the wait arg is true then wait for TDV      */
-        /*       package done else return after SIO.                  */
+        /* Abs:  Copy user's data and initiate execution of the       */
+        /*       PSCD package.                                        */
+        /*       If the wait arg is true then wait via semaphore      */
+        /*       for the completion interrupt else return after SIO.  */
         /* Name: camgo_start_pscd.                                    */
         /* Scop: Public;                                              */
         /* Rem:  Routine camgo_start_pscd initiates execution of one  */
         /*       camac package (one physically chained string of      */
         /*       camac packets), testing the PSCD's "TDV" register    */
         /*       beforehand to ensure that the PSCD's fifo will never */
-        /*       contain more than one camac package selector whose   */
-        /*       execution was initiated at task level (as opposed to */
-        /*       interrupt level).                                    */
+        /*       contain more than one camac package pointer.         */
         /* Arg:  campkg_pp             pointer to camac package       */
         /*                                                            */
         /* Ret:  None.                                                */
@@ -252,20 +252,41 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
 #define TDV_DONE_MSK 0x1
      unsigned       j;
      unsigned int prior = CAMBLK_p->hdr.key;
+     mbcd_savep_ts *savep_p = (void *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
+     mbcd_stad_ts  *stadh_p;
+     unsigned miop = CAMBLK_p->hdr.iop; /* # of operations in package */
+     unsigned jp;
      epicsMutexLockStatus oss;
      epicsEventWaitStatus ess;
      vmsstat_t iss = CAM_OKOK;
      extern volatile PSCD_CARD pscd_card;        /* PSCD card registers etc. */
-
      /*----------------------------------------------*/
-     /* Check key (priority) for validity */
-
-     if (prior > KEY_LOW)
+     /* For each packet, clear the status longword                       */
+     /* in case hardware is out to lunch, and, if the packet is a write  */
+     /* and we are buffering the operation, then copy the caller's data  */
+     /* into memory allocated by camadd.                                 */
+ 
+     for (jp = 0;  jp < miop;  ++jp)
      {
-         iss = CAM_CCB_NFG;
-         errlogSevPrintf (errlogMinor, 
-           "CAMGO_ - In start_pscd invalid priority %d\n",CAMBLK_p->hdr.key);
-         goto egress;
+         stadh_p = savep_p[jp].hrdw_p;
+         stadh_p->camst_dw = 0;
+         if (savep_p[jp].user_p != NULL &&
+            (CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == CCTLW__F16)
+         {
+             if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
+             {
+#ifdef _X86_
+                 memcpy(&stadh_p->dat_w, (char *) savep_p[jp].user_p + 4,
+                 CAMBLK_p->mbcd_pkt[jp].wc_max << 1);
+#else
+                 bewcpy(&stadh_p->dat_w, savep_p[jp].user_p + 4,
+                         CAMBLK_p->mbcd_pkt[jp].wc_max, TODP);
+#endif
+             }
+             else
+                 unpk_bytes_to_w((unsigned char *) savep_p[jp].user_p + 4,
+                                 stadh_p->dat_w, CAMBLK_p->mbcd_pkt[jp].wc_max);
+         }
      }
 
      /* Serialize access to the registers for this priority */
@@ -328,7 +349,70 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  egress:
      return iss;
  }                                                   /* End camgo_start_pscd. */ 
+
+
+        /**************************************************************/
+        /*                                                            */
+        /* Abs:  Copy the status and data from dual-port memory to    */
+        /*       user's buffer. No error or completion check is made. */
+        /* Name: camgo_get_data  .                                    */
+        /* Scop: Public;                                              */
+        /* Rem:  Routine camgo_get_data copies the status and data    */
+        /*       from dual-port memory to the user's buffer.          */
+        /*       It assumes that the I/O operation is complete.       */
+        /* Arg:  campkg_pp             pointer to camac package       */
+        /*                                                            */
+        /* Ret:  None.                                                */
+        /*                                                            */
+        /**************************************************************/
  
+ /**procedure**/
+ void camgo_get_data(const campkgp_t *campkg_pp)
+ {
+     #define CAMBLK_p (*campkg_pp)
+     unsigned  miop = CAMBLK_p->hdr.iop;
+     unsigned  jp;
+     mbcd_savep_ts *savep_p = (void *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
+     /*----------------------------------------------*/
+
+     /* For each packet, if we are buffering the operation, then  */
+     /* copy the status longword from memory allocated by camadd, */
+     /* and if the packet is a read, then copy the data too.      */
+     /* Note that if a packet is requesting P8, then we are       */
+     /* buffering that operation.                                 */
+
+     for (jp = 0;  jp < miop;  ++jp)
+     {
+         if (savep_p[jp].user_p != NULL)
+         {
+             if ((CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == 0)
+             {
+                 if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
+                 {
+#ifdef _X86_
+                     memcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
+                            (CAMBLK_p->mbcd_pkt[jp].wc_max << 1) + 4);
+#else
+                     bewcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
+                            (CAMBLK_p->mbcd_pkt[jp].wc_max + 2), FROMDP);
+#endif
+                 }
+                 else
+                 {
+                     pack_w_to_bytes((unsigned short *) savep_p[jp].hrdw_p + 2,
+                                     (unsigned char *) savep_p[jp].user_p + 4,
+                                     CAMBLK_p->mbcd_pkt[jp].wc_max);
+                     *(long *) savep_p[jp].user_p = *(long *) savep_p[jp].hrdw_p;
+                 }
+             }
+             else
+             {
+                  *(long *) savep_p[jp].user_p = *(long *) savep_p[jp].hrdw_p;
+             }
+         }
+     }
+     return;
+ } 
         /**************************************************************/
         /*                                                            */
         /* Abs:  Translate given error code byte into VMS status code.*/
@@ -504,12 +588,11 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  {
      #define CAMBLK_p (*campkg_pp)
      mbcd_savep_ts *savep_p;
-     mbcd_stad_ts  *stadh_p;
      unsigned       miop, jp;
      int            wait = 1;
      vmsstat_t      iss = CAM_OKOK;
     
-               /*----------------------------------------------*/
+     /*----------------------------------------------*/
  
      /* Validate PSCD package structure. */
  
@@ -538,83 +621,18 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
          goto egress;
      }
  
-     savep_p = (void *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
-
-     /* For each packet, clear the status longword                       */
-     /* in case hardware is out to lunch, and, if the packet is a write  */
-     /* and we are buffering the operation, then copy the caller's data  */
-     /* into memory allocated by camadd.                                 */
- 
-     for (jp = 0;  jp < miop;  ++jp)
-     {
-         stadh_p = savep_p[jp].hrdw_p;
-         stadh_p->camst_dw = 0;
-         if (savep_p[jp].user_p != NULL &&
-            (CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == CCTLW__F16)
-         {
-             if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
-             {
-#ifdef _X86_
-                 memcpy(&stadh_p->dat_w, (char *) savep_p[jp].user_p + 4,
-                 CAMBLK_p->mbcd_pkt[jp].wc_max << 1);
-#else
-                 bewcpy(&stadh_p->dat_w, savep_p[jp].user_p + 4,
-                         CAMBLK_p->mbcd_pkt[jp].wc_max, TODP);
-#endif
-             }
-             else
-                 unpk_bytes_to_w((unsigned char *) savep_p[jp].user_p + 4,
-                                 stadh_p->dat_w, CAMBLK_p->mbcd_pkt[jp].wc_max);
-         }
-     }
-
-     /* Start the PSCD operation and wait for completion. */
-
+     /* Copy data, start the PSCD operation and wait for completion. */
  
      iss = camgo_start_pscd(campkg_pp, wait);
 
+     /* 
+     ** Spin until completion and sort out the errors.
+     ** Copy status/data to user's buffer.
+     */
 
-     /* Spin until completion and sort out the errors. */
-
+     savep_p = (void *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
      iss = camgo_spin_errs(miop, CAMBLK_p->mbcd_pkt, savep_p);
- 
-
-     /* For each packet, if we are buffering the operation, then  */
-     /* copy the status longword from memory allocated by camadd, */
-     /* and if the packet is a read, then copy the data too.      */
-     /* Note that if a packet is requesting P8, then we are       */
-     /* buffering that operation.                                 */
-
-     for (jp = 0;  jp < miop;  ++jp)
-     {
-         if (savep_p[jp].user_p != NULL)
-         {
-             if ((CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == 0)
-             {
-                 if ((CAMBLK_p->mbcd_pkt[jp].cctlw & CCTLW__P8) == 0)
-                 {
-#ifdef _X86_
-                     memcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
-                            (CAMBLK_p->mbcd_pkt[jp].wc_max << 1) + 4);
-#else
-                     bewcpy(savep_p[jp].user_p, savep_p[jp].hrdw_p,
-                            (CAMBLK_p->mbcd_pkt[jp].wc_max + 2), FROMDP);
-#endif
-                 }
-                 else
-                 {
-                     pack_w_to_bytes((unsigned short *) savep_p[jp].hrdw_p + 2,
-                                     (unsigned char *) savep_p[jp].user_p + 4,
-                                     CAMBLK_p->mbcd_pkt[jp].wc_max);
-                     *(long *) savep_p[jp].user_p = *(long *) savep_p[jp].hrdw_p;
-                 }
-             }
-             else
-             {
-                  *(long *) savep_p[jp].user_p = *(long *) savep_p[jp].hrdw_p;
-             }
-         }
-     }
+     camgo_get_data(campkg_pp);
  egress:
      return iss;
  
