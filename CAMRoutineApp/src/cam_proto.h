@@ -72,7 +72,9 @@
                   const campkgp_t *camblk_pp);
  
  vmsstat_t camgo_start_pscd(const campkgp_t *camblk_pp, int wait);
-
+ 
+ void camgo_get_data(const campkgp_t *camblk_pp);
+ 
  unsigned long camac_build_ctlw(
              const unsigned long *crate_p,       /* ptr to CAMAC crate address  */
              const unsigned long *slot_p,        /* ptr to CAMAC slot number    */
