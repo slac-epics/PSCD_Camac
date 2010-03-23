@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.2 2010/03/10 18:05:09 pengs Exp $
+ *   $Id: devPDUII.h,v 1.1 2010/03/12 11:09:12 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -140,8 +140,8 @@ typedef enum {
     PDUII_MBBO_MODESET,
 
     /* Need channel number and location number */
-    PDUII_LI_PTTSET,
-    PDUII_LO_PTTGET,
+    PDUII_LI_PTTGET,
+    PDUII_LO_PTTSET,
 
     /* Need channel number and rule number */
     PDUII_LO_DELAY,
@@ -195,13 +195,16 @@ typedef struct PDUII_REQUEST
 #define PDUII_REQUEST_NO_ERR	0
 #define PDUII_MODULE_NOT_EXIST	0x10000000
 #define PDUII_CAM_INIT_FAIL	0x20000000
-#define PDUII_RSTCLR_CAMIO_FAIL	0x30000000
-#define PDUII_READ_CAMIO_FAIL	0x40000000
-#define PDUII_WRT_CAMIO_FAIL	0x50000000
-#define PDUII_CAM_ALLOC_FAIL	0x60000000
-#define PDUII_CAM_ADD_FAIL	0x70000000
-#define PDUII_CAM_GO_FAIL	0x80000000
-#define PDUII_CAM_DEL_FAIL	0x90000000
+#define PDUII_RST_CAMIO_FAIL	0x30000000
+#define PDUII_ENO_CAMIO_FAIL	0x40000000
+#define PDUII_ENS_CAMIO_FAIL	0x50000000
+#define PDUII_STS_CAMIO_FAIL	0x60000000
+#define PDUII_READ_CAMIO_FAIL	0x70000000
+#define PDUII_WRT_CAMIO_FAIL	0x80000000
+#define PDUII_CAM_ALLOC_FAIL	0x90000000
+#define PDUII_CAM_ADD_FAIL	0xA0000000
+#define PDUII_CAM_GO_FAIL	0xB0000000
+#define PDUII_CAM_DEL_FAIL	0xC0000000
 
 int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
 
