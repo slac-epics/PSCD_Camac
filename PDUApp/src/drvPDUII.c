@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.1 2010/03/12 11:09:12 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.2 2010/03/23 05:21:12 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -23,7 +23,7 @@ int PDUII_DRV_DEBUG = 0;
 /* We only support one PSCD per IOC */
 static ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
 
-static unsigned int tsmod360 = 0;
+static unsigned int tsmod360 = 0; /* TODO */
 /* how to manage branch and crate to form package */
 
 /*********************************************************************/
@@ -741,7 +741,7 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
 
         /* pPDUIIModule->chnlMode, record will init it */
         /* pPDUIIModule->rules, record will init it */
-        /* pPDUIIModule->rules, TODO */
+        /* pPDUIIModule->pttCache, TODO */
 
 	/* TODO, sort it */
         ellAdd(&PDUIIModuleList, (ELLNODE *)pPDUIIModule);
@@ -759,11 +759,16 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
     pPDUIIRequest->pRecord = pRecord;
 
     pPDUIIRequest->a = inout.a & 0xF;	/* We are using a to indicate channel number here. So up to 15 */
-    pPDUIIRequest->f = inout.f & 0x1F;	/* not important here */
-
-    pPDUIIRequest->extra = extra;
+    pPDUIIRequest->f = inout.f & 0x1F;	/* not used here */
 
     pPDUIIRequest->funcflag = funcflag;
+
+    if(funcflag == PDUII_LI_PTTGET || funcflag == PDUII_LO_PTTSET)
+        pPDUIIRequest->extra = (extra&0xFF);
+    else if(funcflag == PDUII_LO_DELAY || funcflag == PDUII_WF_RULE)
+        pPDUIIRequest->extra = min(extra,N_RULES_PER_CHNL-1);
+    else
+        pPDUIIRequest->extra = extra;
 
     /*pPDUIIRequest->actTime*/
     pPDUIIRequest->val = 0;
@@ -795,6 +800,7 @@ static long PDUII_EPICS_Init()
 {
 
     ellInit(&PDUIIModuleList);
+    /* TODO, when to install EVR callback? */
 
     return 0;
 }
