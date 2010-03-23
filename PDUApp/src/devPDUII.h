@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.1 2010/03/12 11:09:12 pengs Exp $
+ *   $Id: devPDUII.h,v 1.2 2010/03/23 05:20:57 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -78,11 +78,12 @@ extern "C" {
 #define N_RULES_PER_CHNL	(8)	/* this is subject to change, but up to 32 since we use a F to indicate rule number */
 /******************************************************************************************/
 
+#define N_USHORTS_MASK	10
 /* This structure defines a individual rule */
 typedef struct PDUII_RULE
 {
-    UINT16		inclusionMask[10];
-    UINT16		exclusionMask[10];
+    UINT16		inclusionMask[N_USHORTS_MASK];
+    UINT16		exclusionMask[N_USHORTS_MASK];
     UINT16		beamCode;
     UINT32		pttDelay;
 } PDUII_RULE;
@@ -120,11 +121,11 @@ typedef enum EPICS_RECTYPE
 {
     EPICS_RECTYPE_NONE,
     EPICS_RECTYPE_BO,
-    EPICS_RECTYPE_LI,
-    EPICS_RECTYPE_LO,
+    EPICS_RECTYPE_MBBID,
     EPICS_RECTYPE_MBBI,
     EPICS_RECTYPE_MBBO,
-    EPICS_RECTYPE_MBBID,
+    EPICS_RECTYPE_LI,
+    EPICS_RECTYPE_LO,
     EPICS_RECTYPE_WF
 }   E_EPICS_RECTYPE;
 
