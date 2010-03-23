@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.2 2010/03/23 05:20:57 pengs Exp $
+ *   $Id: devPDUII.h,v 1.3 2010/03/23 06:45:03 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -88,6 +88,7 @@ typedef struct PDUII_RULE
     UINT32		pttDelay;
 } PDUII_RULE;
 
+#define UNKNOWN_OR_TRANSITION	0x80000000 /* apply to pttCache and chnlMode to indicate uninitialized or in transition */
 /* PDUII module,  b,c,n define a unique module */
 typedef struct PDUII_MODULE
 {
@@ -101,9 +102,9 @@ typedef struct PDUII_MODULE
     epicsThreadId               opTaskId;
     epicsMutexId		lock;	/* lock the rules */
 
-    UINT8			chnlMode[N_CHNLS_PER_MODU];
-
     PDUII_RULE			rules[N_CHNLS_PER_MODU][N_RULES_PER_CHNL];
+
+    UINT32			chnlMode[N_CHNLS_PER_MODU];
 
     UINT32			pttCache[N_CHNLS_PER_MODU*256];
 
