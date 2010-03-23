@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.18 2009/09/25 01:16:31 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.1 2010/03/12 11:09:12 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -92,7 +92,7 @@ typedef struct STAS_DAT
 /* We can use separate functions to load PTT and enable upper backplane and sequencer */
 /* It assumes b,c,n of pPDUIIModule is valid */
 /* Return 0 means succeed, otherwise error code */
-static UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
+UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
 {
     if(!pPDUIIModule) return -1;
 
@@ -112,7 +112,7 @@ static UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
         /* F9A0 to reset, ignore-overwrite whatever a,f in record */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (9 << 16) | 0;
 	bcnt = 0;
-        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
             errlogPrintf ("camio error 0x%08X for PDUII reset\n", (unsigned int) iss);
             return (PDUII_RST_CAMIO_FAIL|iss);
@@ -152,7 +152,7 @@ UINT32 PDUII_UpperBplnEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (24 << 16) | 1;
 
 	bcnt = 0;
-        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
             errlogPrintf ("camio error 0x%08X for PDUII enable-disable output\n", (unsigned int) iss);
             return (PDUII_ENO_CAMIO_FAIL|iss);
@@ -191,7 +191,7 @@ UINT32 PDUII_SeqrEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (24 << 16) | 2;
 
 	bcnt = 0;
-        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
             errlogPrintf ("camio error 0x%08X for PDUII enable-disable sequencer\n", (unsigned int) iss);
             return (PDUII_ENS_CAMIO_FAIL|iss);
@@ -227,7 +227,7 @@ UINT32 PDUII_Status(PDUII_MODULE *pPDUIIModule, UINT32 *pStatus)
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (2 << 16) | 2;
 
 	bcnt = 4;
-        if (!SUCCESS(iss = camio (&pduiictlw, &(read_pduii.data), &bcnt, &(read_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, &(read_pduii.data), &bcnt, &(read_pduii.stat), &emask)))
         {
             errlogPrintf ("camio error 0x%08X for PDUII enable-disable sequencer\n", (unsigned int) iss);
             return (PDUII_STS_CAMIO_FAIL|iss);
@@ -283,7 +283,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = pPDUIIRequest->a << 8;
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -292,7 +292,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 
         ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0;
         bcnt = 2;
-        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -368,7 +368,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = pPDUIIRequest->a << 8;
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -378,7 +378,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 1;
         bcnt = 2;
         *((UINT16 *)(&(write_pduii[1].data))) = pPDUIIRequest->val & 0x7;
-        if (!SUCCESS(iss = camadd (&ctlwF1A0, &write_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -452,7 +452,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -461,7 +461,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 
         ctlwF0A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
         bcnt = 4;
-        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -537,7 +537,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -547,7 +547,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF16A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
         bcnt = 4;
         write_pduii[1].data = pPDUIIRequest->val & 0xFFFFF;
-        if (!SUCCESS(iss = camadd (&ctlwF1A0, &write_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF16A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
