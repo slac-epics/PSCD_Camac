@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.3 2010/03/23 06:45:03 pengs Exp $
+ *   $Id: devPDUII.h,v 1.4 2010/03/23 07:32:55 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -88,7 +88,12 @@ typedef struct PDUII_RULE
     UINT32		pttDelay;
 } PDUII_RULE;
 
-#define UNKNOWN_OR_TRANSITION	0x80000000 /* apply to pttCache and chnlMode to indicate uninitialized or in transition */
+#define PTT_ENTRY_UNKNOWN	0x80000000 /* Init value, mark as unknown when camgo failed */
+#define PTT_ENTRY_UPDATING	0x40000000 /* Mark as updating, when camgo returns, clear */
+
+#define CHNL_MODE_UNKNOWN	0x80000000 /* Init value, mark as unknown when camgo failed */
+#define CHNL_MODE_UPDATING	0x40000000 /* Mark as updating, when camgo returns, clear */
+
 /* PDUII module,  b,c,n define a unique module */
 typedef struct PDUII_MODULE
 {

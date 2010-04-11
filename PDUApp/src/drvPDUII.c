@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.2 2010/03/23 05:21:12 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.3 2010/03/23 07:32:30 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -25,6 +25,14 @@ static ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
 
 static unsigned int tsmod360 = 0; /* TODO */
 /* how to manage branch and crate to form package */
+
+#if 0
+#define LOCK epicsMutexMustLock(pPDUIIModule->lock)
+#define UNLOCK epicsMutexUnlock(pPDUIIModule->lock)
+#else
+#define LOCK 
+#define UNLOCK 
+#endif
 
 /*********************************************************************/
 static PDUII_MODULE * findPDUIIModuleByBCN(short b, short c, short n)
@@ -94,6 +102,7 @@ typedef struct STAS_DAT
 /* Return 0 means succeed, otherwise error code */
 UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
 {
+    int loop;
     if(!pPDUIIModule) return -1;
 
     /* check if module exists */
@@ -109,14 +118,38 @@ UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
             return (PDUII_CAM_INIT_FAIL|iss);
 
+        /* Each entry is independent, so no need to lock most of time */
+        /* Lock here is mostly for non-360Hz modification mutex */
+        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
+        /* So be conservetive, marking as unknown or updating asap will be good enough */
+        LOCK;
+        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+        {
+            pPDUIIModule->pttCache[loop] = PTT_ENTRY_UPDATING|0xFFFFF;
+        }
+        UNLOCK;
+
         /* F9A0 to reset, ignore-overwrite whatever a,f in record */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (9 << 16) | 0;
 	bcnt = 0;
         if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
+            LOCK;
+            for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+            {
+                pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN|0xFFFFF;
+            }
+            UNLOCK;
             errlogPrintf ("camio error 0x%08X for PDUII reset\n", (unsigned int) iss);
             return (PDUII_RST_CAMIO_FAIL|iss);
         }
+
+        LOCK;
+        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+        {
+            pPDUIIModule->pttCache[loop] = 0xFFFFF;
+        }
+        UNLOCK;
 	epicsThreadSleep(1);
 
         return 0;
@@ -307,6 +340,9 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
+        LOCK;
+        pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = (((pPDUIIRequest->val)>>12) & 0x7);
+        UNLOCK;
  
 release_campkg: 
 
@@ -385,11 +421,26 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
+        /* Each entry is independent, so no need to lock most of time */
+        /* Lock here is mostly for non-360Hz modification mutex */
+        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
+        /* So be conservetive, marking as unknown or updating asap will be good enough */
+        LOCK;
+        pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = PTT_ENTRY_UPDATING|(pPDUIIRequest->val & 0x7);
+        UNLOCK;
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
+            LOCK;
+            pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0x7);
+            UNLOCK;
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
-            goto release_campkg;
+        }
+        else
+        {
+            LOCK;
+            pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = (pPDUIIRequest->val & 0x7);
+            UNLOCK;
         }
 
 release_campkg: 
@@ -472,10 +523,14 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         {
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
-            goto release_campkg;
         }
-
-	pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
+        else
+        {
+	    pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
+            LOCK;
+            pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = pPDUIIRequest->val;
+            UNLOCK;
+        }
  
 release_campkg: 
 
@@ -554,11 +609,27 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
+        /* Each entry is independent, so no need to lock most of time */
+        /* Lock here is mostly for non-360Hz modification mutex */
+        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
+        /* So be conservetive, marking as unknown or updating asap will be good enough */
+        LOCK;
+        pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UPDATING|(pPDUIIRequest->val & 0xFFFFF);
+        UNLOCK;
+
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
+            LOCK;
+            pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0xFFFFF);
+            UNLOCK;
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
-            goto release_campkg;
+        }
+        else
+        {
+            LOCK;
+            pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = (pPDUIIRequest->val & 0xFFFFF);
+            UNLOCK;
         }
 
 release_campkg: 
@@ -678,6 +749,8 @@ static int PDUII_Operation(void * parg)
 int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp)
 {
     PDUII_MODULE * pPDUIIModule = NULL;
+    PDUII_MODULE * pPDUIIModuleTmp = NULL;
+    UINT32	PDUIIPos;	/* used to sort linked list, PDUIIPos = B<<9 | C<<5 | N */
     int         funcflag = 0, loop;
     int 	extra = 0;
     UINT32	errCode;
@@ -728,23 +801,39 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
 
         /* how many record could send request to PDUII at pduiie time, 1000 should be enough */
         pPDUIIModule->msgQId = epicsMessageQueueCreate(1000, sizeof(struct PDUII_REQUEST *));
-
         if (pPDUIIModule->msgQId == NULL)
         {/* Fail to create messageQ */
             errlogPrintf("Failed to create messageQ for PDUII[%d,%d,%d] operation!\n",pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n);
             epicsThreadSuspendSelf();
         }
+
         sprintf(opTaskName, "%d-%dPDUII", pPDUIIModule->c, pPDUIIModule->n);
         pPDUIIModule->opTaskId = epicsThreadMustCreate(opTaskName, epicsThreadPriorityMedium, 20480, (EPICSTHREADFUNC)PDUII_Operation, (void *)pPDUIIModule);
 
         pPDUIIModule->lock = epicsMutexMustCreate();
 
-        /* pPDUIIModule->chnlMode, record will init it */
-        /* pPDUIIModule->rules, record will init it */
-        /* pPDUIIModule->pttCache, TODO */
+        /* pPDUIIModule->rules, record autoSaveRestore will init it */
+        /* pPDUIIModule->chnlMode, record autoSaveRestore will init it */
+        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+        {
+            pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN;
+        }
 
-	/* TODO, sort it */
-        ellAdd(&PDUIIModuleList, (ELLNODE *)pPDUIIModule);
+	/* sort linked list */
+        PDUIIPos = (pPDUIIModule->b << 9)|(pPDUIIModule->c << 5)|pPDUIIModule->n;
+        for( pPDUIIModuleTmp = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModuleTmp; pPDUIIModuleTmp = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModuleTmp) )
+        {
+            if(PDUIIPos < ((pPDUIIModuleTmp->b << 9)|(pPDUIIModuleTmp->c << 5)|pPDUIIModuleTmp->n)) break;
+        }
+        if(pPDUIIModuleTmp)
+        {
+            pPDUIIModuleTmp=(PDUII_MODULE *)ellPrevious((ELLNODE *)pPDUIIModuleTmp);
+            ellInsert( &PDUIIModuleList, (ELLNODE *)pPDUIIModuleTmp, (ELLNODE *)pPDUIIModule );
+        }
+        else
+        {/* Did not find anyone has bigger pos, so append at the end. True for empty list as well */
+            ellAdd(&PDUIIModuleList, (ELLNODE *)pPDUIIModule);
+        }
 
         if(PDUII_DRV_DEBUG) printf("Add PDUII[%d,%d,%d]\n",
             pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n);

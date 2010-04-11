@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.4 2009/12/11 20:51:24 pengs Exp $
+ *   $Id: devPDUII.c,v 1.1 2010/03/23 06:45:34 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -92,7 +92,7 @@ static long init_bo(struct boRecord * pbo)
         return (S_db_badField);
     }
 
-    /* TODO, for UBPLN and SEQR, readback */
+    /* TODO, for UBPLN and SEQR, readback here, no, let autoSaveRestore do it */
     /* might not necesary, we depend on autoSaveRestore anyway */
     return (status);
 }
@@ -320,7 +320,7 @@ static long init_mbbo(struct mbboRecord * pmbbo)
         return (S_db_badField);
     }
 
-    /* TODO, do we want to read MODE here */
+    /* TODO, do we want to read MODE here? no, let autoSaveRestore do it */
     /* I don't think we should shft mask here */
 
     return NO_CONVERT;
@@ -474,7 +474,7 @@ static long init_lo(struct longoutRecord * plo)
         return (S_db_badField);
     }
 
-    /* TODO, do we want to read PTT entry here */
+    /* TODO, do we want to read PTT entry here, no, let autoSaveRestore do it */
 
     return 0;
 }
@@ -584,12 +584,16 @@ static long write_wf(struct waveformRecord *pwf)
     if(pwf->rarm)       pwf->rarm=0;    /* reset RARM */
 
     pData = (UINT16 *)(pwf->bptr);
+    /* rule has to be updated as a whole */
+    epicsMutexMustLock(pRequest->pPDUIIModule->lock);
     for(loop=0;loop<N_USHORTS_MASK;loop++)
     {
 	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].inclusionMask[loop] = pData[loop];
 	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].exclusionMask[loop] = pData[N_USHORTS_MASK+loop];
     }
     pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].beamCode = pData[N_USHORTS_MASK*2];
+    epicsMutexUnlock(pRequest->pPDUIIModule->lock);
+
     epicsTimeGetCurrent(&(pRequest->actTime));
     pRequest->errCode = PDUII_REQUEST_NO_ERR;
     pRequest->opDone = 1;
