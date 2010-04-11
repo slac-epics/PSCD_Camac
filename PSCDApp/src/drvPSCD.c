@@ -1,5 +1,5 @@
 /****************************************************************/
-/* $Id: drvPSCD.c,v 1.6 2009/08/13 06:15:45 pengs Exp $         */
+/* $Id: drvPSCD.c,v 1.7 2010/03/12 05:21:27 pengs Exp $         */
 /* This file implements driver support for PSCD                 */
 /* Author: Sheng Peng, pengs@slac.stanford.edu, 650-926-3847    */
 /****************************************************************/
@@ -85,6 +85,8 @@ int pscdCreate (unsigned int portMap0, unsigned int portMap1)
     pscd_card.portMap[0]=portMap0;
     PSCD_SETREG(PSCD_PMAP1_OFFSET, portMap1);
     pscd_card.portMap[1]=portMap1;
+
+    PSCD_SETREG(PSCD_SIOTO0_OFFSET, 0xDB24);	/* Set high priority queue timeout to 1.7ms */
 
     /* assign sio_p, tdv_p and sram_p */
     pscd_card.sio_p[0] = (UINT32 *)(pscd_card.pciHeader.pciBaseAddr[2].pUserVirtualAddr + (PSCD_SIO0_OFFSET & 0x0FFFFFFF));
