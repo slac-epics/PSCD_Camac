@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.3 2010/03/23 07:32:30 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.4 2010/04/11 22:51:14 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -22,9 +22,6 @@ int PDUII_DRV_DEBUG = 0;
 
 /* We only support one PSCD per IOC */
 static ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
-
-static unsigned int tsmod360 = 0; /* TODO */
-/* how to manage branch and crate to form package */
 
 #if 0
 #define LOCK epicsMutexMustLock(pPDUIIModule->lock)
@@ -819,6 +816,8 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
             pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN;
         }
 
+        pPDUIIModule->errorCount = 0;
+
 	/* sort linked list */
         PDUIIPos = (pPDUIIModule->b << 9)|(pPDUIIModule->c << 5)|pPDUIIModule->n;
         for( pPDUIIModuleTmp = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModuleTmp; pPDUIIModuleTmp = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModuleTmp) )
@@ -889,7 +888,6 @@ static long PDUII_EPICS_Init()
 {
 
     ellInit(&PDUIIModuleList);
-    /* TODO, when to install EVR callback? */
 
     return 0;
 }
@@ -907,7 +905,10 @@ static long PDUII_EPICS_Report(int level)
             printf("\tPDUII Module at b[%d]c[%d]n[%d]: \n", pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n);
             if(level > 1)
             {
+                /* More Info */
+                printf("\tError (number of missed channels) count is [%d] \n", pPDUIIModule->errorCount);
             }
+            printf("\n");
         }
     }
 

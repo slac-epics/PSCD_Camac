@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.4 2010/03/23 07:32:55 pengs Exp $
+ *   $Id: devPDUII.h,v 1.5 2010/04/11 22:51:14 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -113,6 +113,7 @@ typedef struct PDUII_MODULE
 
     UINT32			pttCache[N_CHNLS_PER_MODU*256];
 
+    UINT32			errorCount;	/* number of channels/entries missed */
 /*    epicsTimeStamp		lastReadTime;
     UINT16			data[2];
     UINT32			lastErrCode;
@@ -213,6 +214,7 @@ typedef struct PDUII_REQUEST
 #define PDUII_CAM_GO_FAIL	0xB0000000
 #define PDUII_CAM_DEL_FAIL	0xC0000000
 
+int PDUII360TaskStart();
 int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
 
 UINT32 PDUII_Reset(PDUII_MODULE *pPDUIIModule);
