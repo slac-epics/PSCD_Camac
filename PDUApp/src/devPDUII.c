@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.2 2010/04/11 22:51:14 pengs Exp $
+ *   $Id: devPDUII.c,v 1.3 2010/04/12 00:00:08 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -597,14 +597,16 @@ static long write_wf(struct waveformRecord *pwf)
 
     pData = (UINT16 *)(pwf->bptr);
     /* rule has to be updated as a whole */
-    epicsMutexMustLock(pRequest->pPDUIIModule->lock);
-    for(loop=0;loop<N_USHORTS_MASK;loop++)
-    {
-	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].inclusionMask[loop] = pData[loop];
-	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].exclusionMask[loop] = pData[N_USHORTS_MASK+loop];
+    epicsMutexMustLock(pRequest->pPDUIIModule->lockRule);
+    for(loop=0;loop<N_USHORTS_MASK/2;loop++)
+    {/* mask[0] is ignored anyway */
+	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].inclusionMask[loop+1] =
+            pData[loop*2+1]<<16|pData[loop*2];
+	pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].exclusionMask[loop+1] =
+            pData[N_USHORTS_MASK+loop*2+1]<<16|pData[N_USHORTS_MASK+loop*2];
     }
     pRequest->pPDUIIModule->rules[pRequest->a][pRequest->extra].beamCode = pData[N_USHORTS_MASK*2];
-    epicsMutexUnlock(pRequest->pPDUIIModule->lock);
+    epicsMutexUnlock(pRequest->pPDUIIModule->lockRule);
 
     epicsTimeGetCurrent(&(pRequest->actTime));
     pRequest->errCode = PDUII_REQUEST_NO_ERR;

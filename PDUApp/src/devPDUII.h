@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.5 2010/04/11 22:51:14 pengs Exp $
+ *   $Id: devPDUII.h,v 1.6 2010/04/11 23:59:23 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -63,6 +63,9 @@
 
 #include "drvPSCDLib.h"
 
+#include "evrTime.h"
+#include "evrPattern.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -78,21 +81,25 @@ extern "C" {
 #define N_RULES_PER_CHNL	(8)	/* this is subject to change, but up to 32 since we use a F to indicate rule number */
 /******************************************************************************************/
 
-#define N_USHORTS_MASK	10
+#define N_USHORTS_MASK	10	/* This has to be (MAX_EVR_MODIFIER-1)*2 */
+#if 0	/* defined in evrTime.h */
+#define MAX_EVR_MODIFIER  6
+typedef epicsUInt32 evrModifier_ta[MAX_EVR_MODIFIER];
+#endif
+
 /* This structure defines a individual rule */
 typedef struct PDUII_RULE
 {
-    UINT16		inclusionMask[N_USHORTS_MASK];
-    UINT16		exclusionMask[N_USHORTS_MASK];
-    UINT16		beamCode;
+    evrModifier_ta	inclusionMask;
+    evrModifier_ta	exclusionMask;
+    unsigned long	beamCode;
     UINT32		pttDelay;
 } PDUII_RULE;
 
-#define PTT_ENTRY_UNKNOWN	0x80000000 /* Init value, mark as unknown when camgo failed */
-#define PTT_ENTRY_UPDATING	0x40000000 /* Mark as updating, when camgo returns, clear */
+#define PTT_ENTRY_UNKNOWN	0x80000000 /* For reset and init value, mark as unknown when camgo failed */
+#define PTT_ENTRY_RELOADING	0x40000000 /* For 360T, Mark as updating, when camgo returns, clear */
 
-#define CHNL_MODE_UNKNOWN	0x80000000 /* Init value, mark as unknown when camgo failed */
-#define CHNL_MODE_UPDATING	0x40000000 /* Mark as updating, when camgo returns, clear */
+#define CHNL_MODE_TRANSITING	0x80000000 /* Init value, mark as unknown when camgo failed */
 
 /* PDUII module,  b,c,n define a unique module */
 typedef struct PDUII_MODULE
@@ -105,7 +112,8 @@ typedef struct PDUII_MODULE
 
     epicsMessageQueueId		msgQId;	/* One Q per module */
     epicsThreadId               opTaskId;
-    epicsMutexId		lock;	/* lock the rules */
+    epicsMutexId		lockRule;/* lock the rules */
+    epicsMutexId		lockModule;/* lock the module and pttCache, for reset */
 
     PDUII_RULE			rules[N_CHNLS_PER_MODU][N_RULES_PER_CHNL];
 
