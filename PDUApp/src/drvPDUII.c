@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.4 2010/04/11 22:51:14 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.5 2010/04/11 23:59:08 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -24,11 +24,11 @@ int PDUII_DRV_DEBUG = 0;
 static ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
 
 #if 0
-#define LOCK epicsMutexMustLock(pPDUIIModule->lock)
-#define UNLOCK epicsMutexUnlock(pPDUIIModule->lock)
+#define LOCKMODULE epicsMutexMustLock(pPDUIIModule->lockModule)
+#define UNLOCKMODULE epicsMutexUnlock(pPDUIIModule->lockModule)
 #else
-#define LOCK 
-#define UNLOCK 
+#define LOCKMODULE 
+#define UNLOCKMODULE 
 #endif
 
 /*********************************************************************/
@@ -115,41 +115,28 @@ UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
             return (PDUII_CAM_INIT_FAIL|iss);
 
-        /* Each entry is independent, so no need to lock most of time */
-        /* Lock here is mostly for non-360Hz modification mutex */
-        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
-        /* So be conservetive, marking as unknown or updating asap will be good enough */
-        LOCK;
-        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
-        {
-            pPDUIIModule->pttCache[loop] = PTT_ENTRY_UPDATING|0xFFFFF;
-        }
-        UNLOCK;
+        /* 360Hz task will try lock to detect if module is going thru reset */
+        epicsMutexMustLock(pPDUIIModule->lockModule);
+
+        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++) pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN|0xFFFFF;
 
         /* F9A0 to reset, ignore-overwrite whatever a,f in record */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (9 << 16) | 0;
 	bcnt = 0;
         if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
-        {
-            LOCK;
-            for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
-            {
-                pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN|0xFFFFF;
-            }
-            UNLOCK;
+        {/* Reset failed, Leave all pttCache invalidated. Unlock module. */
+            epicsMutexUnlock(pPDUIIModule->lockModule); 
             errlogPrintf ("camio error 0x%08X for PDUII reset\n", (unsigned int) iss);
             return (PDUII_RST_CAMIO_FAIL|iss);
         }
+        else
+        {/* reset succeeded. Validated pttCache, Unlock module */
+            for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++) pPDUIIModule->pttCache[loop] = 0xFFFFF;
 
-        LOCK;
-        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
-        {
-            pPDUIIModule->pttCache[loop] = 0xFFFFF;
+            epicsMutexUnlock(pPDUIIModule->lockModule);
+	    epicsThreadSleep(1);
+            return 0;
         }
-        UNLOCK;
-	epicsThreadSleep(1);
-
-        return 0;
     }
     else
         return PDUII_MODULE_NOT_EXIST;
@@ -309,7 +296,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
             goto egress;
         }
 
-	/* Write PTTP with channel number, location field is 0 */
+	/* Write PTTP with channel number, location (PP/YY) field is 0 */
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = pPDUIIRequest->a << 8;
@@ -337,9 +324,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
-        LOCK;
-        pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = (((pPDUIIRequest->val)>>12) & 0x7);
-        UNLOCK;
+        pPDUIIModule->chnlMode[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
  
 release_campkg: 
 
@@ -418,26 +403,18 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        /* Each entry is independent, so no need to lock most of time */
-        /* Lock here is mostly for non-360Hz modification mutex */
+        /* Each entry is independent, and only one op thread per module, so no need to lock. */
         /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
-        /* So be conservetive, marking as unknown or updating asap will be good enough */
-        LOCK;
-        pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = PTT_ENTRY_UPDATING|(pPDUIIRequest->val & 0x7);
-        UNLOCK;
+        /* So be conservetive, marking as TRANSITING asap will be good enough */
+        pPDUIIModule->chnlMode[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
         if (!SUCCESS(iss = camgo (&pkg_p)))
-        {
-            LOCK;
-            pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0x7);
-            UNLOCK;
+        {/* Fail to set mode, leave as invalid */
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
-        {
-            LOCK;
-            pPDUIIModule->chnlMode[pPDUIIRequest->a << 8] = (pPDUIIRequest->val & 0x7);
-            UNLOCK;
+        {/* Succeed. Validate chnlMode */
+            pPDUIIModule->chnlMode[pPDUIIRequest->a] = (pPDUIIRequest->val & 0x7);
         }
 
 release_campkg: 
@@ -524,9 +501,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         else
         {
 	    pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
-            LOCK;
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = pPDUIIRequest->val;
-            UNLOCK;
         }
  
 release_campkg: 
@@ -606,27 +581,19 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        /* Each entry is independent, so no need to lock most of time */
-        /* Lock here is mostly for non-360Hz modification mutex */
+        /* Never modify 360T reloading channel here, and only one op thread per module, so no need to lock. */
         /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
-        /* So be conservetive, marking as unknown or updating asap will be good enough */
-        LOCK;
-        pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UPDATING|(pPDUIIRequest->val & 0xFFFFF);
-        UNLOCK;
+        /* So be conservetive, marking as UNKNOWN asap will be good enough */
+        pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0xFFFFF);
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
-        {
-            LOCK;
-            pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0xFFFFF);
-            UNLOCK;
+        {/* Failed, leave as invalid */
             errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
-        {
-            LOCK;
+        {/* Succeed, validate it */
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = (pPDUIIRequest->val & 0xFFFFF);
-            UNLOCK;
         }
 
 release_campkg: 
@@ -807,7 +774,8 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
         sprintf(opTaskName, "%d-%dPDUII", pPDUIIModule->c, pPDUIIModule->n);
         pPDUIIModule->opTaskId = epicsThreadMustCreate(opTaskName, epicsThreadPriorityMedium, 20480, (EPICSTHREADFUNC)PDUII_Operation, (void *)pPDUIIModule);
 
-        pPDUIIModule->lock = epicsMutexMustCreate();
+        pPDUIIModule->lockRule = epicsMutexMustCreate();
+        pPDUIIModule->lockModule = epicsMutexMustCreate();
 
         /* pPDUIIModule->rules, record autoSaveRestore will init it */
         /* pPDUIIModule->chnlMode, record autoSaveRestore will init it */
