@@ -21,6 +21,7 @@ PDU_SRCS += PDU_Fiducial.c
 #PDU_SRCS += PDU_F19.c
 PDU_SRCS += drvPDUII.c
 PDU_SRCS += devPDUII.c
+PDU_SRCS += PDUII_360Task.c
 
 PDU_LIBS += $(EPICS_BASE_IOC_LIBS)
 

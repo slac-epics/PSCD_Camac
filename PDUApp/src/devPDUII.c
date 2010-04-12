@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.3 2010/04/12 00:00:08 pengs Exp $
+ *   $Id: devPDUII.c,v 1.4 2010/04/12 15:29:01 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -77,9 +77,7 @@ static long init(int final)
 {
     /* We only do things at the final round since then the PDU module linked list is ready */
     if(!final) return 0;
-    epicsThreadSleep(3.0);
-
-    PDUII360TaskStart();
+    else PDUII360TaskStart();
     return 0;
 }
 
