@@ -1,4 +1,6 @@
 # provide definitions such as
+variable(PDUII_360T_DEBUG)
+
 device(bo,            CAMAC_IO,devBoPDUII,  "PDUII")
 device(longin,        CAMAC_IO,devLiPDUII,  "PDUII")
 device(longout,       CAMAC_IO,devLoPDUII,  "PDUII")
