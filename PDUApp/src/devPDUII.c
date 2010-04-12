@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.1 2010/03/23 06:45:34 pengs Exp $
+ *   $Id: devPDUII.c,v 1.2 2010/04/11 22:51:14 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -21,6 +21,8 @@ extern int PDUII_DRV_DEBUG;
 /******************************************************************************************/
 
 /* function prototypes */
+static long init(int pass);
+
 static long init_bo(struct boRecord *pbo);
 static long write_bo(struct boRecord *pbo);
 
@@ -53,7 +55,7 @@ typedef struct {
         DEVSUPFUN       special_linconv;
 } PDUII_DEV_SUP_SET;
 
-PDUII_DEV_SUP_SET devBoPDUII =  {6, NULL, NULL, init_bo, NULL, write_bo, NULL};
+PDUII_DEV_SUP_SET devBoPDUII =  {6, NULL, init, init_bo, NULL, write_bo, NULL};
 PDUII_DEV_SUP_SET devMiDPDUII = {6, NULL, NULL, init_mid, NULL, read_mid, NULL};
 PDUII_DEV_SUP_SET devMiPDUII = {6, NULL, NULL, init_mbbi, NULL, read_mbbi, NULL};
 PDUII_DEV_SUP_SET devMoPDUII = {6, NULL, NULL, init_mbbo, NULL, write_mbbo, NULL};
@@ -70,6 +72,16 @@ epicsExportAddress(dset, devLiPDUII);
 epicsExportAddress(dset, devLoPDUII);
 epicsExportAddress(dset, devWfPDUII);
 #endif
+
+static long init(int final)
+{
+    /* We only do things at the final round since then the PDU module linked list is ready */
+    if(!final) return 0;
+    epicsThreadSleep(3.0);
+
+    PDUII360TaskStart();
+    return 0;
+}
 
 /*******        bo record       ******/
 static long init_bo(struct boRecord * pbo)
