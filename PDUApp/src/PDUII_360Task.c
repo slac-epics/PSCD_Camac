@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.1 2010/04/12 15:50:17 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.2 2010/04/13 00:17:14 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -178,13 +178,38 @@ static int PDUIIFidu360Task(void * parg)
                 {
                     currentCrate = pPDUIIModule->c;
                     /* do F19 */
-                    /* broadcast to slot 31 */
-                    ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
-                    *((UINT16 *)(&(stat_data[totalPkts++].data))) = (beamCode1 << 8);
-                    ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
-                    *((UINT16 *)(&(stat_data[totalPkts++].data))) = (beamCode2 << 8);
-
+                    /* broadcast to slot 31 
+                       unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8;
+                       unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8 | CCTLW__A1; */
+                    if(infoNext1Ok)
+                    {
+                        ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
+                        *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode1 << 8)|(resetModulo36Cntr?0xff:0);
+                        bcnt = 2;
+                        if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                        {
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                            goto release_campkg;
+                        }
+                        totalPkts++;
+                        numPktsCurBranch++;
+                    }
+                    if(infoNext2Ok)
+                    {
+                        ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
+                        *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode2 << 8);
+                        bcnt = 2;
+                        if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                        {
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                            goto release_campkg;
+                        }
+                        totalPkts++;
+                        numPktsCurBranch++;
+                    }
                 }
+
+                /* Deal with each module, channels */
             }
 
 release_campkg:
