@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.6 2010/04/11 23:59:23 pengs Exp $
+ *   $Id: devPDUII.h,v 1.7 2010/04/12 15:29:01 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -221,6 +221,12 @@ typedef struct PDUII_REQUEST
 #define PDUII_CAM_ADD_FAIL	0xA0000000
 #define PDUII_CAM_GO_FAIL	0xB0000000
 #define PDUII_CAM_DEL_FAIL	0xC0000000
+
+typedef struct STAS_DAT
+{
+    UINT32 stat;
+    UINT32 data;
+} STAS_DAT;
 
 int PDUII360TaskStart();
 int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);

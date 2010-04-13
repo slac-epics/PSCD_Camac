@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.5 2010/04/11 23:59:08 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.6 2010/04/12 15:27:42 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -85,12 +85,6 @@ static PDUII_MODULE * findPDUIIModuleByBCN(short b, short c, short n)
                                 Packets Coming.
 
 #endif
-
-typedef struct STAS_DAT
-{
-    UINT32 stat;
-    UINT32 data;
-} STAS_DAT;
 
 /* This function tries to reset PDUII module */
 /* It will clean PTT to all 0xFFFFF and disable upper backplane and sequencer */
