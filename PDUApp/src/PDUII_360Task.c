@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.4 2010/04/17 01:39:44 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.5 2010/04/17 12:24:11 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -315,15 +315,18 @@ static int PDUIIFidu360Task(void * parg)
                 }/* Deal with each module */
             }/* go thru the linked list */
 
-            if (!SUCCESS(iss = camgo (&F19pkg_p)))
-            {/* Failed, leave as invalid */
-                errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
-            }
-            else
-            {/* Succeed, validate it */
-                int loop;
-                for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
-                    pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
+	    if(totalPkts > 0)
+            {
+                if (!SUCCESS(iss = camgo (&F19pkg_p)))
+                {/* Failed, leave as invalid */
+                    errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+                }
+                else
+                {/* Succeed, validate it */
+                    int loop;
+                    for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+                        pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
+                }
             }
 
 release_campkg:
