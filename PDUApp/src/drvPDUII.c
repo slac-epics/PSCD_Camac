@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.7 2010/04/13 00:17:14 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.8 2010/04/17 01:39:44 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -283,9 +283,9 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
         /** Allocate package for PDUII mode read */
-        if (!SUCCESS(iss = camalom (&nops, &pkg_p)))
+        if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalom error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -369,9 +369,9 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
         /** Allocate package for PDUII mode read */
-        if (!SUCCESS(iss = camalom (&nops, &pkg_p)))
+        if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalom error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -460,9 +460,9 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
         /** Allocate package for PDUII mode read */
-        if (!SUCCESS(iss = camalom (&nops, &pkg_p)))
+        if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalom error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -547,9 +547,9 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
         /** Allocate package for PDUII mode read */
-        if (!SUCCESS(iss = camalom (&nops, &pkg_p)))
+        if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalom error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
