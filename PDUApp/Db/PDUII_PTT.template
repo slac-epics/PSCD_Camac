@@ -1,4 +1,4 @@
-record(longin,"$(CHNLNAME):PTTGet") {
+record(longin,"$(PTTNAME):PTTGet") {
   field(DESC, "PDUII Get PTT")
   field(SCAN, "$(SCAN)")
   field(DTYP, "PDUII")
@@ -7,7 +7,7 @@ record(longin,"$(CHNLNAME):PTTGet") {
   field(LOPR, "0")
 }
 
-record(longout,"$(RULENAME):PTTSet") {
+record(longout,"$(PTTNAME):PTTSet") {
   field(DESC, "PDUII Set PTT")
   field(SCAN, "Passive")
   field(DTYP, "PDUII")

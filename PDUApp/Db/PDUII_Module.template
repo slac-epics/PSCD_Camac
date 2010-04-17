@@ -5,6 +5,17 @@ record(bo, "$(MODULENAME):Reset") {
   field(ZNAM, "Reset")
   field(ONAM, "Reset")
   field(PINI, "YES")
+  field(FLNK, "$(MODULENAME):Fanout")
+}
+
+record(fanout, "$(MODULENAME):Fanout") {
+  field(DESC, "Fanout")
+  field(SCAN, "Passive")
+  field(SELM, "All")
+  field(LNK1, "$(MODULENAME):EnbBpln")
+  field(LNK2, "$(MODULENAME):EnbSeqr")
+  field(SELN, "")
+  field(PINI, "NO")
 }
 
 record(bo, "$(MODULENAME):EnbBpln") {
