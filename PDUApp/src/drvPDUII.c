@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.8 2010/04/17 01:39:44 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.9 2010/04/17 12:04:13 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -21,7 +21,7 @@ extern struct PSCD_CARD pscd_card;
 int PDUII_DRV_DEBUG = 0;
 
 /* We only support one PSCD per IOC */
-static ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
+ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
 
 #if 0
 #define LOCKMODULE epicsMutexMustLock(pPDUIIModule->lockModule)
@@ -611,8 +611,6 @@ static int PDUII_Operation(void * parg)
     int     msgQstatus;
     UINT32  errCode;
 
-    epicsTimeStamp currentTime;
-
     PDUII_REQUEST  *pPDUIIRequest;
     PDUII_MODULE * pPDUIIModule = (PDUII_MODULE *) parg;
 
@@ -709,9 +707,8 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
     PDUII_MODULE * pPDUIIModule = NULL;
     PDUII_MODULE * pPDUIIModuleTmp = NULL;
     UINT32	PDUIIPos;	/* used to sort linked list, PDUIIPos = B<<9 | C<<5 | N */
-    int         funcflag = 0, loop;
+    int         funcflag = 0;
     int 	extra = 0;
-    UINT32	errCode;
     int		loop, loopch, looprule;
 
     PDUII_REQUEST * pPDUIIRequest = NULL;
@@ -775,14 +772,13 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
         /* pPDUIIModule->rules, record autoSaveRestore will init it, by default, we have to disable all */
         for(loopch=0; loopch<N_CHNLS_PER_MODU; loopch++)
             for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
-        {
-            int i;
-            for(i=0; i<MAX_EVR_MODIFIER; i++)
-            (
-                pPDUIIModule->rules[loopch][looprule].inclusionMask[i]=0xFFFFFFFF;
-                pPDUIIModule->rules[loopch][looprule].exclusionMask[i]=0xFFFFFFFF;
-            )
-            pPDUIIModule->rules[loopch][looprule].beamCode=0x255;
+	{
+            for(loop=0; loop<MAX_EVR_MODIFIER; loop++)
+	    {
+                pPDUIIModule->rules[loopch][looprule].inclusionMask[loop]=0xFFFFFFFF;
+                pPDUIIModule->rules[loopch][looprule].exclusionMask[loop]=0xFFFFFFFF;
+	    }
+            pPDUIIModule->rules[loopch][looprule].beamCode=0xFF;
             pPDUIIModule->rules[loopch][looprule].pttDelay=0xFFFFF;
         }
 

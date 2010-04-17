@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.3 2010/04/13 00:32:59 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.4 2010/04/17 01:39:44 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -15,17 +15,13 @@
 /* TODO, check X and Q, cctlwmasks.h:#define MBCD_STAT__Q     0x000010000 */
 /* TODO, keep tracking number of errors */
 
-    static unsigned int tsmod360 = 0; /* TODO */
-
-    /* TODO, when to install EVR callback? */
-
-
 #include "drvPSCDLib.h"
 #include "devPDUII.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
 
 extern struct PSCD_CARD pscd_card;
+extern ELLLIST PDUIIModuleList;
 
 int PDUII_360T_DEBUG = 0;
 epicsExportAddress(int, PDUII_360T_DEBUG);
@@ -73,15 +69,13 @@ static void EVRFidu360(void *parg)
 
 static int PDUIIFidu360Task(void * parg)
 {
-    int		rtncode;
-
     /* Create event and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
 
     epicsThreadSleep(20.0); /* Wait for all save restore to finish */
 
     /* Register EVRFidu360 */
-    evrTimeRegister((REGISTRYFUNCTION)EVRFidu360, NULL);
+    evrTimeRegister((FIDUCIALFUNCTION)EVRFidu360, NULL);
 
     while(TRUE)
     {
@@ -129,8 +123,6 @@ static int PDUIIFidu360Task(void * parg)
             int currentCrate = -1;
             int totalPkts = 0;
             int numPktsCurBranch = 0;
-
-            UINT32 pttDelayNew;
 
             int	loopch, looprule;
 
@@ -184,7 +176,7 @@ static int PDUIIFidu360Task(void * parg)
                     /* broadcast to slot 31 
                        unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8;
                        unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8 | CCTLW__A1; */
-                    if(infoNext1Ok)
+                    if(infoNext1OK)
                     {/* Do F19A8 */
                         if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
                         {
@@ -205,7 +197,7 @@ static int PDUIIFidu360Task(void * parg)
                         }
                     }
 
-                    if(infoNext2Ok)
+                    if(infoNext2OK)
                     {/* Do F19A9 */
                         if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
                         {
@@ -241,7 +233,7 @@ static int PDUIIFidu360Task(void * parg)
                         int matched = 0;
 
                         /* If MODE PP0, match infoNext1 */
-                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP0 && infoNext1Ok)
+                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP0 && infoNext1OK)
                         {
                             pttLocation = beamCode1;
 
@@ -262,7 +254,7 @@ static int PDUIIFidu360Task(void * parg)
                         }
 
                         /* If MODE PP1, match infoNext2 */
-                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP1 && infoNext2Ok)
+                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP1 && infoNext2OK)
                         {
                             pttLocation = beamCode2;
                             for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
@@ -323,7 +315,7 @@ static int PDUIIFidu360Task(void * parg)
                 }/* Deal with each module */
             }/* go thru the linked list */
 
-            if (!SUCCESS(iss = camgo (&pkg_p)))
+            if (!SUCCESS(iss = camgo (&F19pkg_p)))
             {/* Failed, leave as invalid */
                 errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
             }

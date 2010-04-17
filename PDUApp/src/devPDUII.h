@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.8 2010/04/13 00:17:14 pengs Exp $
+ *   $Id: devPDUII.h,v 1.9 2010/04/17 01:39:44 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -77,8 +77,8 @@ extern "C" {
 #define NO_CONVERT              (2)
 #define MAX_FUNC_STRING_LEN	(40)
 
-#define N_CHNLS_PER_MODU	(16)
-#define N_RULES_PER_CHNL	(8)	/* this is subject to change, but up to 32 since we use a F to indicate rule number */
+#define N_CHNLS_PER_MODU	16
+#define N_RULES_PER_CHNL	8	/* this is subject to change, but up to 32 since we use a F to indicate rule number */
 /******************************************************************************************/
 
 #define N_USHORTS_MASK	10	/* This has to be (MAX_EVR_MODIFIER-1)*2 */
