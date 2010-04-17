@@ -1,3 +1,4 @@
+# Reset has to fanout to EnbBpln, EnbSeqr and Mode and PTT
 record(bo, "$(MODULENAME):Reset") {
   field(DESC, "PDUII Reset")
   field(DTYP, "PDUII")
