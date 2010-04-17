@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDU_Fiducial.c,v 1.4 2009/11/11 01:02:31 pengs Exp $
+ **   $Id: PDU_Fiducial.c,v 1.1 2010/01/13 05:58:28 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -19,13 +19,12 @@
 #include "devPDU.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
+#include "cctlwmasks.h"
 
 #include "evrTime.h"
 #include "evrPattern.h"
 
-extern struct PSCD_CARD pscd_card;
-
-int PDU_F19_CRATE = 5;
+int PDU_F19_CRATE = 2;
 epicsExportAddress(int, PDU_F19_CRATE);
 
 int PDU_F19_DEBUG = 0;
@@ -37,60 +36,138 @@ static int PDUFiducialTask(void * parg);
 
 static epicsEventId EVRFiducialEvent = NULL;
 
+/*
+** externs for PDU_F19
+*/
+int TSmod360;
+void *F19pkg_p;
+
+typedef struct
+{
+    UINT32 stat;
+    UINT16 data;
+} STAT_DATA;
+
+STAT_DATA stat_data_f19[2]; /* Status/data for F19A8 and F19A9 */
+
+int Errs = 0;                   /* Print no more than MAXERRS */
+int Msgs = 0;
+#define MAXERRS 0
+#define MAXMSGS 0
+int Err1 = 0;   /* Next1 errors */
+int Err2 = 0;   /* Next2 errors */
+int Fids = 0;   /* Total Fiducials */
+int Cams = 0;   /* Camac pkgs sent */
+int Errc = 0;   /* Camac errors */
+
 int EVRFiducialStart()
 {/* This funciton will be called in st.cmd after iocInit() */
-
+    UINT16 nops = 2;
+    UINT16 bcnt = 2;
+    unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
+                               CCTLW__F19 | CCTLW__A8;
+    unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
+                               CCTLW__F19 | CCTLW__A8 | CCTLW__A1;
+    UINT16 emask= 0xE0E0;
+    vmsstat_t iss;
+    /*-------------------------------*/
     /* Create event and register with EVR */
     EVRFiducialEvent = epicsEventMustCreate(epicsEventEmpty);
-
+    TSmod360 = 0;
     /* scanIoInit(&ioscan); */
-
+    /*
+    ** Create/Init Camac package
+    */
+    if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
+    {
+        errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+        goto egress;
+    }
+    if (!SUCCESS(iss = camadd (&ctlwF19A8, &stat_data_f19[0], &bcnt, &emask, &F19pkg_p)))
+    {
+        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+        goto release_campkg;
+    }
+    if (!SUCCESS(iss = camadd (&ctlwF19A9, &stat_data_f19[1], &bcnt, &emask, &F19pkg_p)))
+    {
+        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+        goto release_campkg;
+    }
     /* need RTEMS native call to set higher priority */
-    return (int)(epicsThreadMustCreate("PDUFiducial", epicsThreadPriorityMax, 20480, (EPICSTHREADFUNC)PDUFiducialTask, NULL));
+    return (int)(epicsThreadMustCreate("PDUFiducial", epicsThreadPriorityHigh+1, 20480, 
+                                       (EPICSTHREADFUNC)PDUFiducialTask, NULL));
+release_campkg:
+    camdel(&F19pkg_p);
+egress:
+    return (0);
 }
 
 void EVRFiducial(void)
 {/* This funciton will be registered with EVR callback */
 
-    /* get the current pattern data - check for good status */
+    /* get the pattern data for the next 2 time slots - check for good status */
     evrModifier_ta modifier_a;
     epicsTimeStamp time_s;
     unsigned long  patternStatus; /* see evrPattern.h for values */
-
-    int status = evrTimeGetFromPipeline(&time_s,  evrTimeCurrent, modifier_a, &patternStatus, 0,0,0);
-
-    /* This is 120Hz. So printf will screw timing */
+    int pipestatus;
+    /*-------------------------------------*/
+    if ( ((Fids % 28800) == 0) && Msgs < MAXMSGS)  /* Print stats every 80 seconds */
+    {
+       printk ("Evr Stats: Fiducials %d Cam pkgs %d Cam errs %d\n",
+                Fids, Cams, Errc);
+       Msgs++;
+    }
+    Fids++;
+    pipestatus = evrTimeGetFromPipeline(&time_s,  evrTimeNext1, modifier_a, 
+					&patternStatus, 0,0,0);
+    if (pipestatus || patternStatus)
+    {
+       Err1++;
+       if (Errs < MAXERRS)
+       {
+	  printk ("Err %x pipeline next1 time patternStatus %x\n",pipestatus, patternStatus);
+          Errs++;
+          goto egress;
+       }
+    }
+    stat_data_f19[0].data = (BEAMCODE(modifier_a) << 8);
+    pipestatus = evrTimeGetFromPipeline(&time_s,  evrTimeNext2, modifier_a, &patternStatus, 
+                                        0,0,0);
+    if (pipestatus || patternStatus)
+    {
+       Err2++;
+       if (Errs < MAXERRS)
+       {
+	  printk ("Err %x pipeline next2 time patternStatus %x\n",pipestatus, patternStatus);
+          Errs++;
+          goto egress;
+       }
+    }
+    stat_data_f19[1].data = (BEAMCODE(modifier_a) << 8);
+    /**********
+    if (Msgs < MAXMSGS)
+    {
+       printk ("Beamcode A8 %x A9 %x\n",stat_data_f19[0].data, stat_data_f19[1].data);
+       Msgs++;
+    }
+    **********/
+    /* This is 360Hz. So printf will screw timing */
     if(PDU_F19_DEBUG >= 3) printk("Got fiducial\n");
     /* post event/release sema to wakeup worker task here */
     if(EVRFiducialEvent) epicsEventSignal(EVRFiducialEvent);
+egress:
     return;
 }
-
-#ifndef vxWorks
-static void binvert(char * pBuf, int nBytes)
-{
-        int loop;
-        char temp;
-        for(loop=0;loop<nBytes/2;loop++)
-        {
-                temp = pBuf[loop];
-                pBuf[loop] = pBuf[nBytes-1-loop];
-                pBuf[nBytes-1-loop] = temp;
-        }
-        return;
-}
-#endif
-
 
 int PDU_F19(unsigned int crate, unsigned int PP0, unsigned int PP1);
 static int PDUFiducialTask(void * parg)
 {
-    int		loop;
-    int		rtncode;
-
+    vmsstat_t iss;
+    int nowait = 0;
+    void * dum = NULL;
     /* Register EVRFiducial */
-    evrTimeRegister((REGISTRYFUNCTION)EVRFiducial);
-
+    printf ("In PDU_F19\n");
+    evrTimeRegister((FIDUCIALFUNCTION)EVRFiducial, dum);
     while(TRUE)
     {
         int status;
@@ -112,10 +189,30 @@ static int PDUFiducialTask(void * parg)
         else
         {
             /* do F19 */
+          camgo_get_data(&F19pkg_p);
+          if (stat_data_f19[0].stat != 0x2fd30000)
+	  {
+	      Errc++;
+              if (Errc < MAXERRS)
+              {
+                  printk ("Previous camgo_start_pscd statii %x %x\n",stat_data_f19[0].stat, 
+                          stat_data_f19[1].stat);
+              }
+	  }
+	  iss = camgo_start_pscd(&F19pkg_p, nowait);
+          Cams++;
+	   /*****************
             if(PDU_F19_CRATE)
-                PDU_F19(PDU_F19_CRATE, 1, 0);
-            if(PDU_F19_DEBUG>=2) printf("Send F19\n");
-
+	    {
+	       if ((TSmod360 % 36) == 0)
+                  PDU_F19(PDU_F19_CRATE, 10, 0);
+               else
+                  PDU_F19(PDU_F19_CRATE, 0, 0); 
+	    }            
+            if(PDU_F19_DEBUG>=2) printk("Send F19\n");
+	   **************/
+	    if (TSmod360++ == 359)
+	       TSmod360 = 0;
             /* scanIoRequest(ioscan); */
         }
     }

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PDU_F19.c,v 1.3 2009/04/09 21:56:04 pengs Exp $
+ *   $Id: PDU_F19.c,v 1.1 2010/01/13 05:58:28 pengs Exp $
  *   File:		PDUF19.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -53,13 +53,8 @@
 
 #endif
 
-extern struct PSCD_CARD pscd_card;
+extern int TSmod360;
 
-typedef struct STAS_DAT
-{
-    UINT32 stat;
-    UINT32 data;
-} STAS_DAT;
 
 int PDU_F19(unsigned int crate, unsigned int PP0, unsigned int PP1)
 {
@@ -69,63 +64,12 @@ int PDU_F19(unsigned int crate, unsigned int PP0, unsigned int PP1)
     /* check if module exists */
     if(TRUE)
     {
-        void *pkg_p;  /* A camac package */
         vmsstat_t iss;
-        UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
-
-        /* broadcast to crate 31 */
-        UINT32 ctlwF19A8 = 0x00130F88|(crate<<12);
-        UINT32 ctlwF19A9 = 0x00130F89|(crate<<12);
-
-        STAS_DAT pdu_f19[2];	/* only send F19A8 and F19A9 */
-        UINT16 nops = 0;
-
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = iss;
-            goto egress;
-        }
-	else
-	{
-#if 0
-	    /* camio to do it */
-	    bcnt = 2;
-            *((UINT16 *)(&(pdu_f19[0].data))) = (PP0 << 8);
-            if (!SUCCESS(iss = camio (&ctlwF19A8, &(pdu_f19[0].data), &bcnt, &(pdu_f19[0].stat), &emask)))
-            {
-                errlogPrintf ("camio error 0x%08X for PDU F19A8\n", (unsigned int) iss);
-                return iss;
-            }
-#else
-            nops = 2;
- 
-            /** Allocate package for F19 */
-            if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
-            {
-                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
-                rtn = iss;
-                goto egress;
-            }
 
             *((UINT16 *)(&(pdu_f19[0].data))) = (PP0 << 8);
-	    bcnt = 2;
-            if (!SUCCESS(iss = camadd (&ctlwF19A8, &pdu_f19[0], &bcnt, &emask, &pkg_p)))
-            {
-                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-                rtn = iss;
-                goto release_campkg;
-            }
+	    
 
             *((UINT16 *)(&(pdu_f19[1].data))) = (PP1 << 8);
-	    bcnt = 2;
-            if (!SUCCESS(iss = camadd (&ctlwF19A9, &pdu_f19[1], &bcnt, &emask, &pkg_p)))
-            {
-                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-                rtn = iss;
-                goto release_campkg;
-            }
 
             if (!SUCCESS(iss = camgo (&pkg_p)))
             {
@@ -134,11 +78,6 @@ int PDU_F19(unsigned int crate, unsigned int PP0, unsigned int PP1)
                 goto release_campkg;
             }
 
-release_campkg: 
-
-            if (!SUCCESS(iss = camdel (&pkg_p)))
-                errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
-#endif
         }
     }
     else
