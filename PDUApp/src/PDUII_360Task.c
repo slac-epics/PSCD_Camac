@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.2 2010/04/13 00:17:14 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.3 2010/04/13 00:32:59 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -73,7 +73,6 @@ static void EVRFidu360(void *parg)
 
 static int PDUIIFidu360Task(void * parg)
 {
-    int		loop;
     int		rtncode;
 
     /* Create event and register with EVR */
@@ -131,6 +130,10 @@ static int PDUIIFidu360Task(void * parg)
             int totalPkts = 0;
             int numPktsCurBranch = 0;
 
+            UINT32 pttDelayNew;
+
+            int	loopch, looprule;
+
             /* Read pipeline for info for next pulse and the one after */
             status[1] = evrTimeGetFromPipeline(&time_s[1],  evrTimeNext1, modifier_a[1], &patternStatus[1], 0,0,0);
             status[2] = evrTimeGetFromPipeline(&time_s[2],  evrTimeNext2, modifier_a[2], &patternStatus[2], 0,0,0);
@@ -158,7 +161,7 @@ static int PDUIIFidu360Task(void * parg)
             else
             {/* Get at least good info for one pulse */
                 if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
-                {
+                {/* Allocate max possible slots */
                     if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error 0x%08X\n",(unsigned int) iss);
                     continue;
                 }
@@ -168,48 +171,167 @@ static int PDUIIFidu360Task(void * parg)
             for( pPDUIIModule = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModule; pPDUIIModule = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModule) )
             {/* The linked list is sorted b,c,n */
                 if(pPDUIIModule->b != currentBranch)
-                {
+                {/* Catch branch change */
                     currentBranch = pPDUIIModule->b;
                     numPktsCurBranch = 0; /* start new branch, reset the counter for pkt per branch */
                     currentCrate = -1; /* ensure we will start a new crate */
-                }
+                }/* Catch branch change */
 
                 if(pPDUIIModule->c != currentCrate)
-                {
+                {/* Catch module change to broadcast F19 */
                     currentCrate = pPDUIIModule->c;
                     /* do F19 */
                     /* broadcast to slot 31 
                        unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8;
                        unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8 | CCTLW__A1; */
                     if(infoNext1Ok)
-                    {
-                        ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
-                        *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode1 << 8)|(resetModulo36Cntr?0xff:0);
-                        bcnt = 2;
-                        if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                    {/* Do F19A8 */
+                        if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
                         {
-                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-                            goto release_campkg;
+                            pPDUIIModule->errorCount++;
                         }
-                        totalPkts++;
-                        numPktsCurBranch++;
-                    }
-                    if(infoNext2Ok)
-                    {
-                        ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
-                        *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode2 << 8);
-                        bcnt = 2;
-                        if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                        else
                         {
-                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
-                            goto release_campkg;
+                            ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
+                            *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode1 << 8)|(resetModulo36Cntr?0xff:0);
+                            bcnt = 2;
+                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            {
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                goto release_campkg;
+                            }
+                            totalPkts++;
+                            numPktsCurBranch++;
                         }
-                        totalPkts++;
-                        numPktsCurBranch++;
                     }
-                }
 
-                /* Deal with each module, channels */
+                    if(infoNext2Ok)
+                    {/* Do F19A9 */
+                        if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
+                        {
+                            pPDUIIModule->errorCount++;
+                        }
+                        else
+                        {
+                            ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
+                            *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode2 << 8);
+                            bcnt = 2;
+                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            {
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                goto release_campkg;
+                            }
+                            totalPkts++;
+                            numPktsCurBranch++;
+                        }
+                    }
+                }/* Catch module change to broadcast F19 */
+
+                /* Start to reload this module */
+                if(epicsMutexLockOK != epicsMutexTryLock(pPDUIIModule->lockModule))
+                {/* someone is resetting this module */
+                    continue; /* next module */
+                }
+                else
+                {/* Deal with each module */
+                    for(loopch=0; loopch<N_CHNLS_PER_MODU; loopch++)
+                    {/* Check each channel */
+                        UINT32 pttDelayNew = 0xFFFFF; /*default is disable, user can enforce Rule 7 always match to give default */
+                        unsigned long pttLocation = 256;
+                        int matched = 0;
+
+                        /* If MODE PP0, match infoNext1 */
+                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP0 && infoNext1Ok)
+                        {
+                            pttLocation = beamCode1;
+
+                            for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
+                            {
+                                epicsMutexMustLock(pPDUIIModule->lockRule);
+                                matched = evrPatternCheck(pPDUIIModule->rules[loopch][looprule].beamCode, 0 /* any TS */,
+                                              pPDUIIModule->rules[loopch][looprule].inclusionMask,
+                                              pPDUIIModule->rules[loopch][looprule].exclusionMask,
+                                              modifier_a[1]);
+                                epicsMutexUnlock(pPDUIIModule->lockRule);
+                                if(matched)
+                                {
+                                    pttDelayNew =  pPDUIIModule->rules[loopch][looprule].pttDelay;
+                                    continue; /* stop matching */
+                                }
+                            }
+                        }
+
+                        /* If MODE PP1, match infoNext2 */
+                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP1 && infoNext2Ok)
+                        {
+                            pttLocation = beamCode2;
+                            for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
+                            {
+                                epicsMutexMustLock(pPDUIIModule->lockRule);
+                                matched = evrPatternCheck(pPDUIIModule->rules[loopch][looprule].beamCode, 0 /* any TS */,
+                                              pPDUIIModule->rules[loopch][looprule].inclusionMask,
+                                              pPDUIIModule->rules[loopch][looprule].exclusionMask,
+                                              modifier_a[2]);
+                                epicsMutexUnlock(pPDUIIModule->lockRule);
+                                if(matched)
+                                {
+                                    pttDelayNew =  pPDUIIModule->rules[loopch][looprule].pttDelay;
+                                    continue; /* stop matching */
+                                }
+                            }
+                        }
+
+                        /* reloading, now pttDelayNew carries eithre matched one or default */
+                        /* pttLocation < 256 means info OK, if info is not ok, we don't reload */
+                        if(pttLocation < 256 && pttDelayNew != pPDUIIModule->pttCache[loopch*256+pttLocation])
+                        {
+                            if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
+                            {/* we need two packets here, but size control does not have to be exact */
+                                pPDUIIModule->errorCount++;
+                                continue; /* next module */
+                            }
+
+                            ctlword[totalPkts] = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
+                            bcnt = 2;
+                            *((UINT16 *)(&(stat_data[totalPkts].data))) = (loopch << 8) | (pttLocation & 0xFF);
+                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            {
+                                epicsMutexUnlock(pPDUIIModule->lockModule);
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                goto release_campkg;
+                            }
+                            totalPkts++;
+                            numPktsCurBranch++;
+
+                            ctlword[totalPkts] = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
+                            bcnt = 4;
+                            stat_data[totalPkts].data = pttDelayNew & 0xFFFFF;
+                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            {
+                                epicsMutexUnlock(pPDUIIModule->lockModule);
+                                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                goto release_campkg;
+                            }
+                            totalPkts++;
+                            numPktsCurBranch++;
+
+                            /* Invalid it during reloading */
+                            pPDUIIModule->pttCache[loopch*256+pttLocation] = pttDelayNew|PTT_ENTRY_RELOADING;
+                        }
+                    }/* Deal with each channel */
+                    epicsMutexUnlock(pPDUIIModule->lockModule);
+                }/* Deal with each module */
+            }/* go thru the linked list */
+
+            if (!SUCCESS(iss = camgo (&pkg_p)))
+            {/* Failed, leave as invalid */
+                errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            }
+            else
+            {/* Succeed, validate it */
+                int loop;
+                for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+                    pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
             }
 
 release_campkg:

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.6 2010/04/12 15:27:42 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.7 2010/04/13 00:17:14 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -712,6 +712,7 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
     int         funcflag = 0, loop;
     int 	extra = 0;
     UINT32	errCode;
+    int		loop, loopch, looprule;
 
     PDUII_REQUEST * pPDUIIRequest = NULL;
 
@@ -771,7 +772,20 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
         pPDUIIModule->lockRule = epicsMutexMustCreate();
         pPDUIIModule->lockModule = epicsMutexMustCreate();
 
-        /* pPDUIIModule->rules, record autoSaveRestore will init it */
+        /* pPDUIIModule->rules, record autoSaveRestore will init it, by default, we have to disable all */
+        for(loopch=0; loopch<N_CHNLS_PER_MODU; loopch++)
+            for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
+        {
+            int i;
+            for(i=0; i<MAX_EVR_MODIFIER; i++)
+            (
+                pPDUIIModule->rules[loopch][looprule].inclusionMask[i]=0xFFFFFFFF;
+                pPDUIIModule->rules[loopch][looprule].exclusionMask[i]=0xFFFFFFFF;
+            )
+            pPDUIIModule->rules[loopch][looprule].beamCode=0x255;
+            pPDUIIModule->rules[loopch][looprule].pttDelay=0xFFFFF;
+        }
+
         /* pPDUIIModule->chnlMode, record autoSaveRestore will init it */
         for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
         {

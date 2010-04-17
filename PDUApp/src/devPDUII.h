@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.7 2010/04/12 15:29:01 pengs Exp $
+ *   $Id: devPDUII.h,v 1.8 2010/04/13 00:17:14 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -100,6 +100,15 @@ typedef struct PDUII_RULE
 #define PTT_ENTRY_RELOADING	0x40000000 /* For 360T, Mark as updating, when camgo returns, clear */
 
 #define CHNL_MODE_TRANSITING	0x80000000 /* Init value, mark as unknown when camgo failed */
+
+#define CHNL_MODE_YY0	0
+#define CHNL_MODE_PP0	1
+#define CHNL_MODE_YY1	2
+#define CHNL_MODE_PP1	3
+#define CHNL_MODE_YY2	4
+#define CHNL_MODE_PP2	5
+#define CHNL_MODE_M36	6
+#define CHNL_MODE_RUSE	7
 
 /* PDUII module,  b,c,n define a unique module */
 typedef struct PDUII_MODULE
