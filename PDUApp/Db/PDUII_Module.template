@@ -41,7 +41,7 @@ record(mbbiDirect, "$(MODULENAME):BRDSTS") {
   field(SCAN, "$(SCAN)")
   field(DTYP, "PDUII")
   field(INP,  "#B0 C$(CRATE) N$(SLOT) A2 F2@STATUS")
-  field(NBOT, "8")
+  field(NOBT, "8")
 }
 
 

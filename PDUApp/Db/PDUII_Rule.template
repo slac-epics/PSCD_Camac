@@ -2,7 +2,7 @@ record(waveform,"$(RULENAME):Rule") {
   field(DESC,"Rule")
   field(SCAN, "Passive")
   field(DTYP,"PDUII")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F0@RULE$(RL)")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F0@RULE$(RL)")
   field(FTVL,"USHORT")
   field(NELM,"21")
   field(EGU,"tick")
