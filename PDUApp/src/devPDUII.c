@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.4 2010/04/12 15:29:01 pengs Exp $
+ *   $Id: devPDUII.c,v 1.5 2010/04/12 15:50:17 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -311,7 +311,7 @@ static long read_mbbi(struct mbbiRecord *pmbbi)
 static long init_mbbo(struct mbboRecord * pmbbo)
 {
     int status;
-    PDUII_REQUEST  *pRequest;
+    /*PDUII_REQUEST  *pRequest;*/
 
     if(pmbbo->out.type!=CAMAC_IO)
     {
@@ -466,7 +466,7 @@ static long read_li(struct longinRecord *pli)
 static long init_lo(struct longoutRecord * plo)
 {
     int status;
-    PDUII_REQUEST  *pRequest;
+    /*PDUII_REQUEST  *pRequest;*/
 
     if(plo->out.type!=CAMAC_IO)
     {
@@ -552,7 +552,7 @@ static long write_lo(struct longoutRecord *plo)
 static long init_wf(struct waveformRecord * pwf)
 {
     int status;
-    PDUII_REQUEST  *pRequest;
+    /*PDUII_REQUEST  *pRequest;*/
 
     if(pwf->inp.type!=CAMAC_IO)
     {
