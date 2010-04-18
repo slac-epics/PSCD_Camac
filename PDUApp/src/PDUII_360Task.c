@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.5 2010/04/17 12:24:11 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.6 2010/04/17 16:01:38 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -19,6 +19,7 @@
 #include "devPDUII.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
+#include "cctlwmasks.h"
 
 extern struct PSCD_CARD pscd_card;
 extern ELLLIST PDUIIModuleList;
@@ -187,6 +188,7 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode1 << 8)|(resetModulo36Cntr?0xff:0);
                             bcnt = 2;
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A8 for module[C%d,N%d]\n", pPDUIIModule->c, pPDUIIModule->n);
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
@@ -208,6 +210,7 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode2 << 8);
                             bcnt = 2;
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A9 for module[C%d,N%d]\n", pPDUIIModule->c, pPDUIIModule->n);
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
@@ -248,6 +251,7 @@ static int PDUIIFidu360Task(void * parg)
                                 if(matched)
                                 {
                                     pttDelayNew =  pPDUIIModule->rules[loopch][looprule].pttDelay;
+                                    if(PDUII_360T_DEBUG >= 1) errlogPrintf("Matched rule[%d] module[C%d,N%d],Channel[%d]\n", looprule, pPDUIIModule->c, pPDUIIModule->n,loopch);
                                     continue; /* stop matching */
                                 }
                             }
@@ -268,6 +272,7 @@ static int PDUIIFidu360Task(void * parg)
                                 if(matched)
                                 {
                                     pttDelayNew =  pPDUIIModule->rules[loopch][looprule].pttDelay;
+                                    if(PDUII_360T_DEBUG >= 1) errlogPrintf("Matched rule[%d] module[C%d,N%d],Channel[%d]\n", looprule, pPDUIIModule->c, pPDUIIModule->n,loopch);
                                     continue; /* stop matching */
                                 }
                             }
@@ -286,6 +291,7 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
                             bcnt = 2;
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (loopch << 8) | (pttLocation & 0xFF);
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("PTTP 0x%08X\n", (loopch << 8) | (pttLocation & 0xFF));
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
@@ -295,7 +301,7 @@ static int PDUIIFidu360Task(void * parg)
                             totalPkts++;
                             numPktsCurBranch++;
 
-                            ctlword[totalPkts] = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
+                            ctlword[totalPkts] = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
                             bcnt = 4;
                             stat_data[totalPkts].data = pttDelayNew & 0xFFFFF;
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.9 2010/04/17 12:04:13 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.10 2010/04/17 12:28:00 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -15,6 +15,7 @@
 #include "devPDUII.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
+#include "cctlwmasks.h"
 
 extern struct PSCD_CARD pscd_card;
 
@@ -471,6 +472,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
+        if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
@@ -478,7 +480,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        ctlwF0A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
+        ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
         bcnt = 4;
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
@@ -558,6 +560,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
+        if(PDUII_DRV_DEBUG) printf("Set PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
@@ -565,7 +568,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        ctlwF16A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
+        ctlwF16A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
         bcnt = 4;
         write_pduii[1].data = pPDUIIRequest->val & 0xFFFFF;
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF16A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
