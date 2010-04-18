@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.6 2010/04/17 16:01:38 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.7 2010/04/18 18:28:07 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -291,7 +291,7 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
                             bcnt = 2;
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (loopch << 8) | (pttLocation & 0xFF);
-                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("PTTP 0x%08X\n", (loopch << 8) | (pttLocation & 0xFF));
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("PTTP 0x%08lX\n", (loopch << 8) | (pttLocation & 0xFF));
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
