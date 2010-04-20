@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PDUIITest_F19.c,v 1.3 2010/04/20 12:18:40 pengs Exp $
+ *   $Id: PDUIITest_F19.c,v 1.4 2010/04/20 12:19:51 pengs Exp $
  *   File:		PDUF19.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -100,7 +100,7 @@ int PDUII_Test_F19(unsigned int crate, unsigned int PP0, unsigned int PP1)
             nops = 2;
  
             /** Allocate package for F19 */
-            if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
+            if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
             {
                 errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
                 rtn = iss;
