@@ -18,7 +18,11 @@ DBD += PDUII.dbd
 
 # specify all source files to be compiled and added to the library
 PDU_SRCS += PDU_Fiducial.c
-#PDU_SRCS += PDU_F19.c
+PDU_SRCS += PDU_F19.c
+
+PDU_SRCS += PDUIITest_Fiducial.c
+PDU_SRCS += PDUIITest_F19.c
+
 PDU_SRCS += drvPDUII.c
 PDU_SRCS += devPDUII.c
 PDU_SRCS += PDUII_360Task.c
