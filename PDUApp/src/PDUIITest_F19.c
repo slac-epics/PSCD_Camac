@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PDUIITest_F19.c,v 1.2 2010/04/20 12:12:36 pengs Exp $
+ *   $Id: PDUIITest_F19.c,v 1.3 2010/04/20 12:18:40 pengs Exp $
  *   File:		PDUF19.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -54,12 +54,6 @@
 #endif
 
 extern struct PSCD_CARD pscd_card;
-
-typedef struct STAS_DAT
-{
-    UINT32 stat;
-    UINT32 data;
-} STAS_DAT;
 
 int PDUII_Test_F19(unsigned int crate, unsigned int PP0, unsigned int PP1)
 {
