@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.7 2010/04/18 18:28:07 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.8 2010/04/18 18:29:19 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -27,7 +27,7 @@ extern ELLLIST PDUIIModuleList;
 int PDUII_360T_DEBUG = 0;
 epicsExportAddress(int, PDUII_360T_DEBUG);
 
-#define DEFAULT_EVR_TIMEOUT 0.02
+#define DEFAULT_EVR_TIMEOUT 0.2
 
 #define MAX_PKTS_PER_BRANCH	20
 #define MAX_NUM_OF_BRANCH	4
@@ -70,6 +70,15 @@ static void EVRFidu360(void *parg)
 
 static int PDUIIFidu360Task(void * parg)
 {
+    unsigned int fiduCnt = 0;
+    vmsstat_t iss;
+
+    if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
+    {
+        errlogPrintf("cam_ini error 0x%08X within PDUII 360Hz task\n",(unsigned int) iss);
+        return -1;
+    }
+
     /* Create event and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
 
@@ -111,7 +120,6 @@ static int PDUIIFidu360Task(void * parg)
 
             void *F19pkg_p;
             UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
-            vmsstat_t iss;
 
             UINT16 emask= 0xE0E0;
             UINT16 bcnt = 2;
@@ -127,6 +135,8 @@ static int PDUIIFidu360Task(void * parg)
 
             int	loopch, looprule;
 
+	    fiduCnt++;
+
             /* Read pipeline for info for next pulse and the one after */
             status[1] = evrTimeGetFromPipeline(&time_s[1],  evrTimeNext1, modifier_a[1], &patternStatus[1], 0,0,0);
             status[2] = evrTimeGetFromPipeline(&time_s[2],  evrTimeNext2, modifier_a[2], &patternStatus[2], 0,0,0);
@@ -140,7 +150,7 @@ static int PDUIIFidu360Task(void * parg)
                 {
                     resetModulo36Cntr = 1;
                     /* So print only half hertz */
-                    if(PDUII_360T_DEBUG >= 2) errlogPrintf("Got MODULO720\n");
+                    if(PDUII_360T_DEBUG >= 2) errlogPrintf("Got MODULO720,fiduCnt [%d]\n", fiduCnt);
                 }
             }
 
@@ -153,7 +163,8 @@ static int PDUIIFidu360Task(void * parg)
             if(!infoNext1OK && !infoNext2OK) continue; /* no info, do nothing, EVR driver should report error */
             else
             {/* Get at least good info for one pulse */
-                if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
+		    nops=2;
+                if(!SUCCESS(iss = camalo (&nops, &F19pkg_p)))
                 {/* Allocate max possible slots */
                     if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error 0x%08X\n",(unsigned int) iss);
                     continue;
@@ -188,8 +199,8 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = 0x00130F88|(currentCrate<<12); /* F19A8 */
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode1 << 8)|(resetModulo36Cntr?0xff:0);
                             bcnt = 2;
-                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A8 for module[C%d,N%d]\n", pPDUIIModule->c, pPDUIIModule->n);
-                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A8 for module[C%d,N%d] as No.%d packet\n", pPDUIIModule->c, pPDUIIModule->n, totalPkts);
+                            if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
                                 goto release_campkg;
@@ -210,8 +221,8 @@ static int PDUIIFidu360Task(void * parg)
                             ctlword[totalPkts] = 0x00130F89|(currentCrate<<12); /* F19A9 */
                             *((UINT16 *)(&(stat_data[totalPkts].data))) = (beamCode2 << 8);
                             bcnt = 2;
-                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A9 for module[C%d,N%d]\n", pPDUIIModule->c, pPDUIIModule->n);
-                            if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
+                            if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A9 for module[C%d,N%d] as No.%d packet\n", pPDUIIModule->c, pPDUIIModule->n, totalPkts);
+                            if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
                                 goto release_campkg;
@@ -222,6 +233,7 @@ static int PDUIIFidu360Task(void * parg)
                     }
                 }/* Catch module change to broadcast F19 */
 
+#if 0
                 /* Start to reload this module */
                 if(epicsMutexLockOK != epicsMutexTryLock(pPDUIIModule->lockModule))
                 {/* someone is resetting this module */
@@ -282,8 +294,8 @@ static int PDUIIFidu360Task(void * parg)
                         /* pttLocation < 256 means info OK, if info is not ok, we don't reload */
                         if(pttLocation < 256 && pttDelayNew != pPDUIIModule->pttCache[loopch*256+pttLocation])
                         {
-                            if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
-                            {/* we need two packets here, but size control does not have to be exact */
+                            if(totalPkts >= (MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH - 1) || numPktsCurBranch >= (MAX_PKTS_PER_BRANCH - 1))
+                            {/* we need two packets here */
                                 pPDUIIModule->errorCount++;
                                 continue; /* next module */
                             }
@@ -319,10 +331,12 @@ static int PDUIIFidu360Task(void * parg)
                     }/* Deal with each channel */
                     epicsMutexUnlock(pPDUIIModule->lockModule);
                 }/* Deal with each module */
+#endif
             }/* go thru the linked list */
 
 	    if(totalPkts > 0)
             {
+                errlogPrintf("try camgo %d\n", totalPkts);
                 if (!SUCCESS(iss = camgo (&F19pkg_p)))
                 {/* Failed, leave as invalid */
                     errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
@@ -332,11 +346,14 @@ static int PDUIIFidu360Task(void * parg)
                     int loop;
                     for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
                         pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
+                    errlogPrintf("try camgo ok %d\n", totalPkts);
                 }
             }
 
 release_campkg:
+                errlogPrintf("try camdel %d\n", totalPkts);
             camdel(&F19pkg_p);
+                errlogPrintf("ok camdel %d\n", totalPkts);
             /* scanIoRequest(ioscan); */
         }
     }

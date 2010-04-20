@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDU_Fiducial.c,v 1.1 2010/01/13 05:58:28 pengs Exp $
+ **   $Id: PDUIITest_Fiducial.c,v 1.1 2010/04/20 12:05:05 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -37,7 +37,7 @@ static int PDU_TestFiducialTask(void * parg);
 
 static epicsEventId EVRFiducialEvent = NULL;
 
-int EVRFiducialStart()
+int PDUII_Test_EVRFiducialStart()
 {/* This funciton will be called in st.cmd after iocInit() */
     /* Create event and register with EVR */
     EVRFiducialEvent = epicsEventMustCreate(epicsEventEmpty);
