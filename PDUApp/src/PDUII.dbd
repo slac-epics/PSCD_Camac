@@ -1,0 +1,15 @@
+# provide definitions such as
+variable(PDUII_360T_DEBUG)
+
+variable(PDUII_Test_F19_DEBUG)
+variable(PDUII_Test_F19_CRATE)
+
+device(bo,            CAMAC_IO,devBoPDUII,  "PDUII")
+device(longin,        CAMAC_IO,devLiPDUII,  "PDUII")
+device(longout,       CAMAC_IO,devLoPDUII,  "PDUII")
+device(mbbiDirect,    CAMAC_IO,devMiDPDUII, "PDUII")
+device(mbbi,          CAMAC_IO,devMiPDUII,  "PDUII")
+device(mbbo,          CAMAC_IO,devMoPDUII,  "PDUII")
+device(waveform,      CAMAC_IO,devWfPDUII,  "PDUII")
+
+driver(drvPDUII)

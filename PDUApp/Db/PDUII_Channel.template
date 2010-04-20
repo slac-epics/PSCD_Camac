@@ -1,0 +1,34 @@
+record(mbbi,"$(CHNLNAME):ModeGet") {
+  field(DESC, "PDUII CHNL Mode")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "PDUII")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F1@MODEGET")
+  field(NOBT, "3")
+  field(SHFT, "12")
+  field(ZRVL, "0x1")
+  field(ONVL, "0x3")
+  field(TWVL, "0x6")
+  field(THVL, "0x7")
+  field(ZRST, "PP0")
+  field(ONST, "PP1")
+  field(TWST, "Modulo36")
+  field(THST, "Reuse")
+}
+
+record(mbbo, "$(CHNLNAME):ModeSet") {
+  field(DESC, "PDUII CHNL Mode")
+  field(DTYP, "PDUII")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F17@MODESET")
+  field(NOBT, "3")
+  field(ZRVL, "0x1")
+  field(ONVL, "0x3")
+  field(TWVL, "0x6")
+  field(THVL, "0x7")
+  field(ZRST, "PP0")
+  field(ONST, "PP1")
+  field(TWST, "Modulo36")
+  field(THST, "Reuse")
+  field(PINI, "YES")
+}
+
+

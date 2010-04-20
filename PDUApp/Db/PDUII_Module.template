@@ -1,0 +1,48 @@
+# Reset has to fanout to EnbBpln, EnbSeqr and Mode and PTT
+record(bo, "$(MODULENAME):Reset") {
+  field(DESC, "PDUII Reset")
+  field(DTYP, "PDUII")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F9@RESET")
+  field(ZNAM, "Reset")
+  field(ONAM, "Reset")
+  field(PINI, "YES")
+  field(FLNK, "$(MODULENAME):Fanout")
+}
+
+record(fanout, "$(MODULENAME):Fanout") {
+  field(DESC, "Fanout")
+  field(SCAN, "Passive")
+  field(SELM, "All")
+  field(LNK1, "$(MODULENAME):EnbBpln")
+  field(LNK2, "$(MODULENAME):EnbSeqr")
+  field(SELN, "")
+  field(PINI, "NO")
+}
+
+record(bo, "$(MODULENAME):EnbBpln") {
+  field(DESC, "PDUII Enb Bpln")
+  field(DTYP, "PDUII")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A1 F24@UBPLN")
+  field(ZNAM, "Disable")
+  field(ONAM, "Enable")
+  field(PINI, "YES")
+}
+
+record(bo, "$(MODULENAME):EnbSeqr") {
+  field(DESC, "PDUII Enb Seqr")
+  field(DTYP, "PDUII")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A2 F24@SEQR")
+  field(ZNAM, "Disable")
+  field(ONAM, "Enable")
+  field(PINI, "YES")
+}
+
+record(mbbiDirect, "$(MODULENAME):BRDSTS") {
+  field(DESC, "PDUII BRD STS")
+  field(SCAN, "$(SCAN)")
+  field(DTYP, "PDUII")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A2 F2@STATUS")
+  field(NOBT, "8")
+}
+
+

@@ -1,0 +1,26 @@
+record(waveform,"$(RULENAME):Rule") {
+  field(DESC,"Rule")
+  field(SCAN, "Passive")
+  field(DTYP,"PDUII")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F0@RULE$(RL)")
+  field(FTVL,"USHORT")
+  field(NELM,"21")
+  field(EGU,"tick")
+  field(PINI, "YES")
+}
+
+record(longout,"$(RULENAME):Delay") {
+  field(DESC, "Delay")
+  field(SCAN, "Passive")
+  field(DTYP, "PDUII")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F0@DELAY$(RL)")
+  field(DRVH, "1048575")
+  field(HOPR, "1048575")
+  field(DRVL, "0")
+  field(LOPR, "0")
+  field(PINI, "YES")
+}
+
+
+
+
