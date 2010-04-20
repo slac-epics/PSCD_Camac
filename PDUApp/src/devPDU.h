@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDU.h,v 1.1 2010/01/13 05:58:29 pengs Exp $
+ *   $Id: devPDU.h,v 1.2 2010/03/10 18:05:09 pengs Exp $
  *   File:		devPDU.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -100,35 +100,6 @@ typedef enum EPICS_RECTYPE
     EPICS_RECTYPE_MBBOD,
 }   E_EPICS_RECTYPE;
 
-/* define function flags */
-typedef enum {
-    PDU_BO_RESET,
-    PDU_BO_CLEAR,
-    PDU_MBBID_LATCHED,
-    PDU_MBBOD_LEVEL_LATCHED,
-    PDU_MBBOD_LEVEL_SELECT,
-    PDU_MBBOD_PULSE_SELECT,
-    PDU_MBBOD_PULSE
-} PDUFUNC;
-
-/*********
-static struct PARAM_MAP
-{
-    char param[MAX_FUNC_STRING_LEN];
-    enum EPICS_RECTYPE rtyp;
-    int  funcflag;
-} param_map[] = {
-    {"RESET",		EPICS_RECTYPE_BO,    PDU_BO_RESET},
-    {"CLEAR",		EPICS_RECTYPE_BO,    PDU_BO_CLEAR},
-    {"LATCHED",		EPICS_RECTYPE_MBBID, PDU_MBBID_LATCHED},
-    {"LEVEL_LATCHED",	EPICS_RECTYPE_MBBOD, PDU_MBBOD_LEVEL_LATCHED},
-    {"LEVEL_SELECT",	EPICS_RECTYPE_MBBOD, PDU_MBBOD_LEVEL_SELECT},
-    {"PULSE_SELECT",	EPICS_RECTYPE_MBBOD, PDU_MBBOD_PULSE_SELECT},
-    {"PULSE",		EPICS_RECTYPE_MBBOD, PDU_MBBOD_PULSE}
-};
-
-#define N_PARAM_MAP (sizeof(param_map)/sizeof(struct PARAM_MAP))
-*****************/
 
 typedef struct PDU_REQUEST
 {
@@ -159,12 +130,6 @@ typedef struct PDU_REQUEST
 #define PDU_CAM_ADD_FAIL	0x70000000
 #define PDU_CAM_GO_FAIL	0x80000000
 #define PDU_CAM_DEL_FAIL	0x90000000
-
-int PDURequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
-
-UINT32 PDU_RstClr(PDU_REQUEST  *pPDURequest);
-UINT32 PDU_WriteData(PDU_REQUEST  *pPDURequest);
-UINT32 PDU_ReadData(PDU_REQUEST  *pPDURequest);
 
 #ifdef __cplusplus
 }

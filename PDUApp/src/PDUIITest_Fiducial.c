@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUIITest_Fiducial.c,v 1.1 2010/04/20 12:05:05 pengs Exp $
+ **   $Id: PDUIITest_Fiducial.c,v 1.2 2010/04/20 12:09:13 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -16,7 +16,7 @@
 /* TODO, keep tracking number of errors */
 
 #include "drvPSCDLib.h"
-#include "devPDU.h"
+#include "devPDUII.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
 

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PDUIITest_F19.c,v 1.1 2010/04/20 12:05:05 pengs Exp $
+ *   $Id: PDUIITest_F19.c,v 1.2 2010/04/20 12:12:36 pengs Exp $
  *   File:		PDUF19.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -12,7 +12,7 @@
  *
 \***************************************************************************/
 #include "drvPSCDLib.h"
-#include "devPDU.h"
+#include "devPDUII.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
 #include <registryFunction.h>
