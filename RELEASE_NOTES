@@ -19,3 +19,6 @@ Add PPOM support, not fully tested yet
 Fix CAMAC_IO string order
 PIOP code does not compile
 
+PSCD_Camac_R1-3-0:
+PDUII added.
+
