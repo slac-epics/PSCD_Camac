@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.8 2010/04/18 18:29:19 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.9 2010/04/20 12:09:13 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -55,7 +55,7 @@ int PDUII360TaskStart()
 
     /* scanIoInit(&ioscan); */
     /* need RTEMS native call to set higher priority */
-    return (int)(epicsThreadMustCreate("PDUIIFidu360", epicsThreadPriorityMax, 20480, (EPICSTHREADFUNC)PDUIIFidu360Task, NULL));
+    return (int)(epicsThreadMustCreate("PDUIIFidu360", epicsThreadPriorityMax, 204800, (EPICSTHREADFUNC)PDUIIFidu360Task, NULL));
 }
 
 static void EVRFidu360(void *parg)
@@ -163,8 +163,7 @@ static int PDUIIFidu360Task(void * parg)
             if(!infoNext1OK && !infoNext2OK) continue; /* no info, do nothing, EVR driver should report error */
             else
             {/* Get at least good info for one pulse */
-		    nops=2;
-                if(!SUCCESS(iss = camalo (&nops, &F19pkg_p)))
+                if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
                 {/* Allocate max possible slots */
                     if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error 0x%08X\n",(unsigned int) iss);
                     continue;
@@ -233,7 +232,6 @@ static int PDUIIFidu360Task(void * parg)
                     }
                 }/* Catch module change to broadcast F19 */
 
-#if 0
                 /* Start to reload this module */
                 if(epicsMutexLockOK != epicsMutexTryLock(pPDUIIModule->lockModule))
                 {/* someone is resetting this module */
@@ -331,12 +329,10 @@ static int PDUIIFidu360Task(void * parg)
                     }/* Deal with each channel */
                     epicsMutexUnlock(pPDUIIModule->lockModule);
                 }/* Deal with each module */
-#endif
             }/* go thru the linked list */
 
 	    if(totalPkts > 0)
             {
-                errlogPrintf("try camgo %d\n", totalPkts);
                 if (!SUCCESS(iss = camgo (&F19pkg_p)))
                 {/* Failed, leave as invalid */
                     errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
@@ -344,16 +340,14 @@ static int PDUIIFidu360Task(void * parg)
                 else
                 {/* Succeed, validate it */
                     int loop;
-                    for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
-                        pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
-                    errlogPrintf("try camgo ok %d\n", totalPkts);
+                    for( pPDUIIModule = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModule; pPDUIIModule = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModule) )
+                        for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
+                            pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
                 }
             }
 
 release_campkg:
-                errlogPrintf("try camdel %d\n", totalPkts);
             camdel(&F19pkg_p);
-                errlogPrintf("ok camdel %d\n", totalPkts);
             /* scanIoRequest(ioscan); */
         }
     }
