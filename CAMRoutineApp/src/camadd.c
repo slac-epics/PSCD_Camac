@@ -173,7 +173,7 @@
                "CAMADD - MBCD CAMAC byte count .gt. 256\n");
              goto egress;
          }
-         bcp4 = (wcnt << 1) + 4;  /* Allow for stat/data */
+         bcp4 = (wcnt << 1) + 4 + 2;  /* Allow for stat/data and endian swap */
          if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
               RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
          {
@@ -188,7 +188,7 @@
      {
          CAMBLK_p->hdr.bitsummary |= CCTLW__P8;
          wcnt = *bcnt_p;
-         bcp4 = (wcnt << 1) + 4;
+         bcp4 = (wcnt << 1) + 4 + 2;  /* Status + endian swap */
          if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
               RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
          {
