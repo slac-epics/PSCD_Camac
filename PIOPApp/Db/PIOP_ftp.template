@@ -45,7 +45,7 @@ record(mbbo, "$(DEV):AMPLFTPNJ1S") {
   field(ZRST, "Good")
   field(ONST, "Phase Jitter")
   field(TWST, "Phase Drift")
-  field(THST, "Amplitude Jitter")
+  field(THST, "Amplitude Jitt")
   field(FRST, "Amplitude Drift")
   field(FVST, "Low RF")
   field(SXST, "No Trigger")
