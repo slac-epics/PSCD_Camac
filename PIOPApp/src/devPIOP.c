@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.7 2010/02/21 00:26:06 rcs Exp $
+ *   $Id: devPIOP.c,v 1.8 2010/02/25 22:40:28 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -81,6 +81,14 @@ static long Li_init (int);
 static long Li_init_record (struct longinRecord *lir_p);
 static long Li_read (struct longinRecord *lir_p);
 
+/*
+** longout record support
+*/
+
+static long Lo_init (int); 
+static long Lo_init_record (struct longoutRecord *lor_p);
+static long Lo_write (struct longoutRecord *lor_p);
+
 /******************************************************************************************/
 /*********************              implementation              ***************************/
 /******************************************************************************************/
@@ -113,11 +121,11 @@ DEV_SUP devWfPIOP = {6, NULL, Wf_init, Wf_init_record, NULL, Wf_read_write, NULL
 epicsExportAddress(dset, devWfPIOP);
 
 /*
-** Longin device support functions
+** MBBI SBI device support functions
 */
-DEV_SUP devLiPIOP = {6, NULL, Li_init, Li_init_record, NULL, Li_read, NULL};
+DEV_SUP devMbiSBI = {6, NULL, Mbi_init, Mbi_init_record, NULL, Mbi_read, NULL};
 
-epicsExportAddress(dset, devLiPIOP);
+epicsExportAddress(dset, devMbiSBI);
 
 /*
 ** binary input device support functions
@@ -127,11 +135,19 @@ DEV_SUP devBiPIOP = {6, NULL, Bi_init, Bi_init_record, NULL, Bi_read, NULL};
 epicsExportAddress(dset, devBiPIOP);
 
 /*
-** MBBI SBI device support functions
+** Longin device support functions
 */
-DEV_SUP devMbiSBI = {6, NULL, Mbi_init, Mbi_init_record, NULL, Mbi_read, NULL};
+DEV_SUP devLiPIOP = {6, NULL, Li_init, Li_init_record, NULL, Li_read, NULL};
 
-epicsExportAddress(dset, devMbiSBI);
+epicsExportAddress(dset, devLiPIOP);
+
+/*
+** Longout device support functions
+*/
+DEV_SUP devLoSBI = {6, NULL, Lo_init, Lo_init_record, NULL, Lo_write, NULL};
+
+epicsExportAddress(dset, devLoSBI);
+
 
 /***!!!! Debug routine. Called from record init
  ** Fill waveforms with some dummy data !!!!!!*/
@@ -139,7 +155,7 @@ void Dummy_WFdata(PIOP_PVT *pvt_p)
 {
   /* Got these numbers from LI17 */
   short paddata[14] = {0x3e6d, 0x0121, 0x0903, 0x0002, 0xffee, 0x0000, 0x00cd,
-                       0x00cd, 0x30d5, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
+                       0x00cd, 0x305d, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
   short mk2data[14] = {0x0040, 0x4004, 0x0000, 0x0300, 0xfd04, 0x00b2, 0x00d2, 
                        0x17ae, 0x023d, 0x0c5a, 0x1737, 0x0000, 0x0000, 0x0000};
   typedef struct {FTP_CBLK_TS cblk; FTP_INFO_TS info;} FTP_STATIC_TS;
@@ -242,7 +258,7 @@ static long So_init_record (struct stringoutRecord *sor_p)
       return (S_db_noMemory);
    }
    char tname[10];     /* Constructed thread name */
-   sprintf (tname, "threadPIOP%2.2u%2.2u",crate,slot);
+   sprintf (tname, "PIOP%2.2u%2.2u",crate,slot);
    epicsThreadMustCreate(tname, epicsThreadPriorityMedium, 20480,
                          threadPIOP, (void *)piop_msgQId[crate][slot]);
    /*
@@ -535,107 +551,6 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
 
 
 /*********************************************************
- *********** Longin Record Support ***********************
- ********************************************************/
-
-
-static long Li_init (int after)
-{
-   return 0;
-}
-
-
-static long Li_init_record (struct longinRecord *lir_p)
-{
-   struct camacio *cam_ps = &(lir_p->inp.value.camacio);
-   short crate = cam_ps->c;
-   short slot  = cam_ps->n;
-   char *parm_p= cam_ps->parm;  
-   vmsstat_t iss = KLYS_OKOK;
-   int msgidx;
-   unsigned long ctlw;
-   unsigned short twobytes = 2;
-   unsigned short emaskzero = 0;
-   /*------------------------------------------------*/
-
-   /**********************************
-   ** First do standard error checking
-   ********************************/
-   if(lir_p->inp.type!=CAMAC_IO)
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                         "devLiPIOP Li_init_record, not CAMAC");
-      lir_p->pact=TRUE;
-      return (S_db_badField);
-   }
-   if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                        "devLiPIOP Li_init_record, illegal crate or slot");
-      lir_p->pact=TRUE;
-      return (S_db_badField);
-   }
-   /*
-   ** Check if is "MSG" param.
-   */
-   if (strncmp("MSG", parm_p, 3) != 0)
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                        "devLiPIOP Li_init_record, illegal param name");
-      lir_p->pact=TRUE;
-      return (S_db_badField);
-   }
-   msgidx = atoi(&parm_p[3]);      
-   if (msgidx > MAX_PIOPS)
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                        "devLiPIOP Li_init_record MSG, bad PIOP number");
-      lir_p->pact=TRUE;
-      return (S_db_badField);
-   }
-   if (Piop_Msgs_s[msgidx].stat != 0xFFFFFFFF)
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                        "devLiPIOP Li_init_record MSG, duplicate PIOP number");
-      lir_p->pact=TRUE;
-      return (S_db_badField);
-   }
-   /*
-   ** All params look OK. Add the packet pointing the stat/data to the specified index
-   */
-   ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc)
-	              | CCTLW__A2 | CCTLW__A1 | CCTLW__F2;
-   if (!SUCCESS(iss = camadd(&ctlw, &Piop_Msgs_s[msgidx], &twobytes, &emaskzero, &msgw_pkg_p)))
-   {
-      recGblRecordError(S_db_badField, (void *)lir_p, 
-                        "devLiPIOP Li_init_record MSG, Camadd failure");
-      lir_p->pact=TRUE;
-      return (S_db_noMemory);
-   }
-   return (0);
-}
-
-
-/*
-** Read routine for longin record
-*/
-static long Li_read (struct longinRecord *lir_p)
-{
-   struct camacio *cam_ps = &(lir_p->inp.value.camacio);
-   char  *parm_p= cam_ps->parm; 
-   int rtn = 0;
-   int msgidx;
-   /*---------------------*/
-   /*
-   ** Move the data from the Camac buffer to the record val.
-   */
-   msgidx = atoi(&parm_p[3]);
-   lir_p->val = Piop_Msgs_s[msgidx].data;
-   return (rtn);
-}
-
-
-/*********************************************************
  *********** Binary input Record Support *****************
  ********************************************************/
 
@@ -717,6 +632,207 @@ static long Bi_read (struct biRecord *bir_p)
       {
          recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", bir_p->name, 
+                      (unsigned int)pvt_p->status);
+      }
+   }   /* post-process */
+   return (rtn);
+}
+
+
+/*********************************************************
+ *********** Longin Record Support ***********************
+ ********************************************************/
+
+
+static long Li_init (int after)
+{
+   return 0;
+}
+
+
+static long Li_init_record (struct longinRecord *lir_p)
+{
+   struct camacio *cam_ps = &(lir_p->inp.value.camacio);
+   short crate = cam_ps->c;
+   short slot  = cam_ps->n;
+   char *parm_p= cam_ps->parm;  
+   vmsstat_t iss = KLYS_OKOK;
+   int msgidx;
+   unsigned long ctlw;
+   unsigned short twobytes = 2;
+   unsigned short emaskzero = 0;
+   /*------------------------------------------------*/
+
+   /**********************************
+   ** First do standard error checking
+   ********************************/
+   if(lir_p->inp.type!=CAMAC_IO)
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                         "devLiPIOP Li_init_record, not CAMAC");
+      lir_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                        "devLiPIOP Li_init_record, illegal crate or slot");
+      lir_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** Check if is "MSG" param.
+   */
+   if (strncmp("MSG", parm_p, 3) != 0)
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                        "devLiPIOP Li_init_record, illegal param name");
+      lir_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   msgidx = atoi(&parm_p[3]);      
+   if (msgidx > MAX_PIOPS)
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                        "devLiPIOP Li_init_record MSG, bad PIOP number");
+      lir_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   if (Piop_Msgs_s[msgidx].stat != 0xFFFFFFFF)
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                        "devLiPIOP Li_init_record MSG, duplicate PIOP number");
+      lir_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** All params look OK. Add the packet pointing the stat/data to the specified index
+   */
+   ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc)
+	              | CCTLW__A2 | CCTLW__A1 | CCTLW__F2;
+   if (!SUCCESS(iss = camadd(&ctlw, &(Piop_Msgs_s[msgidx]), &twobytes, &emaskzero, &msgw_pkg_p)))
+   {
+      recGblRecordError(S_db_badField, (void *)lir_p, 
+                        "devLiPIOP Li_init_record MSG, Camadd failure");
+      lir_p->pact=TRUE;
+      return (S_db_noMemory);
+   }
+   return (0);
+}
+
+
+/*
+** Read routine for longin record
+*/
+static long Li_read (struct longinRecord *lir_p)
+{
+   struct camacio *cam_ps = &(lir_p->inp.value.camacio);
+   char  *parm_p= cam_ps->parm; 
+   int rtn = 0;
+   int msgidx;
+   /*---------------------*/
+   /*
+   ** Move the data from the Camac buffer to the record val.
+   */
+   msgidx = atoi(&parm_p[3]);
+   lir_p->val = Piop_Msgs_s[msgidx].data;
+   return (rtn);
+}
+
+
+/*********************************************************
+ *********** Longout Record Support ***********************
+ ********************************************************/
+
+static long Lo_init (int after)
+{
+   return 0;
+}
+
+
+static long Lo_init_record (struct longoutRecord *lor_p)
+{
+   struct camacio *cam_ps = &(lor_p->out.value.camacio);
+   short crate = cam_ps->c;
+   short slot  = cam_ps->n;
+   char *parm_p= cam_ps->parm;
+   PIOP_PVT *pvt_p = (PIOP_PVT *)(lor_p->dpvt);
+   /*------------------------------------------------*/
+
+   /**********************************
+   ** First do standard error checking
+   ********************************/
+   if(lor_p->out.type!=CAMAC_IO)
+   {
+      recGblRecordError(S_db_badField, (void *)lor_p, 
+                         "devLoSBI Lo_init_record, not CAMAC");
+      lor_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
+   {
+      recGblRecordError(S_db_badField, (void *)lor_p, 
+                        "devLoSBI Lo_init_record, illegal crate or slot");
+      lor_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** Check if is "DELAY" param.
+   */
+   if (strcmp("DELAY", parm_p) != 0)
+   {
+      recGblRecordError(S_db_badField, (void *)lor_p, 
+                        "devLoSBI Lo_init_record, illegal param name");
+      lor_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** All params look OK. Init driver private struct.
+   */
+   PIOPDriverInit((dbCommon *)lor_p, cam_ps, EPICS_RECTYPE_LO);
+   pvt_p = (PIOP_PVT *)(lor_p->dpvt);
+   pvt_p->camfunc_e = SBIDELAY;
+   pvt_p->val_p = &(lor_p->val);
+  return (0);
+}
+
+/*
+** Write routine for longout record
+*/
+static long Lo_write (struct longoutRecord *lor_p)
+{
+   THREADMSG_TS msg_s;
+   PIOP_PVT *pvt_p = (PIOP_PVT *)(lor_p->dpvt);
+   int rtn = -1;        /* Assume bad */
+   /*---------------------*/
+   if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
+   /*
+   ** Send msg to SBI thread if not active else complete record processing.
+   */
+   if(!lor_p->pact)
+   {  /* Pre-process */
+     /* 
+      ** This camac pkg writes the sBI delay and PSK enable to the SBI. 
+      */
+      msg_s.rec_p = (dbCommon *)lor_p;
+      if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
+      {
+         recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] can't send msg to SBI thread", lor_p->name);
+      }
+      else
+      {
+         lor_p->pact = TRUE;
+         rtn = 0;     /* Return OK */
+      }
+   }
+   else
+   { /* post-process */
+      rtn = 0;     /* Always return good status */
+      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      {
+         recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
+         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", lor_p->name, 
                       (unsigned int)pvt_p->status);
       }
    }   /* post-process */
