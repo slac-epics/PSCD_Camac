@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.5 2010/02/08 21:48:56 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.6 2010/02/25 22:41:26 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -65,7 +65,10 @@ static long PIOP_EPICS_Init()
    */
    int i;
    for (i=0; i<MAX_PIOPS; i++)
+   {
       Piop_Msgs_s[i].stat = 0xFFFFFFFF;  
+      Piop_Msgs_s[i].data = 0xFFFF;  
+   }
    /* 
    ** Init array of msgQ pointers for each thread/PIOP snd SBI thread
    */ 
@@ -82,7 +85,7 @@ static long PIOP_EPICS_Init()
          "Failed to create SBI message queue. Don't expect much success from here on.\n");
       goto egress;
    }
-   epicsThreadMustCreate("threadSBI", epicsThreadPriorityMedium, 20480,
+   epicsThreadMustCreate("SBI", epicsThreadPriorityMedium, 20480,
                           threadSBI, (void *)sbi_msgQId);
 egress:
    return 0;
@@ -288,19 +291,26 @@ void threadSBI (void * msgQId)
    epicsMessageQueueId lmsgQ = msgQId;
    THREADMSG_TS msg_s;
    int msgQstat;
-   void *pkg_p;    /* Camac SBI package */
-   void *stspkg_p; /* Camac SBI status only package */
+   void *delaypkg_p; /* Camac SBI delay & PSK enable package */
+   void *stspkg_p;   /* Camac SBI status only package */
    unsigned short nops;
    unsigned short emaskf3f3 = 0xF3F3;  /* emask */
    unsigned short twobytes  = 2;
    unsigned short fourbytes = 4;
    unsigned short zero      = 0;
-   /*
-   ** SBI data. First word is status.
-   */
-   STAT_DAT32 read_delay_s;
-   STAT_DAT32 read_status_s, write_scan_s, read_scan_s;
    STAT_DAT16 read_status_only_s;   /* Just for periodic status read func SBISTS */
+   /*
+   ** Local struct to write and read back the SBI delay and PSK enable.
+   */
+   typedef struct
+   {
+     unsigned int stat;
+     unsigned short delay;
+     unsigned short psk_enable;
+   } DELAYPSK_TS;
+ 
+   DELAYPSK_TS write_delay_s, read_delay_s;
+
    PIOP_PVT *pvt_p;    /* Driver private struct */
    dbCommon *reccom_p; /* Record pointer */
    int first_init = 0; /* must do init first time */
@@ -322,8 +332,8 @@ void threadSBI (void * msgQId)
          /*
          ** Construct the Camac packages we'll need.
          */
-         nops = 4;
-	 iss = camalo(&nops, &pkg_p);
+         nops = 2;
+	 iss = camalo(&nops, &delaypkg_p);
          nops = 1;
          if (SUCCESS(iss))
 	    iss = camalo(&nops, &stspkg_p);
@@ -336,28 +346,18 @@ void threadSBI (void * msgQId)
          if (SUCCESS(iss))
             iss = camadd(&ctlw, &read_status_only_s, &twobytes, &zero, &stspkg_p);
 	 /*
-	 ** Now the general package
-	 ** F0 read of delay register
-         */
-         iss = camadd(&ploc, &read_delay_s, &fourbytes, &emaskf3f3, &pkg_p);
-	 /*
-	 ** F0 A1 read status
-	 */
-         ctlw = ploc | CCTLW__A1;
-         if (SUCCESS(iss))
-            iss = camadd(&ctlw, &read_status_s, &fourbytes, &emaskf3f3, &pkg_p);
-	 /*
-	 ** F16 A0 SA write scan
+	 ** Now the delay package
+ 	 ** F16 A0 SA write delay & PSK
 	 */
          ctlw = ploc | CCTLW__F16 | CCTLW__SA;
          if (SUCCESS(iss))
-            iss = camadd(&ctlw, &write_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
+            iss = camadd(&ctlw, &write_delay_s, &fourbytes, &emaskf3f3, &delaypkg_p);
 	 /*
-	 ** F0 A0 SA read scan
+	 ** F0 A0 SA readback delay & PSK
 	 */
          ctlw = ploc | CCTLW__SA;
          if (SUCCESS(iss))
-            iss = camadd(&ctlw, &read_scan_s, &fourbytes, &emaskf3f3, &pkg_p);
+            iss = camadd(&ctlw, &read_delay_s, &fourbytes, &emaskf3f3, &delaypkg_p);
 	 /*
 	 ** Suspend us if we can't init Camac package
 	 */
@@ -394,6 +394,28 @@ void threadSBI (void * msgQId)
 #ifndef _X86_
                *us_p = *us_p >> 16;
 #endif
+            }
+            pvt_p->status = iss;
+            dbScanLock(reccom_p);
+            (*(reccom_p->rset->process))(reccom_p);
+            dbScanUnlock(reccom_p);
+            break;
+         }
+         case SBIDELAY:   /* Update delay and PSK enable for the SBI */
+         {
+            memcpy (&(write_delay_s.delay), pvt_p->val_p, sizeof(int));  /* Copy delay & psk_enable */
+#ifndef _X86_
+	    blockPIOPSwap (&(write_delay_s.delay), sizeof(int)/2);
+#endif 
+            if (SUCCESS(iss = camgo (&delaypkg_p)))
+ 	    {
+#ifndef _X86_
+               blockPIOPSwap (&(write_delay_s.delay), sizeof(int)/2);
+               blockPIOPSwap (&(read_delay_s.delay), sizeof(int)/2);
+#endif 
+	       if ( (write_delay_s.delay != read_delay_s.delay) ||
+                    (write_delay_s.psk_enable != read_delay_s.psk_enable))
+	          iss = KLYS_SBIDELAY;
             }
             pvt_p->status = iss;
             dbScanLock(reccom_p);
