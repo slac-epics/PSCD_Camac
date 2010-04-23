@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.3 2009/12/16 19:15:29 rcs Exp $
+ *   $Id: drvPIOP.h,v 1.4 2010/02/08 19:35:08 rcs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -163,7 +163,8 @@ typedef struct
    ** Camac status + ftp or sblk data.
    ** Nota bene!! we add an extra word in case of big-endian word swap.
    */
-   unsigned short statdat[FBLK_LENW+3];
+   char  statdat[sizeof(FTP_CAMAC_TS)];
+   short spare[1];
    unsigned short last_counter;  /* Last counter from status block */
 }  CAMBLOCKS_TS;
 
@@ -174,6 +175,12 @@ typedef struct
 /* Init PIOP Camac packages for each PIOP thread */
 
 vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblocks_ps, unsigned short crate, unsigned short slot);
+
+#ifndef _X86_
+/* Generic routine to swap words                 */
+
+void      blockPIOPSwap (void *buf_p, int numwords);
+#endif
 
 /* Main routine to IPL a PIOP */
 
