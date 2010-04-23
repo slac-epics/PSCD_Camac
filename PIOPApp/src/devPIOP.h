@@ -55,10 +55,11 @@
 ** Recordtypes we support
 */
 #include <stringoutRecord.h>
-#include <biRecord.h>
-#include <longinRecord.h>
 #include <waveformRecord.h>
 #include <mbbiRecord.h>
+#include <biRecord.h>
+#include <longinRecord.h>
+#include <longoutRecord.h>
 #include <subRecord.h>
 
 /******************************************************************************************/
@@ -76,10 +77,11 @@ typedef enum EPICS_RECTYPE
 {
     EPICS_RECTYPE_NONE,
     EPICS_RECTYPE_SO,
+    EPICS_RECTYPE_WF,
+    EPICS_RECTYPE_MBBI,
     EPICS_RECTYPE_BI,
     EPICS_RECTYPE_LI,
-    EPICS_RECTYPE_WF,
-    EPICS_RECTYPE_MBBI
+    EPICS_RECTYPE_LO
 }   E_EPICS_RECTYPE;
 
 /******************************************************
@@ -117,7 +119,7 @@ typedef struct
 *************************************************************************/
 
 typedef enum {IPL, PPNOFTP, PPFTP, STATUSBLOCK, FTP, PAD, MK2, TRIMSLED, FOXHOME, 
-              SBIMSGPIOP, SBISTATUS, INVALID } CAMFUNC_TE; /* Camac funcs to perform */
+              SBIMSGPIOP, SBISTATUS, SBIDELAY, INVALID } CAMFUNC_TE; /* Camac funcs to perform */
 
 /********************************************
  ** Driver private structure for each record.
