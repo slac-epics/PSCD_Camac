@@ -58,8 +58,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
 #ifndef _X86_
   char tmp;           /* For byte swap */
   char *dat1_p;       /* Pointer for byte swap */
-  int  i,j;           /* Indexs for byte/word swap */
-  unsigned short stemp;    /* For word swap */
+  int  j;             /* Index for byte swap */
   unsigned short *short_p; /* Pointer for word swap */
 #endif       
   int bytes_read;        /* Total bytes read */
@@ -173,6 +172,8 @@ swapbuf:
   {
      short_p = (unsigned short *)&(ImagePIOP_p[j*IMG_BLOCK_WC*2]); /* Point to ctl word */
      short_p +=3;    /* Point to first data word in ftp or control block */
+     blockPIOPSwap (short_p, FBLK_LENW/2); 
+     /****** delete if OK
      for (i=0; i<FBLK_LENW/2; i++)
      { 
         stemp = *short_p;
@@ -180,6 +181,7 @@ swapbuf:
         *(short_p+1) = stemp;
         short_p += 2;
      }
+     *******/
   }
 #endif
 egress_close:
