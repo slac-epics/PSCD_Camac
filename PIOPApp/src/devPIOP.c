@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.8 2010/02/25 22:40:28 rcs Exp $
+ *   $Id: devPIOP.c,v 1.9 2010/04/23 19:26:32 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -492,7 +492,7 @@ static long Mbi_init_record (struct mbbiRecord *mbir_p)
       mbir_p->pact=TRUE;
       return (S_db_badField);
    }
-   if (strcmp("SBISTATUS",parm_p) != 0)
+   if (strcmp("STS",parm_p) != 0)
    {
        recGblRecordError(S_db_badField, (void *)mbir_p, 
                         "devMbiSBI Mbi_init_record, illegal parm string");
