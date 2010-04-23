@@ -28,3 +28,11 @@ record (mbbi, "$(DEV):STATUS") {
   field(PINI, "YES")
 }
 
+# SBI delay and PSK enable
+record (longout, "$(DEV):DELAY") {
+  field(DESC, "Write SBI delay and PSK enable")
+  field(SCAN, "Passive")
+  field(DTYP, "SBI")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @DELAY")
+}
+
