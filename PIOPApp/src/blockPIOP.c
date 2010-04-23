@@ -3,8 +3,12 @@
 ** This module executes in the context of the device support thread.
 **  
 ** Contains:
-**  blockPIOPInit
-**  blockPIOPCblk
+**  blockPIOPInit           Init Camac pkgs
+**  blockPIOPSwap           Word swap a buffer if not X86
+**  static blockPIOPCksum   Calc checksum
+**  blockPIOPCblk           Send control block
+**  blockPIOPSblk           Read status block
+**  blockPIOPFblk           Read FTP block
 **
 */
 
@@ -66,6 +70,27 @@ egress:
    return (iss);
 }
 
+#ifndef _X86_
+/*
+** Word swap a buffer. If numwords is odd we don't swap the last word.
+*/
+void blockPIOPSwap (void *buf_p, int numwords)
+{
+   unsigned short *short_p = buf_p;
+   unsigned short stemp;
+   int i;
+   /*-------------------------- code -------------------------*/
+   for (i=0; i<numwords; i++)
+   {
+      stemp = *short_p;
+      *short_p = *(short_p+1);
+      *(short_p+1) = stemp;
+      short_p += 2;
+   }
+   return;
+}
+#endif
+
 /*
 ** Compute checksum for a block that's sent to the PIOP.
 */
@@ -87,27 +112,13 @@ vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short infunc, void
 {
    vmsstat_t iss;
    CAM_CBLK_TS *cam_cblk_ps = (CAM_CBLK_TS*) camblocks_ps->statdat;
-#ifndef _X86_
-   int            i;
-   unsigned short stemp;
-   unsigned short *short_p  = &(cam_cblk_ps->func); /* Pointer for word swap */
-#endif
    /*-------------------------- code -------------------------*/
    memset (cam_cblk_ps, 0, sizeof(CAM_CBLK_TS)); /* Clear the area */
    cam_cblk_ps->func = infunc;
    memcpy (&(cam_cblk_ps->dat), indat_p, datalenb);
    blockPIOPCksum ( (short *) &(cam_cblk_ps->func), CBLK_LENW);
 #ifndef _X86_
-   /*
-   ** If big-endian, word swap the data.
-   */
-   for (i=0; i<CBLK_LENW/2; i++)
-   {
-      stemp = *short_p;
-      *short_p = *(short_p+1);
-      *(short_p+1) = stemp;
-      short_p += 2;
-   }
+   blockPIOPSwap ( &(cam_cblk_ps->func), CBLK_LENW/2); 
 #endif
    do
    {
@@ -125,11 +136,6 @@ vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
 {
    vmsstat_t iss;
    STS_BLK_TS *cam_sblk_ps = (STS_BLK_TS*) camblocks_ps->statdat;
-#ifndef _X86_
-   int            i;
-   unsigned short stemp;    /* For word swap */
-   unsigned short *short_p = &(cam_sblk_ps->sid); /* Pointer for word swap */
-#endif
    /*-------------------------- code -------------------------*/
    memset (cam_sblk_ps, 0, sizeof(STS_BLK_TS)); /* Clear the area */
    do
@@ -140,16 +146,7 @@ vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    if SUCCESS(iss)
    {
 #ifndef _X86_
-      /*
-      ** Word swap the input
-      */
-      for (i=0; i<SBLK_LENW/2; i++)
-      {
-         stemp = *short_p;
-         *short_p = *(short_p+1);
-         *(short_p+1) = stemp;
-         short_p += 2;
-      }
+      blockPIOPSwap (&(cam_sblk_ps->sid), SBLK_LENW/2); 
 #endif
       memcpy (outdat_p, &(cam_sblk_ps->sid), SBLK_LENB); /* Data to record */
       /*
@@ -175,11 +172,6 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    vmsstat_t iss;
    FTP_CAMAC_TS *ftp_camac_ps = (FTP_CAMAC_TS*) camblocks_ps->statdat;
 
-#ifndef _X86_
-   int            i;
-   unsigned short stemp;    /* For word swap */
-   unsigned short *short_p = (unsigned short *) &(ftp_camac_ps->ftp_read_s);
-#endif
    /*-------------------------- code -------------------------*/
    epicsThreadSleep(delay); /* Delay before first read attempt */
    do
@@ -190,16 +182,7 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    if SUCCESS(iss)
    {
 #ifndef _X86_
-      /*
-      ** Word swap the input
-      */
-      for (i=0; i<FBLK_LENW/2; i++)
-      {
-         stemp = *short_p;
-         *short_p = *(short_p+1);
-         *(short_p+1) = stemp;
-         short_p += 2;
-      }
+      blockPIOPSwap (&(ftp_camac_ps->ftp_read_s),FBLK_LENW/2); 
 #endif
       memcpy (outdat_p, &(ftp_camac_ps->ftp_read_s), sizeof(FTP_READ_TS)); /* Data to record */
    }
