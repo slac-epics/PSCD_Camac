@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.9 2010/04/23 19:26:32 rcs Exp $
+ *   $Id: devPIOP.c,v 1.10 2010/04/23 22:37:45 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -42,7 +42,7 @@ extern STAT_DAT16 Piop_Msgs_s[MAX_PIOPS];
 /******************************************************************************************/
 
 /*
-** Stringout record support
+** Stringout record support; Used for PIOP IPL.
 */
 
 static long So_init (int); 
@@ -149,44 +149,8 @@ DEV_SUP devLoSBI = {6, NULL, Lo_init, Lo_init_record, NULL, Lo_write, NULL};
 epicsExportAddress(dset, devLoSBI);
 
 
-/***!!!! Debug routine. Called from record init
- ** Fill waveforms with some dummy data !!!!!!*/
-void Dummy_WFdata(PIOP_PVT *pvt_p)
-{
-  /* Got these numbers from LI17 */
-  short paddata[14] = {0x3e6d, 0x0121, 0x0903, 0x0002, 0xffee, 0x0000, 0x00cd,
-                       0x00cd, 0x305d, 0x01c7, 0x038e, 0x0000, 0x0000, 0xfc84};
-  short mk2data[14] = {0x0040, 0x4004, 0x0000, 0x0300, 0xfd04, 0x00b2, 0x00d2, 
-                       0x17ae, 0x023d, 0x0c5a, 0x1737, 0x0000, 0x0000, 0x0000};
-  typedef struct {FTP_CBLK_TS cblk; FTP_INFO_TS info;} FTP_STATIC_TS;
-  /*FTP_STATIC_TS ftpstatic = { {2,7,8}, {100,3,0} };*/
-   /*---------- code ---------*/
-  switch (pvt_p->camfunc_e)
-  {
-     case PAD:
-     {
-        memcpy (pvt_p->val_p, paddata, sizeof(paddata));
-        break;
-     }
-     case MK2:
-     {
-        memcpy (pvt_p->val_p, mk2data, sizeof(mk2data));
-        break;
-     }
-     case FTP:
-     {
-       /* memcpy (pvt_p->val_p, &ftpstatic, sizeof(ftpstatic));*/
-
-     }
-     default:;
-  }
-  return;    
-}
-/*!!!!!!!!!!****/
-
-
 /*********************************************************
- *********** Stringout Record Support *******************
+ ******** Stringout Record Support; PIOP IPL *************
  ********************************************************/
 /*
 ** Stringout initialization. 
@@ -404,7 +368,6 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
    pvt_p = (PIOP_PVT *)(wfr_p->dpvt);
    pvt_p->camfunc_e = camfunc_e;
    pvt_p->val_p = wfr_p->bptr; /* Buffer pointer for waveform */
-   Dummy_WFdata(pvt_p); /* !!Temp fill waveform with dummy test data!! */
    return (0);
 }
 
