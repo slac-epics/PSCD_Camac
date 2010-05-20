@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.6 2010/02/25 22:41:26 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.7 2010/04/23 19:24:25 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -300,20 +300,19 @@ void threadSBI (void * msgQId)
    unsigned short zero      = 0;
    STAT_DAT16 read_status_only_s;   /* Just for periodic status read func SBISTS */
    /*
-   ** Local struct to write and read back the SBI delay and PSK enable.
+   ** Structs toset/verify delay & PSK enable
    */
-   typedef struct
-   {
-     unsigned int stat;
-     unsigned short delay;
-     unsigned short psk_enable;
-   } DELAYPSK_TS;
- 
-   DELAYPSK_TS write_delay_s, read_delay_s;
+   STAT_DAT16 ro_delay_s;           /* Read only delay */
+   STAT_DAT32 ro_stat_s;            /* Read only and delay */
+   /*
+   ** struct to write and read back the SBI delay and PSK enable. 
+   ** On the readback the second word is a status.
+   */ 
+   STAT_DAT32 write_delay_s, read_delay_s;
 
    PIOP_PVT *pvt_p;    /* Driver private struct */
    dbCommon *reccom_p; /* Record pointer */
-   int first_init = 0; /* must do init first time */
+   int init_done = 0;  /* must do init first time */
    /*----------------------------*/
    while (TRUE)
    {
@@ -327,12 +326,12 @@ void threadSBI (void * msgQId)
       /*************************************
       ** Check for first time initialization.
       **************************************/
-      if (!first_init)
+      if (!init_done)
       {
          /*
          ** Construct the Camac packages we'll need.
          */
-         nops = 2;
+         nops = 4;
 	 iss = camalo(&nops, &delaypkg_p);
          nops = 1;
          if (SUCCESS(iss))
@@ -346,15 +345,19 @@ void threadSBI (void * msgQId)
          if (SUCCESS(iss))
             iss = camadd(&ctlw, &read_status_only_s, &twobytes, &zero, &stspkg_p);
 	 /*
-	 ** Now the delay package
- 	 ** F16 A0 SA write delay & PSK
+	 ** Now the delay package. Read delay and 4 bytes status (A0 and A1 4 bytes read)
+         ** to reset latched bits. Then write delay and PSK enable and readback delay and
+         ** status. 
 	 */
+         ctlw = ploc;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &ro_delay_s, &twobytes, &emaskf3f3, &delaypkg_p);
+         ctlw = ploc | CCTLW__A1;
+         if (SUCCESS(iss))
+            iss = camadd(&ctlw, &ro_stat_s, &fourbytes, &emaskf3f3, &delaypkg_p);
          ctlw = ploc | CCTLW__F16 | CCTLW__SA;
          if (SUCCESS(iss))
             iss = camadd(&ctlw, &write_delay_s, &fourbytes, &emaskf3f3, &delaypkg_p);
-	 /*
-	 ** F0 A0 SA readback delay & PSK
-	 */
          ctlw = ploc | CCTLW__SA;
          if (SUCCESS(iss))
             iss = camadd(&ctlw, &read_delay_s, &fourbytes, &emaskf3f3, &delaypkg_p);
@@ -368,7 +371,7 @@ void threadSBI (void * msgQId)
                 epicsThreadGetNameSelf(), (unsigned int) iss);
             epicsThreadSuspendSelf();
 	 }
-	 first_init = 1;
+	 init_done = 1;
       }  /* End first time initialization */
       /***************************************
        ** Execute Camac function from driver private struct.
@@ -392,7 +395,7 @@ void threadSBI (void * msgQId)
 	       us_p = pvt_p->val_p;
                *us_p = read_status_only_s.data;
 #ifndef _X86_
-               *us_p = *us_p >> 16;
+               *us_p = *us_p >> 16;       /* To lower 16 bits of val if big endian */
 #endif
             }
             pvt_p->status = iss;
@@ -403,18 +406,10 @@ void threadSBI (void * msgQId)
          }
          case SBIDELAY:   /* Update delay and PSK enable for the SBI */
          {
-            memcpy (&(write_delay_s.delay), pvt_p->val_p, sizeof(int));  /* Copy delay & psk_enable */
-#ifndef _X86_
-	    blockPIOPSwap (&(write_delay_s.delay), sizeof(int)/2);
-#endif 
+            memcpy (&(write_delay_s.data), pvt_p->val_p, sizeof(int));  /* Copy delay & psk_enable */
             if (SUCCESS(iss = camgo (&delaypkg_p)))
  	    {
-#ifndef _X86_
-               blockPIOPSwap (&(write_delay_s.delay), sizeof(int)/2);
-               blockPIOPSwap (&(read_delay_s.delay), sizeof(int)/2);
-#endif 
-	       if ( (write_delay_s.delay != read_delay_s.delay) ||
-                    (write_delay_s.psk_enable != read_delay_s.psk_enable))
+	       if ( (write_delay_s.data & 0x0000FFFF) != (read_delay_s.data & 0x0000FFFF) )
 	          iss = KLYS_SBIDELAY;
             }
             pvt_p->status = iss;
