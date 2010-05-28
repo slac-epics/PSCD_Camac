@@ -16,6 +16,8 @@ LIBRARY_IOC_RTEMS += CAMRoutine
 INC += slc_macros.h
 INC += cam_proto.h
 INC += cctlwmasks.h
+INC += camblkstruc.h
+INC += camdef.h
 
 # install CAMRoutine.dbd into <top>/dbd
 DBD += CAMRoutine.dbd
