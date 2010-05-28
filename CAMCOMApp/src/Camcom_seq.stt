@@ -1,0 +1,132 @@
+program Camcom
+
+option -c;
+option -r;
+
+%%#include "epicsTime.h"
+%%#include "epicsThread.h"
+%%#include "epicsPrint.h" /* epicsPrintf */
+%%#include "string.h"     /* memcpy, memset */
+
+%%static char* comp_date = __DATE__; /* 12 characters long */
+%%static char* comp_comment = "First in hard IOC"; 
+
+%%#define CAMCOM_FREE 0
+%%#define CAMCOM_TAKEN 1
+%%#define CAMCOM_HOST_DONE 2
+%%#define CAMCOM_BUSY 3
+%%#define CAMCOM_DONE 4
+
+short active_token; assign active_token to "{BR}:CAMCOM:ACTIVE_TOKEN";
+monitor active_token;
+
+%%short* buf_ptr_s;
+%%char* buf_ptr_c;
+%%long* buf_ptr_l;
+
+short last_active_token;
+
+short in_buff_len; assign in_buff_len to "{BR}:CAMCOM:INBUFF:LEN";
+
+short out_buff_len; assign out_buff_len to "{BR}:CAMCAM:OUTBUFF:LEN";
+
+char real_buff[16348]; assign real_buff to "{BR}:CAMCOM:REALBUFF.FVAL";
+
+char in_buff[16348]; assign in_buff to "{BR}:CAMCOM:INBUFF.FVAL";
+
+short token_valid; assign token_valid to "{BR}:CAMCOM:TOKEN_VALID";
+monitor token_valid;
+
+short camcom_status; assign camcom_status to "{BR}:CAMCOM:STATUS";
+monitor camcom_status;
+
+string camcom_reservation; assign camcom_reservation to "{BR}:CAMCOM:NOTE";
+
+string camcom_seq_ver; assign camcom_seq_ver to "{BR}:CAMCOM:SEQ:VER";
+
+short i;
+
+ss DOcamcom {
+    state init {
+	when (1) {
+          sprintf(camcom_seq_ver,"%s : %s",comp_date,comp_comment);
+          pvPut(camcom_seq_ver);
+          camcom_status=0; pvPut(camcom_status);
+          last_active_token=active_token;
+	} state process
+    }
+
+    state process {
+
+        when (camcom_status==CAMCOM_HOST_DONE) {
+            pvGet(in_buff_len); pvGet(in_buff);
+            if(in_buff_len>200) in_buff_len=200;
+            camcom_status=CAMCOM_BUSY; pvPut(camcom_status);
+            pvGet(camcom_reservation);
+            printf(" Processing for %s\n",camcom_reservation);
+            printf("Buffer read in, length = %d\n",in_buff_len);
+
+%%          buf_ptr_c=&in_buff[0];
+            printf("Byte dump\n");
+            for(i=0;i<in_buff_len*2;i++)
+               {
+                  if(i%10==0) printf("%4d:",i);
+%%                printf(" %2x",*buf_ptr_c++);  
+                  if(i%10==9) printf("\n");
+               }
+               printf("\n");
+
+%%          buf_ptr_s=(short *)&in_buff[0];
+            printf("Shorts dump\n");
+            for(i=0;i<in_buff_len;i++)
+               {
+                  if(i%10==0) printf("%4d:",i);
+%%                printf(" %4x",*buf_ptr_s++);  
+                  if(i%10==9) printf("\n");
+               }
+               printf("\n");
+
+%%          buf_ptr_l=(long*)&in_buff[0];
+            printf("Longs dump\n");
+            for(i=0;i<in_buff_len/2;i++)
+               {
+                  if(i%5==0) printf("%4d:",i);
+%%                printf(" %8x",(unsigned int)*buf_ptr_l++);  
+                  if(i%5==4) printf("\n");
+               }
+               printf("\n");
+
+        } state wait_camac
+
+    }
+
+    state wait_camac {
+
+        when (last_active_token!=active_token && camcom_status==CAMCOM_BUSY) { 
+            printf("Usurping CAMCOM reservation, token=%d\n",active_token);
+            last_active_token=active_token;
+            if(active_token==0) 
+             {
+                 sprintf(camcom_reservation,"Free"); pvPut(camcom_reservation);
+                 camcom_status=CAMCOM_FREE; pvPut(camcom_status);
+             }
+        } state process
+
+       when(delay(.1)) {
+        /* Call CAMAC stuff */
+        epicsThreadSleep(1.);
+        printf ("Copy to real buffer\n");
+%%      memcpy((void *)real_buff,(void *)in_buff,2*in_buff_len);
+        pvPut(real_buff);
+
+        camcom_status=CAMCOM_DONE; pvPut(camcom_status);
+/*         
+         } state wait_camac
+*/
+         } state process
+     }
+}
+
+
+
+

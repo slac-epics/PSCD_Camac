@@ -1,0 +1,7 @@
+ # Include external dbds if required
+
+device(waveform,  CAMAC_IO,devWfCAMCOM,"CAMCOM")
+
+driver(drvCAMCOM)
+registrar(CamcomRegistrar)
+#variable(myVariable)
