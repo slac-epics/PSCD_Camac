@@ -12,22 +12,32 @@ include $(TOP)/RELEASE_SITE
 
 EPICS_MODULES=$(EPICS_SITE_TOP)/modules
 
+# ==============================================================
+# Define the version of EPICS BASE that you will use
+# =============================================================
+BASE_MODULE_VERSION=base-R3-14-8-2-lcls5
+
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 # If you don't want to install into $(TOP) then
 # define INSTALL_LOCATION_APP here
 #INSTALL_LOCATION_APP=<fullpathname>
 
-#If using the sequencer, point SNCSEQ at its top directory:
-#SNCSEQ=$(EPICS_BASE)/../modules/soft/seq
-EVENT_MODULE_VERSION=event-R3-0-0
-MISCUTILS_MODULE_VERSION=miscUtils-R2-0-0
+# =============================================================
+# Define the version of modules needed by
+# IOC apps or other Support apps
+# =============================================================
+SEQ_MODULE_VERSION=seq-R2-0-11-lcls2
+EVENT_MODULE_VERSION=event-R3-1-6
+MISCUTILS_MODULE_VERSION=miscUtils-R2-1-0
 
+#If using the sequencer, point SNCSEQ at its top directory:
+SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
 EVENT=$(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
 MISCUTILS=$(EPICS_MODULES)/miscUtils/$(MISCUTILS_MODULE_VERSION)
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/afs/slac/g/lcls/epics/base/base-R3-14-8-2-lcls3
+EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 
 #Capfast users may need the following definitions
 #CAPFAST_TEMPLATES=
