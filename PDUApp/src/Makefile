@@ -27,6 +27,8 @@ PDU_SRCS += drvPDUII.c
 PDU_SRCS += devPDUII.c
 PDU_SRCS += PDUII_360Task.c
 
+PDU_SRCS += STBTest.c
+
 PDU_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
