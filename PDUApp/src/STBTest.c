@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.1 2010/06/13 00:15:18 pengs Exp $
+ *   $Id: STBTest.c,v 1.2 2010/06/13 00:18:48 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -151,5 +151,5 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
     return rtn;
 }
 
-/*epicsRegisterFunction(STB_Test);*/
+epicsRegisterFunction(STB_Test);
 
