@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDU_Fiducial.c,v 1.1 2010/01/13 05:58:28 pengs Exp $
+ **   $Id: PDU_Fiducial.c,v 1.2 2010/04/17 16:01:39 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -68,7 +68,7 @@ int EVRFiducialStart()
                                CCTLW__F19 | CCTLW__A8;
     unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
                                CCTLW__F19 | CCTLW__A8 | CCTLW__A1;
-    UINT16 emask= 0xE0E0;
+    UINT16 emask= 0xE000;
     vmsstat_t iss;
     /*-------------------------------*/
     /* Create event and register with EVR */
@@ -189,6 +189,9 @@ static int PDUFiducialTask(void * parg)
         else
         {
             /* do F19 */
+          if(!SUCCESS(iss = camgo(&F19pkg_p)))
+	    Errc++;
+	  /*****************
           camgo_get_data(&F19pkg_p);
           if (stat_data_f19[0].stat != 0x2fd30000)
 	  {
@@ -200,6 +203,7 @@ static int PDUFiducialTask(void * parg)
               }
 	  }
 	  iss = camgo_start_pscd(&F19pkg_p, nowait);
+	  *************/
           Cams++;
 	   /*****************
             if(PDU_F19_CRATE)

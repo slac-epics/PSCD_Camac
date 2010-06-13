@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.3 2009/04/09 21:56:04 pengs Exp $
+ *   $Id: STBTest.c,v 1.1 2010/06/13 00:15:18 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -76,7 +76,6 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
     {
         unsigned int loop;
 
-        void *pkg_p;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
@@ -144,10 +143,10 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
                 printf("Counter is: %d \n", (test_stb.data)&0x3FFFFF);
                 epicsThreadSleep(0.02);
             }
-        }
+        } while('q' != getchar());
     }
     else
-        rtn = STB_MODULE_NOT_EXIST;
+        rtn = -1;
 
     return rtn;
 }
