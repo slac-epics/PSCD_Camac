@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.2 2010/06/13 00:18:48 pengs Exp $
+ *   $Id: STBTest.c,v 1.3 2010/06/13 01:25:11 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -67,7 +67,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
 
     if(crate == 0 && slot == 0 && rst == 0 && PPYY == 0 && channel == 0 && mode ==0)
     {
-	printf("STB_Test_F17A)(int crate, int slot, int rst, int PPYY, int channel, int mode)\n");
+	printf("STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)\n");
         return -1;
     }
 
