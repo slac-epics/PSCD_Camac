@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.3 2010/06/13 01:25:11 pengs Exp $
+ *   $Id: STBTest.c,v 1.4 2010/06/13 01:30:30 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -143,6 +143,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
                 printf("Counter is: %d \n", (test_stb.data)&0x3FFFFF);
                 epicsThreadSleep(0.02);
             }
+            printf("q to quit, other key to continue:\n");
         } while('q' != getchar());
     }
     else
