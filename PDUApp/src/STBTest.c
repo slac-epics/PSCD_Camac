@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.4 2010/06/13 01:30:30 pengs Exp $
+ *   $Id: STBTest.c,v 1.5 2010/06/13 01:35:04 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -14,6 +14,7 @@
 #include "drvPSCDLib.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
+#include "cctlwmasks.h"
 #include <registryFunction.h>
 
 #if 0
@@ -84,7 +85,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
         UINT32 ctlwF9A0 = 0x00090000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
         UINT32 ctlwF17A0 = 0x00110000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
         UINT32 ctlwF1A0 = 0x00010000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
-        UINT32 ctlwF0A0 = 0x00000000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
+        UINT32 ctlwF0A0 = 0x00000000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7) | CCTLW__P24;
 
         STAS_DAT test_stb;
 
@@ -140,7 +141,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
                     return (iss);
                 }
 
-                printf("Counter is: %d \n", (test_stb.data)&0x3FFFFF);
+                printf("Counter is: %d, raw readback is 0x%X \n", (test_stb.data)&0x3FFFFF, test_stb.data);
                 epicsThreadSleep(0.02);
             }
             printf("q to quit, other key to continue:\n");
