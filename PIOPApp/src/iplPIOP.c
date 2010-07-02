@@ -55,16 +55,14 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   int idx = 0;         /* Index into array */
   unsigned short dum;  /* Throw away 2 bytes after length */
   union { char len[2]; int2u rlen; } rlen_u; /* In case we byte swap length */
-#ifndef _X86_
-  char tmp;           /* For byte swap */
-  char *dat1_p;       /* Pointer for byte swap */
-  int  j;             /* Index for byte swap */
-  unsigned short *short_p; /* Pointer for word swap */
-#endif       
   int bytes_read;        /* Total bytes read */
   vmsstat_t iss = KLYS_OKOK;  /* Assume no error */
   char *envpath_p;  /* Path of file from env var */
   char *fullpath_p; /* Full path including env var PIOP_PATH */
+#ifndef _X86_
+  int j;            /* To keep track of word swaps */
+  unsigned short *short_p;
+#endif
   /*-------------------------------------*/
   if (ImagePIOP_p != NULL)    /* If already loaded then just exit with success */
     goto egress;
@@ -114,9 +112,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
     */
     bytes_read = fread (&rlen_u, 1, 2, piop_f);
 #ifndef _X86_
-    tmp = rlen_u.len[0];   /* We must byte swap the I*2 length from VMS. */
-    rlen_u.len[0] = rlen_u.len[1];
-    rlen_u.len[1] = tmp;
+    camSwapBytes (&rlen_u.len, 2);  /* We must byte swap the I*2 length from VMS. */
 #endif
     if (feof (piop_f))  /* Hit eof reading record length after last record */
       goto swapbuf;
@@ -150,14 +146,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
     ** The PLX chip swaps the bytes on the way out so we need to swap them here.
     ** This also swaps the control word needed by the download.
     */
-     dat1_p = &ImagePIOP_p[idx];
-     for (j=0; j < bytes_read; j+=2)
-     {
-        tmp = *dat1_p;
-        *dat1_p = *(dat1_p+1);
-        *(dat1_p+1) = tmp;
-        dat1_p += 2;
-     }
+    camSwapBytes (&ImagePIOP_p[idx], bytes_read);
 #endif
     idx += rlen_u.rlen;
   }  /* EOF in data file */
@@ -172,16 +161,7 @@ swapbuf:
   {
      short_p = (unsigned short *)&(ImagePIOP_p[j*IMG_BLOCK_WC*2]); /* Point to ctl word */
      short_p +=3;    /* Point to first data word in ftp or control block */
-     blockPIOPSwap (short_p, FBLK_LENW/2); 
-     /****** delete if OK
-     for (i=0; i<FBLK_LENW/2; i++)
-     { 
-        stemp = *short_p;
-        *short_p = *(short_p+1);
-        *(short_p+1) = stemp;
-        short_p += 2;
-     }
-     *******/
+     camSwapWords (short_p, FBLK_LENW); 
   }
 #endif
 egress_close:
