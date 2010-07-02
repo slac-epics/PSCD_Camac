@@ -88,6 +88,13 @@
              unsigned long       *slot_p,        /* ptr to CAMAC slot number    */
              unsigned long       *function_p,    /* ptr to CAMAC function code  */
              unsigned long       *subaddress_p); /* ptr to CAMAC subaddress     */
+
+#ifndef _X86_
+
+void camSwapBytes  (void *buf_p, int bsize);
+void camSwapWords (void *buf_p, int wsize);
+
+#endif
  
 #define CAM_PROTO_HM
 #endif
