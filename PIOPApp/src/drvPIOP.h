@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.4 2010/02/08 19:35:08 rcs Exp $
+ *   $Id: drvPIOP.h,v 1.5 2010/04/23 19:23:02 rcs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -175,12 +175,6 @@ typedef struct
 /* Init PIOP Camac packages for each PIOP thread */
 
 vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblocks_ps, unsigned short crate, unsigned short slot);
-
-#ifndef _X86_
-/* Generic routine to swap words                 */
-
-void      blockPIOPSwap (void *buf_p, int numwords);
-#endif
 
 /* Main routine to IPL a PIOP */
 
