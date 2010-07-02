@@ -30,6 +30,7 @@ CAMRoutine_SRCS += camio.c
 CAMRoutine_SRCS += camdel.c
 CAMRoutine_SRCS += camadd.c
 CAMRoutine_SRCS += cammod.c
+CAMRoutine_SRCS += camSwap.c
 #CAMRoutine_SRCS += pack.c
 #CAMRoutine_SRCS += CAMtest.c
 #CAMRoutine_SRCS += DIMtest.c
