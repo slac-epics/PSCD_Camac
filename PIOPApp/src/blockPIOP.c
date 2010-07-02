@@ -4,7 +4,6 @@
 **  
 ** Contains:
 **  blockPIOPInit           Init Camac pkgs
-**  blockPIOPSwap           Word swap a buffer if not X86
 **  static blockPIOPCksum   Calc checksum
 **  blockPIOPCblk           Send control block
 **  blockPIOPSblk           Read status block
@@ -70,27 +69,6 @@ egress:
    return (iss);
 }
 
-#ifndef _X86_
-/*
-** Word swap a buffer. If numwords is odd we don't swap the last word.
-*/
-void blockPIOPSwap (void *buf_p, int numwords)
-{
-   unsigned short *short_p = buf_p;
-   unsigned short stemp;
-   int i;
-   /*-------------------------- code -------------------------*/
-   for (i=0; i<numwords; i++)
-   {
-      stemp = *short_p;
-      *short_p = *(short_p+1);
-      *(short_p+1) = stemp;
-      short_p += 2;
-   }
-   return;
-}
-#endif
-
 /*
 ** Compute checksum for a block that's sent to the PIOP.
 */
@@ -118,7 +96,7 @@ vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short infunc, void
    memcpy (&(cam_cblk_ps->dat), indat_p, datalenb);
    blockPIOPCksum ( (short *) &(cam_cblk_ps->func), CBLK_LENW);
 #ifndef _X86_
-   blockPIOPSwap ( &(cam_cblk_ps->func), CBLK_LENW/2); 
+   camSwapWords ( &(cam_cblk_ps->func), CBLK_LENW); 
 #endif
    do
    {
@@ -146,7 +124,7 @@ vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    if SUCCESS(iss)
    {
 #ifndef _X86_
-      blockPIOPSwap (&(cam_sblk_ps->sid), SBLK_LENW/2); 
+      camSwapWords (&(cam_sblk_ps->sid), SBLK_LENW); 
 #endif
       memcpy (outdat_p, &(cam_sblk_ps->sid), SBLK_LENB); /* Data to record */
       /*
@@ -182,7 +160,7 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    if SUCCESS(iss)
    {
 #ifndef _X86_
-      blockPIOPSwap (&(ftp_camac_ps->ftp_read_s),FBLK_LENW/2); 
+      camSwapWords (&(ftp_camac_ps->ftp_read_s),FBLK_LENW); 
 #endif
       memcpy (outdat_p, &(ftp_camac_ps->ftp_read_s), sizeof(FTP_READ_TS)); /* Data to record */
    }
