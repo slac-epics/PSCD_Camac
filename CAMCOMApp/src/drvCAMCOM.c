@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvCAMCOM.c,v 1.6 2010/02/25 22:41:26 rcs Exp $
+ *   $Id: drvCAMCOM.c,v 1.1.1.1 2010/05/28 23:13:13 rcs Exp $
  *   File:		drvCAMCOM.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -13,6 +13,7 @@
 \***************************************************************************/
 
 #include <devCAMCOM.h>
+
 
 /**************************************
 ** MessageQueue for CAMCOM thread. One/IOC
@@ -84,15 +85,18 @@ void threadCAMCOM (void * msgQId)
    THREADMSG_TS msg_s;
    int msgQstat;
    mbcd_pkg_ts *wfpkg_p;  /* package in waveform */
-   void *newpkg_p;        /* Created camcom package */
+   void *newpkg_p = NULL; /* Created camcom package */
    unsigned short iops;   /* #ops in package */
-   unsigned short emask = 0xFFFF; /* emask to return and report everything */
+   unsigned short emask = 0; /* emask to return and report nothing */
    unsigned short nbytes; /* #bytes this packet */
    mbcd_pkt_ts *wfpkt_p;  /* Packet pointer */
-   char *wfdat_p;         /* Pointer to stat/data */
+   short *wfdat_p;        /* Pointer to stat/data */
    int j;
    CAMCOM_PVT *pvt_p;    /* Driver private struct */
    dbCommon *reccom_p;   /* Record pointer */
+   int   *dbgi_p = NULL; /* For debugging */
+   short *dbgs_p = NULL;
+   char  *dbgc_p = NULL;
    /*----------------------------*/
    while (TRUE)
    {
@@ -103,27 +107,57 @@ void threadCAMCOM (void * msgQId)
       }
       reccom_p = msg_s.rec_p;   /* Record pointer for return to device support */
       pvt_p = (CAMCOM_PVT *)reccom_p->dpvt;   /* Local routines only know about driver private */
+
       /*****************************
        ** Build and execute package.
        ****************************/ 
-      printf ("Entered CAMCOM thread\n");
-      wfpkg_p = (mbcd_pkg_ts*) pvt_p->val_p;
+      wfpkg_p = (mbcd_pkg_ts*) pvt_p->val_p;  /* Get package pointer */
+#ifndef _X86_
+      camSwapBytes (wfpkg_p, sizeof(mbcd_pkghdr_ts)); /* byte swap header */
+#endif
       iops = wfpkg_p->hdr.iop;
       if (!SUCCESS(iss = camalo(&iops, &newpkg_p)))
 	 goto egress;
       for (j=0; j<iops; j++)
       {
-	 wfpkt_p = &(wfpkg_p->mbcd_pkt[j]);
-         wfdat_p = (char *) wfpkg_p + (int) wfpkt_p->stad_p;
+         wfpkt_p = &(wfpkg_p->mbcd_pkt[j]);
+#ifndef _X86_
+         camSwapBytes ( wfpkt_p, sizeof(*wfpkt_p));                     /* Byte swap packet */ 
+         camSwapWords ( &(wfpkt_p->cctlw), sizeof(wfpkt_p->cctlw)/2 );  /* Word swap ctlw */ 
+         camSwapWords ( &(wfpkt_p->stad_p), sizeof(wfpkt_p->stad_p)/2); /* Word swap stad_p */
+#endif
+         wfdat_p = (short *) wfpkg_p + (int) wfpkt_p->stad_p;
          nbytes =  wfpkt_p->wc_max << 1;
-         if (!SUCCESS(iss = camadd(&(wfpkt_p->cctlw), &wfdat_p, &nbytes, &emask, &newpkg_p)))
+#ifndef _X86_
+            camSwapBytes (wfdat_p+2, nbytes);     /* Byte swap data */ 
+            camSwapWords (wfdat_p+2, nbytes/2 );  /* Word swap data */ 
+#endif
+         if (!SUCCESS(iss = camadd(&(wfpkt_p->cctlw), wfdat_p, &nbytes, &emask, &newpkg_p)))
 	    goto egress; 
       }
-      iss = camgo (&newpkg_p); 
+      iss = camgo (&newpkg_p);
+      /************** I/O Complete *********/
+#ifndef _X86_
+      /** Swap everything back  **/
+      camSwapBytes (wfpkg_p, sizeof(mbcd_pkghdr_ts)); /* byte swap header back */
+      for (j=0; j<iops; j++)
+      {
+         wfpkt_p = &(wfpkg_p->mbcd_pkt[j]);
+         wfdat_p = (short *) wfpkg_p + (int) wfpkt_p->stad_p;
+         nbytes =  wfpkt_p->wc_max << 1;
+         camSwapBytes ( wfpkt_p, sizeof(*wfpkt_p));                     /* Byte swap packet */ 
+         camSwapWords ( &(wfpkt_p->cctlw), sizeof(wfpkt_p->cctlw)/2 );  /* Word swap ctlw */ 
+         camSwapWords ( &(wfpkt_p->stad_p), sizeof(wfpkt_p->stad_p)/2); /* Word swap stad_p */
+         camSwapBytes (wfdat_p, nbytes+4);       /* Byte swap stat/data */ 
+         camSwapWords (wfdat_p, (nbytes+4)/2 );  /* Word swap stat/data */
+      }
+#endif
    egress:
+      camdel (&newpkg_p);
       pvt_p->status = iss;
       dbScanLock(reccom_p);
       (*(reccom_p->rset->process))(reccom_p);
       dbScanUnlock(reccom_p);
    }   /* End while (TRUE) */
 }      /* End threadCAMCOM */
+
