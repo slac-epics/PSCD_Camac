@@ -94,7 +94,13 @@ vmsstat_t blockPIOPCblk (CAMBLOCKS_TS *camblocks_ps, unsigned short infunc, void
    memset (cam_cblk_ps, 0, sizeof(CAM_CBLK_TS)); /* Clear the area */
    cam_cblk_ps->func = infunc;
    memcpy (&(cam_cblk_ps->dat), indat_p, datalenb);
-   blockPIOPCksum ( (short *) &(cam_cblk_ps->func), CBLK_LENW);
+   /*
+   ** No checksum for bitmaps
+   */
+   if ((infunc != PIOP_CBLK_TKBITMAP) && (infunc != PIOP_CBLK_FTBITMAP))
+     blockPIOPCksum ( (short *) &(cam_cblk_ps->func), CBLK_LENW);
+   epicsThreadSleep(delay); /* Delay before first write attempt */
+
 #ifndef _X86_
    camSwapWords ( &(cam_cblk_ps->func), CBLK_LENW); 
 #endif
