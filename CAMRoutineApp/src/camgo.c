@@ -340,7 +340,8 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
 	   if ((ess = epicsEventWaitWithTimeout(pscd_card.semSio[prior], 0.1)) != epicsEventWaitOK)
 	   {
               iss = MICR_UNK_IRMXERR;        
-              errlogSevPrintf (errlogFatal, "CAMGO - epics event wait error %x\n",ess);
+              errlogSevPrintf (errlogMinor, "CAMGO - timeout waiting for interrupt %x\n",ess);
+              pscd_card.waitSemSio[prior] = FALSE;  /* Tell ISR no longer waiting for interrupt */
 	   }
            *pscd_card.tdv_p[prior] = TDV_DONE_MSK;  /* Insure clear for next I/O */
         }
@@ -588,7 +589,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  {
      #define CAMBLK_p (*campkg_pp)
      mbcd_savep_ts *savep_p;
-     unsigned       miop, jp;
+     unsigned       miop;
      int            wait = 1;
      vmsstat_t      iss = CAM_OKOK;
     
@@ -601,16 +602,6 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
          iss = CAM_NULL_PTR;
          errlogSevPrintf (errlogMinor, 
            "CAMGO - Unable to execute packet with NULL package pointer.\n");
-         goto egress;
-     }
-     /*
-     ** Only execute low and medium priority packages with Camgo.
-     */
-     if ( (CAMBLK_p->hdr.key != KEY_MED) && (CAMBLK_p->hdr.key != KEY_LOW))
-     {
-         iss = CAM_CCB_NFG;
-         errlogSevPrintf (errlogMinor, 
-           "CAMGO - Cannot execute package with key %d\n",CAMBLK_p->hdr.key);
          goto egress;
      }
      if ((miop = CAMBLK_p->hdr.iop) == 0 || miop > 127)
