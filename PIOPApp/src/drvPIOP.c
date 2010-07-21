@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.7 2010/04/23 19:24:25 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.8 2010/05/20 16:28:26 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -128,10 +128,11 @@ void threadPIOP (void * msgQId)
    PIOP_PVT *pvt_p;    /* Driver private struct */
    dbCommon *reccom_p; /* Record pointer */
    int first_init = 0; /* Must do init first time */
-   unsigned short beam_any[CBLK_LENW-2] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,0xFFFF, 
-                          0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
-   unsigned short beam_one[CBLK_LENW-2] =  { 0,0,0,0,0,0,0,0,0,0,0,0,0,2 };
-   unsigned short beam_noftp [CBLK_LENW-2] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+   unsigned short beam_any[CBLK_LENW-1] = 
+                          {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,0xFFFF, 0xFFFF, 0xFFFF, 
+                           0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,0xFFFF };
+   unsigned short beam_one[CBLK_LENW-1] =    { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+   unsigned short beam_noftp [CBLK_LENW-1] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
    unsigned short beam_loaded = 99;  /* 0=ANY 1=LCLS Beam. Force reload */
    FTP_WAVE_TS *ftp_wave_ps;
    FTP_CBLK_TS *ftp_cblk_ps;
@@ -174,13 +175,13 @@ void threadPIOP (void * msgQId)
             if (SUCCESS(iss))
 	    {
                iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
-			            &beam_noftp, CBLK_LENB-4, 2, 0.01 );
+			            &beam_noftp, CBLK_LENB-2, 2, 0.01 );
                epicsThreadSleep(.05);
 	    }
             if (SUCCESS(iss))
             {
                iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
-			            &beam_one, CBLK_LENB-4, 2, 0.01 );
+			            &beam_one, CBLK_LENB-2, 2, 0.01 );
                epicsThreadSleep(.05);
 	    }
             if (SUCCESS(iss))
@@ -191,14 +192,14 @@ void threadPIOP (void * msgQId)
          case PPNOFTP:
          {
 	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_TKBITMAP, 
-                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01 );
+                                           pvt_p->val_p, CBLK_LENB-2, 2, 0.01 );
             epicsThreadSleep(.05); /* Let PIOP digest bitmap */
             break;
          }           
          case PPFTP:
          {
 	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
-                                           pvt_p->val_p, CBLK_LENB-4, 2, 0.01);
+                                           pvt_p->val_p, CBLK_LENB-2, 2, 0.01);
             epicsThreadSleep(.05); /* Let PIOP digest bitmap */
             break;
          }           
@@ -209,27 +210,32 @@ void threadPIOP (void * msgQId)
          }           
          case FTP:
          {
-	    /*
-	    ** Insure we have the correct PP bitmap loaded
-	    */
 	    iss = KLYS_OKOK;
 	    ftp_wave_ps = (FTP_WAVE_TS*) pvt_p->val_p;
             ftp_cblk_ps = &(ftp_wave_ps->ftp_cblk_s);
             ftp_info_ps = &(ftp_wave_ps->ftp_info_s);
             ftp_read_ps = &(ftp_wave_ps->ftp_read_s);
-	    if (ftp_info_ps->pp != beam_loaded)
+	    /*
+	    ** Insure we have the correct PP bitmap loaded and we're not 
+            ** doing the psuedo FTP that reads the bitmap.
+	    */
+	    if ((ftp_info_ps->pp != beam_loaded) && (ftp_cblk_ps->channel != SUBSTPP_CHAN))
             {
 	       if (ftp_info_ps->pp == 0)
                   iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
-                                       beam_any, CBLK_LENB-4, 2, 0.01);
+                                       beam_any, CBLK_LENB-2, 2, 0.01);
 	       else
                   iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTBITMAP, 
-                                       beam_one, CBLK_LENB-4, 2, 0.01);
+                                       beam_one, CBLK_LENB-2, 2, 0.01);
                epicsThreadSleep(.05); 
+               if (SUCCESS(iss))
+	          beam_loaded = ftp_info_ps->pp;
 	    }
+	    /*
+	    ** Send the CBLK and read the FTP data.
+	    */
 	    if (SUCCESS(iss))
 	    {
-	       beam_loaded = ftp_info_ps->pp;
                iss = blockPIOPCblk (camblocks_ps, PIOP_CBLK_FTP, ftp_cblk_ps, 
 				    sizeof(FTP_CBLK_TS), 2, 0.01);
 	       if (SUCCESS(iss))
@@ -240,8 +246,7 @@ void threadPIOP (void * msgQId)
             break;
          }           
          case PAD:
-         {
-            
+         {           
 	    pvt_p->status = blockPIOPCblk (camblocks_ps, PIOP_CBLK_PADPARAM, 
                                            pvt_p->val_p, CBLK_LENB-4, 2, 0.01);
             break;
