@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.h,v 1.5 2010/04/23 19:23:02 rcs Exp $
+ *   $Id: drvPIOP.h,v 1.6 2010/07/02 17:15:15 rcs Exp $
  *   File:		drvPIOP.h
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -56,6 +56,13 @@
 #define CBLK_LENW CBLK_LENB/2
 #define FBLK_LENW FBLK_LENB/2
 #define SBLK_LENW SBLK_LENB/2
+
+/*
+** We need to check for the SUBST_PP FTP so we don't load the bitmap
+** for this psuedo FTP.
+*/
+
+#define SUBSTPP_CHAN 65
 
 /*
 ** Generic control block sent to PIOP
