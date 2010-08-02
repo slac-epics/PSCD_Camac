@@ -29,12 +29,12 @@ record(waveform, "$(IOC):CAMCOM:INBUFF") {
   field(FTVL, "CHAR")
 }
 
-#record(waveform, "$(IOC):CAMCOM:OUTBUFF") {
-#  field(DTYP, "Soft Channel")
-#  field(PREC, "0")
-#  field(NELM, "16384")
-#  field(FTVL, "CHAR")
-#}
+record(waveform, "$(IOC):CAMCOM:OUTBUFF") {
+  field(DTYP, "Soft Channel")
+  field(PREC, "0")
+  field(NELM, "16384")
+  field(FTVL, "CHAR")
+}
 record(longin, "$(IOC):CAMCOM:INBUFF:LEN") {
 }
 
