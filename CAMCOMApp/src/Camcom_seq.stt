@@ -36,7 +36,7 @@ monitor camcom_status;
 
 string camcom_reservation; assign camcom_reservation to "CAMC:{LOCA}:CV01:NOTE";
 
-string camcom_seq_ver; assign camcom_seq_ver to "CAMC:{LOCA}:CV01:SEQ:VER";
+string camcom_seq_ver; assign camcom_seq_ver to "CAMC:{LOCA}:CV01:SEQ_VER";
 
 ss DOcamcom {
     state init {
