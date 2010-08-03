@@ -1,9 +1,0 @@
-# Record for a test CAMCOM waveform
-
-record(waveform, "TEST:CAMCOM") {
-  field(DESC, "Test for CAMCOM")
-  field(SCAN, "Passive")
-  field(DTYP, "CAMCOM")
-  field(INP,  "#B0 C0 N0 A0 F0 @CAMCOM")
-  field(FTVL, "SHORT")
-}
