@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvCAMCOM.c,v 1.1.1.1 2010/05/28 23:13:13 rcs Exp $
+ *   $Id: drvCAMCOM.c,v 1.2 2010/07/02 17:42:21 rcs Exp $
  *   File:		drvCAMCOM.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -94,9 +94,6 @@ void threadCAMCOM (void * msgQId)
    int j;
    CAMCOM_PVT *pvt_p;    /* Driver private struct */
    dbCommon *reccom_p;   /* Record pointer */
-   int   *dbgi_p = NULL; /* For debugging */
-   short *dbgs_p = NULL;
-   char  *dbgc_p = NULL;
    /*----------------------------*/
    while (TRUE)
    {
