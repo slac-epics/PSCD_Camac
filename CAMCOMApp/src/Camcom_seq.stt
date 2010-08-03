@@ -22,21 +22,21 @@ monitor active_token;
 
 short last_active_token;
 
-short in_buff_len; assign in_buff_len to "{BR}:CAMCOM:INBUFF:LEN";
+short in_buff_len; assign in_buff_len to "CAMC:{LOCA}:CV01:INBUFF_LEN";
 
-char real_buff[16348]; assign real_buff to "{BR}:CAMCOM:REALBUFF";
+char real_buff[16348]; assign real_buff to "CAMC:{LOCA}:CV01:REALBUFF";
 
-char in_buff[16348]; assign in_buff to "{BR}:CAMCOM:INBUFF";
+char in_buff[16348]; assign in_buff to "CAMC:{LOCA}:CV01:INBUFF";
 
-short token_valid; assign token_valid to "{BR}:CAMCOM:TOKEN_VALID";
+short token_valid; assign token_valid to "CAMC:{LOCA}:CV01:TOKEN_VALID";
 monitor token_valid;
 
-short camcom_status; assign camcom_status to "{BR}:CAMCOM:STATUS";
+short camcom_status; assign camcom_status to "CAMC:{LOCA}:CV01:STATUS";
 monitor camcom_status;
 
-string camcom_reservation; assign camcom_reservation to "{BR}:CAMCOM:NOTE";
+string camcom_reservation; assign camcom_reservation to "CAMC:{LOCA}:CV01:NOTE";
 
-string camcom_seq_ver; assign camcom_seq_ver to "{BR}:CAMCOM:SEQ:VER";
+string camcom_seq_ver; assign camcom_seq_ver to "CAMC:{LOCA}:CV01:SEQ:VER";
 
 ss DOcamcom {
     state init {
