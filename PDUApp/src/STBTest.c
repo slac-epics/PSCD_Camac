@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.5 2010/06/13 01:35:04 pengs Exp $
+ *   $Id: STBTest.c,v 1.6 2010/06/13 02:55:46 pengs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -85,7 +85,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
         UINT32 ctlwF9A0 = 0x00090000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
         UINT32 ctlwF17A0 = 0x00110000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
         UINT32 ctlwF1A0 = 0x00010000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7);
-        UINT32 ctlwF0A0 = 0x00000000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7) | CCTLW__P24;
+        UINT32 ctlwF0A0 = 0x00000000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7) | CCTLW__P24 | CCTLW__QM1;
 
         STAS_DAT test_stb;
 
@@ -129,6 +129,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
         {
            printf("Mode of Operation is 0x%X\n", *((UINT16 *)(&(test_stb.data))) );
         }
+        epicsThreadSleep(1.0);
 
         do {
 	    /* F0A0 to read counter */
@@ -141,7 +142,7 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
                     return (iss);
                 }
 
-                printf("Counter is: %d, raw readback is 0x%X \n", (test_stb.data)&0x3FFFFF, test_stb.data);
+                printf("Counter is: %d, raw readback is 0x%X, raw stat is 0x%X \n", (test_stb.data)&0x3FFFFF, test_stb.data, test_stb.stat);
                 epicsThreadSleep(0.02);
             }
             printf("q to quit, other key to continue:\n");
