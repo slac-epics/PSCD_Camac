@@ -1,5 +1,5 @@
 /****************************************************************************
- **   $Id: fidPDUIIDIAG.c,v 1.0 2010/08/21 rcs Exp $
+ **   $Id: fidPDUDIAG.c,v 1.1 2010/08/25 22:43:43 rcs Exp $
  **   File:              fidPDUDIAG.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -8,8 +8,11 @@
  **   Date:              08/2010
  **   Version:           1.0
  **
- **   Collect actual PDU timing delays. 
- **   Routine called from the 360Hz fiducial processing.
+ **   Collect actual PDU timing delays. This module has the following routines:
+ ** 
+ **   static void fidPDUDIAGDone - Called internally to terminate a collection.
+ **   void fidPDUDIAGPreCam      - Called by 360Hz just before camgo.
+ **   void fidPDUDIAGPostCam     - Called by 360Hz just after camgo.
  **
  ****************************************************************************/
 
@@ -19,39 +22,65 @@
 #include "cctlwmasks.h"
 
 PDUDIAG_WFD         Wfd_s;             /* Collected waveform data struct */
-extern int          fidPDUDIAGActive;  /* defined in drvPDUDIAG */
-extern epicsEventId fidEventDone;      /* defined in drvPDUDIAG */
+extern int          fidPDUDIAGActive;  /* A collection is active. Defined in drvPDUDIAG */
+extern epicsEventId fidCollectionDone; /* Set when collection is done. Defined in drvPDUDIAG */
 
 /*
 ** Local state and info to control data collection. This function is 
 ** not reentrant and can only collect one data set at a time. It is
-** started by the single waveform execution thread who waits for the
+** started by the single waveform execution thread that waits for the
 ** event signaling that collection is complete.
 */
-typedef enum {WAITING_SECOND, SKIP_NEXT_FID, READ_REARM,STORE_PREV_DELAY} STATES;
+typedef enum {WAITING_SECOND, CHECK_MATCH, STORE_MODS, READ_REARM, SKIP_WRAP} STATES;
 static STATES State = WAITING_SECOND; 
-static UINT32         Sav_count = 0;  /* Count of samples we've saved */
-static UINT32         Dat_index = 0;  /* Running index to data array */   
+static UINT32         Sav_count  = 0;  /* Count of samples we've saved */
+static UINT32         Dat_index  = 0;  /* Running index to data array */   
+static UINT32         Pass_num   = 0;  /* Collection pass */   
+static UINT32         Fids_wait  = 0;  /* Fids waiting for next second */
+   
 static unsigned short Emask = 0xF300;
-static unsigned long  Read_ctlw;      /* ctlw To read delay */
+static unsigned long  Mode_ctlw;      /* ctlw to set mode */
+static unsigned long  Read_ctlw;      /* ctlw to read delay */
+static unsigned long  Avail_ctlw;     /* ctlw to check if data available */
+static unsigned long  Match_ctlw;     /* ctlw to check if measurement on next fiducial */
+static unsigned long  Match_stat;     /* Status to check if will measure next fiducial */
+static unsigned long  Avail_stat;     /* Status to check if data is available */
 static STAT_LDAT      Read_ldat_s;    /* Delay interval status/data */
+static STAT_SDAT      Mode_sdat_s;    /* Mode status/data */
 
-/*
+/******************************************
+** Local routine to terminate a collection.
+******************************************/
+static void fidPDUDIAGDone (vmsstat_t iss)
+{
+   /*----------------------------*/
+   /*
+   ** End collection. iss indicates error or success.
+   ** Set status, reset all counters, state and the active flag.
+   ** Signal the done event.
+   */
+   Wfd_s.status = iss;
+   fidPDUDIAGActive = 0;
+   Sav_count = 0;
+   Dat_index = 0;
+   Pass_num = 0;
+   State = WAITING_SECOND; /* Next time we're active start here */
+   epicsEventSignal(fidCollectionDone);
+   return;
+}
+
+/*************************************************************************
 ** Called at 360Hz by the Fiducial processing before it's ready to issue
 ** the camgo to execute the F19 package.
 **
-** We run as a state machine so only once call is necessary from the 360Hz task.
-*/ 
-void fidPDUDIAG (void * pkg_p)
+**************************************************************************/ 
+void fidPDUDIAGPreCam (void *pkg_p)
 {
    int            stat;            /* TimeGet status */
    vmsstat_t      iss = DIAG_OKOK; /* cam* status */
-   epicsTimeStamp time_s;          /* Timestamp */
    evrModifier_ta modifier_a;      /* Array of modifiers */
    unsigned long  patternStatus;   /* see evrPattern.h for values */
-   unsigned long  mode_ctlw;       /* to set mode */
-   STAT_SDAT      mode_sdat_s;     /* Mode status/data */
-   UINT16         bcnt = 4;        /* byte count for read delay camadd */
+   UINT16         bcnt;            /* byte count for read delay camadd */
    /*----------------------------*/
    if (!fidPDUDIAGActive)
      return;
@@ -61,124 +90,176 @@ void fidPDUDIAG (void * pkg_p)
    switch (State)
    {
       case WAITING_SECOND:
-         stat = evrTimeGetFromPipeline(&time_s,  evrTimeNext1, modifier_a, &patternStatus, 0,0,0);
-         if(stat !=0 || patternStatus != PATTERN_OK) goto leave; /* Skip if error. EVR reports it */
+         Fids_wait++;
+         stat = evrTimeGetFromPipeline(&Wfd_s.timestamp,  evrTimeNext2, modifier_a, &patternStatus, 0,0,0);
+         if(stat || patternStatus)
+         {
+               fidPDUDIAGDone(DIAG_BADPATTERN);
+               goto leave; /* Abort this collection on Camac error */
+	 }
          /*
-	 ** If next fiducial is the one before the second, set mode and read out the STB.
-	 ** Set state to SKIP_NEXT so read out delay on next fid.
+	 ** If this fiducial is two before the second, set mode set the STB mode and
+	 ** read the interval to enable collection.
 	 */
-         if ((modifier_a[MOD5_IDX] & MOD5_1HZ_MASK) != 0)
+         if (    ((modifier_a[MOD5_IDX] & MOD5_1HZ_MASK)  != 0) 
+              && ((modifier_a[MOD2_IDX] & TIMESLOT1_MASK) != 0) )
 	 {
             /*
-            ** Add packets to set mode/channel and read/rearm interval. Module is always 21.
-	    ** Enter non-zero PPYY even though we want to match ANY else it doesn't work.
+            ** Set up ctlw's we'll need for the rest of the collection.
             */
-	    mode_ctlw = CCTLW__F17 | CCTLW__QM1 | (Wfd_s.crate << CCTLW__C_shc) 
-                                   | (STB_MODULE << CCTLW__M_shc);
-	    mode_sdat_s.sdat  = (Wfd_s.channel << STB_CHAN_SHIFT) | (STB_MODE_ANY << STB_MODE_SHIFT) | 1;
-	    bcnt = 2;
-	    iss = camadd (&mode_ctlw, &mode_sdat_s, &bcnt, &Emask, &pkg_p);
-            Read_ctlw = CCTLW__F0 | CCTLW__QM1 | CCTLW__P24 | (Wfd_s.crate << CCTLW__C_shc) 
-                                  | (STB_MODULE << CCTLW__M_shc);
-            bcnt = 4;
-            if (SUCCESS(iss))
-               iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, &pkg_p);
-            if (!SUCCESS(iss))
-               goto done; 
+            Read_ctlw =  CCTLW__F0  |  CCTLW__P24 | CCTLW__QM1 
+                                    | (Wfd_s.crate << CCTLW__C_shc) | (STB_MODULE << CCTLW__M_shc);
+            Avail_ctlw = CCTLW__F27 |  CCTLW__A2 | (Wfd_s.crate << CCTLW__C_shc) 
+                                    | (STB_MODULE << CCTLW__M_shc);
+            Match_ctlw = CCTLW__F27 |  CCTLW__A3 | (Wfd_s.crate << CCTLW__C_shc) 
+                                    | (STB_MODULE << CCTLW__M_shc);
+            /*
+            ** Add packet to set mode/channel. Module is always 21.
+            ** Enter non-zero PPYY even though we want to match ANY else it doesn't work.??
+            */
+            Mode_ctlw = CCTLW__F17 | CCTLW__QM1 
+                                   | (Wfd_s.crate << CCTLW__C_shc) | (STB_MODULE << CCTLW__M_shc);
+            Mode_sdat_s.sdat  = (Wfd_s.channel << STB_CHAN_SHIFT)  | (STB_MODE_ANY << STB_MODE_SHIFT) | 1;
+            bcnt = 2;
+            if(!SUCCESS(iss = camadd (&Mode_ctlw, &Mode_sdat_s, &bcnt, &Emask, pkg_p)))
+            {
+               fidPDUDIAGDone(iss);
+               goto leave; /* Abort this collection on Camac error */
+            }
             Sav_count = 0;
             Dat_index = 0;
+            Pass_num = 0;
 	    Wfd_s.status = DIAG_OKOK;
-            /*
-	    ** Save timestamp & modifiers for first (next) pulse in new second. 
-	    ** Actual delay read out 1 pulse after that and stored on the second pulse.
-	    */
-            stat = evrTimeGetFromPipeline(&(Wfd_s.fiddata[Dat_index].fidtimestamp),  evrTimeNext1, 
-                                           Wfd_s.fiddata[Dat_index].modifier_a, &patternStatus, 0,0,0);
-            if(stat !=0 || patternStatus != PATTERN_OK)
-            {  
-               iss = DIAG_BADPATTERN;
-               goto done; /* Abort this collection on pattern error */
-	    }
-	    State = SKIP_NEXT_FID;  /* Timer will run on next fid so read on following one */
+            State = CHECK_MATCH;
 	 }
-         goto leave;
 	 break;
-      case SKIP_NEXT_FID:
-	 State = READ_REARM; /* Next state Reads the actual delay which rearms the counter for the net fid */
+      case CHECK_MATCH:
+         /*
+	 ** Check that we'll match on the next fiducial
+	 */
+         bcnt = 0;
+         if (!SUCCESS(iss = camadd (&Match_ctlw, &Match_stat, &bcnt, &Emask, pkg_p)))
+	 {
+	    fidPDUDIAGDone(iss);
+	    goto leave;
+	 }
+         State = STORE_MODS;  /* Store modifiers */
+         break;
+      case STORE_MODS:
+         /*
+	 ** The STB time will measure this fid to be read out on the next.
+	 ** Save modifiers & timestamp for this fid.
+	 */
+         stat = evrTimeGetFromPipeline(&(Wfd_s.fiddata[Dat_index].fidtimestamp),  evrTimeCurrent, 
+                                        Wfd_s.fiddata[Dat_index].modifier_a, &patternStatus, 0,0,0);
+         if(stat || patternStatus)
+         {
+            fidPDUDIAGDone(DIAG_BADPATTERN);
+            goto leave; /* Abort this collection on pattern error */
+	 }
+         State = READ_REARM;
 	 break;
       case READ_REARM:
-         if (!SUCCESS (iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, &pkg_p)))
-            goto leave;
-	 if (Sav_count < MAX_SAMPLES/2)
-         {
-            /*
-	    ** If we're in the middle of this half, get modifiers and timestamp from next pulse 
-	    ** which is the actual delay measured. Indexes are from previous saved pulse.
-	    */
-            stat = evrTimeGetFromPipeline(&(Wfd_s.fiddata[Dat_index+2].fidtimestamp),  evrTimeNext1, 
-                                            Wfd_s.fiddata[Dat_index+2].modifier_a, &patternStatus, 0,0,0);
-            if(stat !=0 || patternStatus != PATTERN_OK)
-            {  
-	       iss = DIAG_BADPATTERN;
-               goto done; /* Abort this collection on pattern error */
-	    }
-	 }
-         State = STORE_PREV_DELAY; /* Store the data from this read on the next fid */
-         break;
-      case STORE_PREV_DELAY:
-         Wfd_s.fiddata[Dat_index].measdelay =  Read_ldat_s.ldat;
-	 Wfd_s.fiddata[Dat_index].fidstatus = DIAG_OKOK; 
-	 Dat_index+=2;
-	 Sav_count++;
-         if(Sav_count >= MAX_SAMPLES)
+         State = CHECK_MATCH;   /* Assume we're in the middle of a pass */
+         /* 
+	 ** READ_REARM Reads the actual delay from the previous fid which 
+	 ** rearms the counter for fid+2. Make sure data is available. 
+         */
+         bcnt = 0;
+         if (!SUCCESS (iss = camadd (&Avail_ctlw, &Avail_stat, &bcnt, &Emask, pkg_p)))
 	 {
-            goto done;        /* This collection is done */
+            fidPDUDIAGDone(iss);
+            goto leave; /* Abort this collection on Camac error */
+	 }
+         bcnt = 4;
+         if (!SUCCESS (iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, pkg_p)))
+	 {
+            fidPDUDIAGDone(iss);
+            goto leave; /* Abort this collection on Camac error */
 	 }
          /*
-	 ** A bit tricky here. Store the delay from 2 pulses ago. If we're at the half-way
-	 ** point, save the pattern and timestamp for the next pulse, readout the interval 
-	 ** but skip the next pulse so we continue on to the second half.
+	 ** If this sample starts the next pass then disable the interval timer
+	 ** for one fid.
 	 */
-         if (Sav_count >= MAX_SAMPLES/2)
-         {
-	    Dat_index = 1;     /* Start collecting the second half */
-            /*
-	    ** We're at the end of the first half. Get modifiers and timestamp from next pulse 
-	    ** which is the actual delay measured and skip the next pulse.
-	    */
-            stat = evrTimeGetFromPipeline(&(Wfd_s.fiddata[Dat_index].fidtimestamp),  evrTimeNext1, 
-                                            Wfd_s.fiddata[Dat_index].modifier_a, &patternStatus, 0,0,0);
-            if(stat !=0 || patternStatus != PATTERN_OK)
-            {  
-	       iss = DIAG_BADPATTERN;
-               goto done; /* Abort this collection on pattern error */
-	    }
-            if (!SUCCESS (iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, &pkg_p)))
+         if ( (Dat_index + 3) > MAX_SAMPLES-1) /* This sample starts the next pass */
+	 {
+            State = SKIP_WRAP;     /* End of a pass so skip the next fiducial */
+            Mode_sdat_s.sdat  |= STB_STOP_TIMER;
+            bcnt = 2;
+            if(!SUCCESS(iss = camadd (&Mode_ctlw, &Mode_sdat_s, &bcnt, &Emask, pkg_p)))
+            {
+               fidPDUDIAGDone(iss);
                goto leave;
-	    State = SKIP_NEXT_FID;  /* Start collecting second half */
-	 }
-         else
-         {
-            State = READ_REARM;  /* Keep collecting */
+            }
+            Mode_sdat_s.sdat  &= !STB_STOP_TIMER;  /* Clear out the stop bit to re-enable */
 	 }
 	 break;
+      case SKIP_WRAP:    /* Re-enable interval timer */
+         bcnt = 2;
+         if(!SUCCESS(iss = camadd (&Mode_ctlw, &Mode_sdat_s, &bcnt, &Emask, pkg_p)))
+         {
+            fidPDUDIAGDone(iss);
+            goto leave; /* Abort this collection on Camac error */
+         }
+         State = CHECK_MATCH;
+	 break;
    }
-   goto leave;
-done:
-/*
-** End collection. iss indicates error or success.
-** Set status, reset all counters, state and the active flag.
-** Signal the done event.
-*/
-  Wfd_s.status = iss;
-  fidPDUDIAGActive = 0;
-  Sav_count = 0;
-  Dat_index = 0;
-  State = WAITING_SECOND; /* Next time we're active start here */
-  epicsEventSignal(fidEventDone);
 leave:
    return;
 }
 
-
-
+/********************************************
+** This is called after the Camgo is complete.
+********************************************/
+void fidPDUDIAGPostCam (void)
+{
+   /*----------------------------*/
+   if (!fidPDUDIAGActive)
+     return;
+   /*
+   ** switch based on state of data collection
+   */
+   switch (State)
+   {
+      case WAITING_SECOND:   /* Nothing to do */
+         break;  
+      case CHECK_MATCH:
+         Wfd_s.fiddata[Dat_index].matchstatus = Match_stat; /* Save match status */
+	 break;
+      case STORE_MODS:    /* Nothing to do */
+	 break;
+      case READ_REARM:
+         /*
+         ** Check if we got a good measurement on the last read
+         */
+         if ((Avail_stat & MBCD_STAT__Q) != 0)
+	 {
+            Wfd_s.fiddata[Dat_index].measdelay =  Read_ldat_s.ldat;
+	    Wfd_s.fiddata[Dat_index].fidstatus = DIAG_OKOK;
+	 }
+	 else
+	 {
+            Wfd_s.fiddata[Dat_index].measdelay =  -1;
+	    Wfd_s.fiddata[Dat_index].fidstatus = DIAG_NOMEAS;
+	 } 
+	 Dat_index+=3;
+	 Sav_count++;
+         if(Sav_count >= MAX_SAMPLES)
+	 {
+               fidPDUDIAGDone(DIAG_OKOK);     /* This collection is done */
+	       goto leave;
+	 }
+         /*
+	 ** Start next pass if Dat_index is off the end.
+	 */
+         if (Dat_index > MAX_SAMPLES-1)
+	 {
+            Dat_index = ++Pass_num;     /* Start collecting the next pass */
+	 }
+         break;
+      case SKIP_WRAP:     /* Nothing to do */
+	 break;
+   }     /* End switch */
+leave:
+   return;
+}

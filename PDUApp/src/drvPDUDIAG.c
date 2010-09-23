@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUDIAG.c,v 1.0 2010/08/17 10:20:07 rcs Exp $
+ *   $Id: drvPDUDIAG.c,v 1.1 2010/08/25 22:43:43 rcs Exp $
  *   File:		drvPDUDIAG.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -29,8 +29,8 @@ extern PDUDIAG_WFD Wfd_s;    /* defined in fidPDUDIAG; 360 Hz Waveform data coll
 /***   Shared between this thread and 360PDUDIAG_Fid data collection.  ***********/
 /*********************************************************************************/
 
-int          fidPDUDIAGActive = 0;   /* Set true to start data collection */
-epicsEventId fidEventDone = NULL;    /* fiducial data collection signals done */
+int          fidPDUDIAGActive = 0;     /* Set true to start data collection */
+epicsEventId fidCollectionDone = NULL; /* fiducial data collection signals done */
 
 /****************************************************************
 ** This is the driver thread that does all of the Communication
@@ -38,7 +38,7 @@ epicsEventId fidEventDone = NULL;    /* fiducial data collection signals done */
 ** PDU processing
 *****************************************************************/
 
-#define DIAG_TIMEOUT 3.2
+#define DIAG_TIMEOUT 4.2
 
 void fidThread(void * msgQId)
 {
@@ -47,7 +47,8 @@ void fidThread(void * msgQId)
    int stat;
    dbCommon *reccom_p; /* Record pointer */
    /*----------------------------*/
-   fidEventDone = epicsEventMustCreate(epicsEventEmpty); /* for 360 to signal done */
+   fidCollectionDone = epicsEventMustCreate(epicsEventEmpty); /* for 360 to signal done */
+   printf ("Size of wfaveform data in longs %d\n",sizeof(Wfd_s)/4);
    while(TRUE)
    {
       if ((stat = epicsMessageQueueReceive (lmsgQ, &msg_s, sizeof(THREADMSG)) < 0))
@@ -64,7 +65,7 @@ void fidThread(void * msgQId)
       Wfd_s.crate = msg_s.crate;
       Wfd_s.channel = msg_s.channel;
       fidPDUDIAGActive = 1;
-      stat = epicsEventWaitWithTimeout(fidEventDone, DIAG_TIMEOUT);
+      stat = epicsEventWaitWithTimeout(fidCollectionDone, DIAG_TIMEOUT);
       if(stat != epicsEventWaitOK)
       {
          errlogPrintf("drvPDUDIAG error %d waiting for data collection event\n", stat);

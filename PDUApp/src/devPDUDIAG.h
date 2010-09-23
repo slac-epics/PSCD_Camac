@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUDIAG.h,v 1.0 2010/08/17 10:55:00 rcs Exp $
+ *   $Id: devPDUDIAG.h,v 1.1 2010/08/25 22:43:43 rcs Exp $
  *   File:		devPDUDIAG.h
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -77,14 +77,23 @@ extern "C" {
 
 /******************************************************************************************/
 
+/*** #define MAX_SAMPLES 360 ***/
 #define MAX_SAMPLES 360
+
+/*
+** Prototypes for diagnostic called by 360Hz fiducial
+*/
+void fidPDUDIAGPreCam  (void *pkg_p);
+void fidPDUDIAGPostCam (void);
+
 /* 
 ** The data collected for each pulse
 */
 typedef struct PDUDIAG_FIDD
 {
    vmsstat_t       fidstatus;      /* status of this fid sample */
-   epicsUInt32	   measdelay;      /* Measured delay from STB */
+   epicsUInt32     matchstatus;    /* Save match status */
+   epicsInt32	   measdelay;      /* Measured delay from STB */
    evrModifier_ta  modifier_a;     /* All modifiers */
    epicsTimeStamp  fidtimestamp;   /* timestamp has pulseID encoded */
 } PDUDIAG_FIDD;
@@ -126,29 +135,22 @@ typedef struct WF_PVT
 */
 #define DIAG_OKOK        1
 #define DIAG_BADPATTERN         0x10000000
-#define DIAG_EVENTERR           0x10000000
+#define DIAG_EVENTERR           0x20000000
+#define DIAG_NOMEAS             0x30000000
+#define DIAG_NOMATCH            0x40000000
 
 /*
 ** Only STB mode we care about. Module is hard-coded in SCP.
 */
 #define STB_MODE_ANY	7
 #define STB_MODULE     21
+#define STB_STOP_TIMER 0x0001000
 
 /*
 ** Mode word shifts
 */
 #define STB_CHAN_SHIFT 8
 #define STB_MODE_SHIFT 13
-
-/******************************************************************************************/
-/*********************       Record type we support             ***************************/
-/******************************************************************************************/
-typedef enum EPICS_RECTYPE
-{
-    EPICS_RECTYPE_NONE,
-    EPICS_RECTYPE_LO,
-    EPICS_RECTYPE_WF
-}   E_EPICS_RECTYPE;
 
 /*
 ** Short and long Camac read structs

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUDIAG.c,v 1.0 2010/08/17 09:48:22 rcs Exp $
+ *   $Id: devPDUDIAG.c,v 1.1 2010/08/25 22:43:43 rcs Exp $
  *   File:		devPDUDIAG.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -69,7 +69,7 @@ static long init_lo(struct longoutRecord * plo)
    struct camacio *cam_ps = &(plo->out.value.camacio);
    char *parm_p= cam_ps->parm;
    /*------------------------------------------------*/
-    if(plo->out.type!=CAMAC_IO)
+   if(plo->out.type!=CAMAC_IO)
    {
       recGblRecordError(S_db_badField, (void *)plo,
                          "devLoPDUDIAG init_lo type not CAMAC");
@@ -136,7 +136,7 @@ static long write_lo(struct longoutRecord *plo)
    }
    if (strcmp("CHANL",parm_p) == 0)
    {
-      if ( (rval > 0) && (rval < MAX_CHANL) )
+      if ( (rval >= 0) && (rval < MAX_CHANL) )
          Chanl = rval;
       else
       {
@@ -182,6 +182,7 @@ static long init_wf(struct waveformRecord * pwf)
    pvt_p = callocMustSucceed (1, sizeof(WF_PVT), "calloc PDUDIAG driver pvt");
    pvt_p->status = DIAG_OKOK;   /* Init status to good */
    pwf->dpvt = pvt_p;           /* Save out private space in record */
+   pwf->nord = sizeof(PDUDIAG_WFD)/sizeof(int);
    return 0;
 }
 
