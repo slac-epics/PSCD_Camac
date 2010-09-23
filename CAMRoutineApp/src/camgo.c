@@ -69,6 +69,8 @@
 #include "micrdef.h"              /* MICR_EPMUTEXCREA.                       */
 #include "epicsThread.h"
 
+int MBCD_MODE = 0;   /* Global flag to disable crate/soft timeout msgs when in MBCD mode */
+
  static unsigned long cam_tdv_busy_count = 0,
                       unwou_errf         = 0; 
  static const vmsstat_t camerrcods[9] = {CAM_OKOK,
@@ -528,14 +530,20 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
                   parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
                   break;
                 case CAM_CRATE_TO:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: crate timeout C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                  if (!MBCD_MODE)
+		  {
+                     errlogSevPrintf (errlogMinor,
+                    "Camgo: crate timeout C %x N %x A %x F %x Stat=%x\n",
+                     parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                  }
                   break;
                 case CAM_SOFT_TO:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: software timeout. No PSCD response C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                  if (!MBCD_MODE)
+		  {
+                     errlogSevPrintf (errlogMinor,
+                    "Camgo: software timeout. No PSCD response C %x N %x A %x F %x Stat=%x\n",
+                     parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+		  }
                   break;
                 case CAM_MBCD_NFG:
                   errlogSevPrintf (errlogMinor,
