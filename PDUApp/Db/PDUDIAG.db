@@ -1,0 +1,28 @@
+record(waveform,"PDUDIAG:$(LOCA):CV01:DATA") {
+  field(DESC,"Dagnostic data")
+  field(SCAN, "Passive")
+  field(DTYP,"PDUDIAG")
+  field(FTVL,"ULONG")
+  field(NELM,"5000")
+}
+
+record(longout,"PDUDIAG:$(LOCA):CV01:CRATE") {
+  field(DESC, "Crate for PDU")
+  field(SCAN, "Passive")
+  field(DTYP, "PDUDIAG")
+  field(OMSL, "supervisory")
+  field(OUT,  "#B0 C0 N0 A0 F0@CRATE")
+}
+
+record(longout,"PDUDIAG:$(LOCA):CV01:CHANNEL") {
+  field(DESC, "Channel for PDU")
+  field(SCAN, "Passive")
+  field(DTYP, "PDUDIAG")
+  field(OMSL, "supervisory")
+  field(OUT,  "#B0 C0 N0 A0 F0@CHANL")
+}
+
+
+
+
+
