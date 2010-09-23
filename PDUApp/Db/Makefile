@@ -14,6 +14,7 @@ DB += PDUII_Module.template
 DB += PDUII_Channel.template
 DB += PDUII_Rule.template
 DB += PDUII_PTT.template
+DB += PDUDIAG.db
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
