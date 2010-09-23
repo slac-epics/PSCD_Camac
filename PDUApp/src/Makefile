@@ -15,6 +15,10 @@ LIBRARY_IOC_RTEMS += PDU
 # install PDU.dbd into <top>/dbd
 DBD += PDU.dbd
 DBD += PDUII.dbd
+DBD += PDUDIAG.dbd
+
+#For debugging
+USR_CFLAGS += -O0
 
 # specify all source files to be compiled and added to the library
 PDU_SRCS += PDU_Fiducial.c
