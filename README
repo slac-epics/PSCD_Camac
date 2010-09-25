@@ -11,6 +11,8 @@
 #  Rev:  dd-mmm-yyyy, Reviewer's Name (USERNAME)
 #--------------------------------------------------------------
 #  Mod:
+#        24-Sep-2010, K. Luchini      (LUCHINI):
+#          add tested with Till's RTEMS-4.9.3 
 #        30-Jun-2009, K. Luchini      (LUCHINI);
 #          added content.
 #
@@ -19,8 +21,7 @@
 Releases
 -----------
 This package has been successfully tested with code built
-under EPICS R3.14.8.2 and RTEMS 4.7.1 (Tills version)
-
+under EPICS R3.14.8.2 and RTEMS 4.7.1  and 4.9.3 (Tills versions).
 
 Build Instructions
 --------------------
