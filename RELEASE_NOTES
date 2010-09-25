@@ -1,5 +1,42 @@
-PSCD_Camac_R1-0:
-   The first release which enables SAM IDIM and PIOP IPL
+#==============================================================
+#
+#  Name: RELEASE_NOTES
+#
+#  Rem:  This files describes release notes for 
+#        the LCLS Linac Upgrade CAMAC-to-VME Drivers        
+#
+#  Auth: 24-Sep-2010, Author's Name      (USERNAME)
+#  Rev:  dd-mmm-yyyy, Reviewer's Name    (USERNAME)
+#--------------------------------------------------------------
+#
+#  Mod: (Latest to oldest)
+#  
+# Tag:  PSCD_Camac-R<major>-<minor>-<mini>  
+# Date: dd-mmm-yyyy, First Lastname (USERNAME)
+# Desc: Summary of change
+#
+#==============================================================
+#
+PSCD_Camac-R1-6-0  
+Date: 24-Sep-2010, K. Luchini (LUCHINI)
+Upgrad to EPICS base-R3-14-8-2-lcls6 from base-R3-14-8-2-lcls5
+
+PSCD_Camac_R1-5-0:
+CAMCOMApp added.
+
+PSCD_Camac_R1-4-0:
+PDUII added.
+
+PSCD_Camac_R1-2-9:
+Add IDOM templates, fix mbboDirect writes 0 issue
+Add PPOM support, not fully tested yet
+Fix CAMAC_IO string order
+PIOP code does not compile
+
+PSCD_Camac_R1-2:
+Fix SAM channel number bug
+Add IDOM support, not fully tested yet
+
 
 PSCD_Camac_R1-1:
    Change SAM driver to one thread per module
@@ -9,18 +46,7 @@ PSCD_Camac_R1-1:
    More PIOP work
    Add MBCD/PSCD switch
 
-PSCD_Camac_R1-2:
-Fix SAM channel number bug
-Add IDOM support, not fully tested yet
+PSCD_Camac_R1-0:
+   The first release which enables SAM IDIM and PIOP IPL
 
-PSCD_Camac_R1-2-9:
-Add IDOM templates, fix mbboDirect writes 0 issue
-Add PPOM support, not fully tested yet
-Fix CAMAC_IO string order
-PIOP code does not compile
-
-PSCD_Camac_R1-4-0:
-PDUII added.
-
-PSCD_Camac_R1-5-0:
-CAMCOMApp added.
+# End of file
