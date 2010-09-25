@@ -40,7 +40,6 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 SEQ_MODULE_VERSION=seq-R2-0-11-lcls3
 EVENT_MODULE_VERSION=event-R3-2-1
 MISCUTILS_MODULE_VERSION=miscUtils-R2-2-0
-GENSUB_MODULE_VERSION=genSub-R1-6-lcls5
 
 #If using the sequencer, point SNCSEQ at its top directory:
 SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
