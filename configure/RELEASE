@@ -10,13 +10,23 @@
 # This is where EPICS lives at your site.
 include $(TOP)/RELEASE_SITE
 
+# ==================================================================================
+#If using macro substitutions, point MSI at the binary:
+EXTENSIONS_MODULE_VERSION=extensions-R3-14-8-2
+MSI=$(EPICS_SITE_TOP)/extensions/$(EXTENSIONS_MODULE_VERSION)/bin/$(EPICS_HOST_ARCH)/msi
+# ==================================================================================
+
+#=============================================================
+# Define the top of the EPICS tree for your site.
+# We will build some tools/scripts that allow us to
+# change this easily when relocating software.
+# =============================================================
 EPICS_MODULES=$(EPICS_SITE_TOP)/modules
 
 # ==============================================================
 # Define the version of EPICS BASE that you will use
 # =============================================================
-BASE_MODULE_VERSION=base-R3-14-8-2-lcls5
-
+BASE_MODULE_VERSION=base-R3-14-8-2-lcls6
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 # If you don't want to install into $(TOP) then
@@ -27,19 +37,21 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-SEQ_MODULE_VERSION=seq-R2-0-11-lcls2
-EVENT_MODULE_VERSION=event-R3-1-6
-MISCUTILS_MODULE_VERSION=miscUtils-R2-1-0
+SEQ_MODULE_VERSION=seq-R2-0-11-lcls3
+EVENT_MODULE_VERSION=event-R3-2-1
+MISCUTILS_MODULE_VERSION=miscUtils-R2-2-0
+GENSUB_MODULE_VERSION=genSub-R1-6-lcls5
 
 #If using the sequencer, point SNCSEQ at its top directory:
 SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
 EVENT=$(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
 MISCUTILS=$(EPICS_MODULES)/miscUtils/$(MISCUTILS_MODULE_VERSION)
+GENSUB=$(EPICS_MODULES)/genSub/$(GENSUB_MODULE_VERSION)
 
+# =================================================================
+# Define EPICS_BASE
 # EPICS_BASE usually appears last so other apps can override stuff:
+# =================================================================
 EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 
-#Capfast users may need the following definitions
-#CAPFAST_TEMPLATES=
-#SCH2EDIF_PATH=
-
+# End of file
