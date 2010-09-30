@@ -10,6 +10,8 @@ include $(TOP)/configure/CONFIG
 
 LIBRARY_IOC_RTEMS += CAMRoutine
 
+#USR_CFLAGS += -O0
+
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 
