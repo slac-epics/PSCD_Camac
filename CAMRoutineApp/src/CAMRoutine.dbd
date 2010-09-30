@@ -1,4 +1,4 @@
 # provide definitions such as
 #driver(myDriver)
 #registrar(myRegistrar)
-#variable(myVariable)
+variable(MBCD_MODE)
