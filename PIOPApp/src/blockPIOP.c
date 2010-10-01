@@ -124,8 +124,16 @@ vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
    memset (cam_sblk_ps, 0, sizeof(STS_BLK_TS)); /* Clear the area */
    do
    {
-     if (!SUCCESS(iss = camgo (&(camblocks_ps->sblk_pkg_p))))
-        epicsThreadSleep(delay);
+      /*
+      ** Try 3 times in a row for each pass.
+      */
+      iss = camgo (&(camblocks_ps->sblk_pkg_p));
+      if (!SUCCESS(iss))
+         iss = camgo (&(camblocks_ps->sblk_pkg_p));
+      if (!SUCCESS(iss))
+         iss = camgo (&(camblocks_ps->sblk_pkg_p));
+      if (!SUCCESS(iss))
+         epicsThreadSleep(delay);
    } while (!SUCCESS(iss) && (tries-- > 0));
    if SUCCESS(iss)
    {
