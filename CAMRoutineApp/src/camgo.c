@@ -70,6 +70,7 @@
 #include "epicsThread.h"
 
 int MBCD_MODE = 0;   /* Global flag to disable crate/soft timeout msgs when in MBCD mode */
+epicsExportAddress(int, MBCD_MODE);
 
  static unsigned long cam_tdv_busy_count = 0,
                       unwou_errf         = 0; 
@@ -637,4 +638,5 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  
      #undef CAMBLK_p
  }                                                              /* End camgo. */
+
 
