@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDU_Fiducial.c,v 1.2 2010/04/17 16:01:39 pengs Exp $
+ **   $Id: PDU_Fiducial.c,v 1.3 2010/06/13 00:18:47 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -17,6 +17,7 @@
 
 #include "drvPSCDLib.h"
 #include "devPDU.h"
+#include "devPDUDIAG.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
 #include "cctlwmasks.h"
@@ -62,6 +63,7 @@ int Errc = 0;   /* Camac errors */
 
 int EVRFiducialStart()
 {/* This funciton will be called in st.cmd after iocInit() */
+/**** moved to F19
     UINT16 nops = 2;
     UINT16 bcnt = 2;
     unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
@@ -70,6 +72,7 @@ int EVRFiducialStart()
                                CCTLW__F19 | CCTLW__A8 | CCTLW__A1;
     UINT16 emask= 0xE000;
     vmsstat_t iss;
+********/
     /*-------------------------------*/
     /* Create event and register with EVR */
     EVRFiducialEvent = epicsEventMustCreate(epicsEventEmpty);
@@ -78,6 +81,7 @@ int EVRFiducialStart()
     /*
     ** Create/Init Camac package
     */
+/************ move to F19
     if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
     {
         errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
@@ -93,12 +97,15 @@ int EVRFiducialStart()
         errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
         goto release_campkg;
     }
+***********************/
     /* need RTEMS native call to set higher priority */
     return (int)(epicsThreadMustCreate("PDUFiducial", epicsThreadPriorityHigh+1, 20480, 
                                        (EPICSTHREADFUNC)PDUFiducialTask, NULL));
+/***** move to F19
 release_campkg:
     camdel(&F19pkg_p);
 egress:
+*******/
     return (0);
 }
 
@@ -144,13 +151,11 @@ void EVRFiducial(void)
        }
     }
     stat_data_f19[1].data = (BEAMCODE(modifier_a) << 8);
-    /**********
     if (Msgs < MAXMSGS)
     {
        printk ("Beamcode A8 %x A9 %x\n",stat_data_f19[0].data, stat_data_f19[1].data);
        Msgs++;
     }
-    **********/
     /* This is 360Hz. So printf will screw timing */
     if(PDU_F19_DEBUG >= 3) printk("Got fiducial\n");
     /* post event/release sema to wakeup worker task here */
@@ -158,15 +163,23 @@ void EVRFiducial(void)
 egress:
     return;
 }
-
+   
 int PDU_F19(unsigned int crate, unsigned int PP0, unsigned int PP1);
 static int PDUFiducialTask(void * parg)
 {
     vmsstat_t iss;
-    int nowait = 0;
+/****    int nowait = 0;  ****/
     void * dum = NULL;
+    UINT16 nops = 5;
+    UINT16 bcnt = 2;
+    unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
+                               CCTLW__F19 | CCTLW__A8;
+    unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | 
+                               CCTLW__F19 | CCTLW__A8 | CCTLW__A1;
+    UINT16 emask= 0xE000;
+    /*-------------------------------*/
     /* Register EVRFiducial */
-    printf ("In PDU_F19\n");
+    printf ("In PDU_F19 rebuild pkg each fiducial!!\n");
     evrTimeRegister((FIDUCIALFUNCTION)EVRFiducial, dum);
     while(TRUE)
     {
@@ -189,8 +202,28 @@ static int PDUFiducialTask(void * parg)
         else
         {
             /* do F19 */
-          if(!SUCCESS(iss = camgo(&F19pkg_p)))
-	    Errc++;
+           if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
+           {
+              errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+              continue;
+           }
+           if (!SUCCESS(iss = camadd (&ctlwF19A8, &stat_data_f19[0], &bcnt, &emask, &F19pkg_p)))
+           {
+              errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+              goto release_campkg;
+           }
+           if (!SUCCESS(iss = camadd (&ctlwF19A9, &stat_data_f19[1], &bcnt, &emask, &F19pkg_p)))
+           {
+              errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+              goto release_campkg;
+           }
+           fidPDUDIAGPreCam (&F19pkg_p);
+           if(!SUCCESS(iss = camgo(&F19pkg_p)))
+	      Errc++;
+           fidPDUDIAGPostCam ();
+	release_campkg:
+	   if(!SUCCESS(iss = camdel(&F19pkg_p)))
+              Errc++;
 	  /*****************
           camgo_get_data(&F19pkg_p);
           if (stat_data_f19[0].stat != 0x2fd30000)
