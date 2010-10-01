@@ -15,6 +15,8 @@ LIBRARY_IOC_RTEMS += PIOP
 # install PIOP.dbd into <top>/dbd
 DBD += PIOP.dbd
 
+#USR_CFLAGS += -O0
+
 # specify all source files to be compiled and added to the library
 PIOP_SRCS += devPIOP.c
 PIOP_SRCS += drvPIOP.c
