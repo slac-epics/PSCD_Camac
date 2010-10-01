@@ -108,7 +108,7 @@ long msgPIOPproc (struct subRecord *subr_p)
    unsigned short msgnum;
    unsigned short msgdat = 0xffff;
    /*--------------------------------------------*/
-   printf ("In msg sub got data %4.4x\n",piopword);
+/*   printf ("In msg sub got data %4.4x\n",piopword); */
    
    msgnum = (piopword &  0x7F00) >> 8;
   if (msgnum > LAST_MSG)
@@ -129,12 +129,14 @@ long msgPIOPproc (struct subRecord *subr_p)
    /*
    ** Log the new error/status.
    */
+/**************** Temp
    if (msg_as[msgnum].printdata)
       errlogPrintf("Record %s PIOP message: %s data = %0x04x\n", subr_p->name, 
                     msg_as[msgnum].msg_p, msgdat);
    else
       errlogPrintf("Record %s PIOP message: %s\n", subr_p->name, 
                     msg_as[msgnum].msg_p);
+******************/
 egress:
    return (0);
 }
