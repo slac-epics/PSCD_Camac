@@ -15,6 +15,7 @@ LIBRARY_IOC_RTEMS += CAMCOM
 # install iCAMCOM.dbd into <top>/dbd
 DBD += CAMCOM.dbd
 
+#USR_CFLAGS += -O0
 # specify all source files to be compiled and added to the library
 CAMCOM_SRCS += devCAMCOM.c
 CAMCOM_SRCS += drvCAMCOM.c
