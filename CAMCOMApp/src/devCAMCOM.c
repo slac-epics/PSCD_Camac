@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.8 2010/02/25 22:40:28 rcs Exp $
+ *   $Id: devCAMCOM.c,v 1.1.1.1 2010/05/28 23:13:13 rcs Exp $
  *   File:		devCAMCOM.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -80,7 +80,6 @@ static long Wf_init_record (struct waveformRecord *wfr_p)
 {
    CAMCOM_PVT *pvt_p;
    /*------------------------------------------------*/
-   printf ("Entered CAMCOM waveform record init for %s\n",wfr_p->name);
    CAMCOMDriverInit((dbCommon *)wfr_p, EPICS_RECTYPE_WF);
    pvt_p = (CAMCOM_PVT *)(wfr_p->dpvt);
    pvt_p->val_p = wfr_p->bptr; /* Buffer pointer for waveform */
