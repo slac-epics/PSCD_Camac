@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUDIAG.c,v 1.1 2010/08/25 22:43:43 rcs Exp $
+ *   $Id: drvPDUDIAG.c,v 1.2 2010/09/23 15:47:07 rcs Exp $
  *   File:		drvPDUDIAG.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -48,7 +48,6 @@ void fidThread(void * msgQId)
    dbCommon *reccom_p; /* Record pointer */
    /*----------------------------*/
    fidCollectionDone = epicsEventMustCreate(epicsEventEmpty); /* for 360 to signal done */
-   printf ("Size of wfaveform data in longs %d\n",sizeof(Wfd_s)/4);
    while(TRUE)
    {
       if ((stat = epicsMessageQueueReceive (lmsgQ, &msg_s, sizeof(THREADMSG)) < 0))
