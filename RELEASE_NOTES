@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-1  
+Date: 02-Nov-2010, K. Luchini (LUCHINI)
+Tag Bob's latest changes to the PDU diagnostic.
+
 PSCD_Camac-R1-6-0  
 Date: 24-Sep-2010, K. Luchini (LUCHINI)
 Upgrad to EPICS base-R3-14-8-2-lcls6 from base-R3-14-8-2-lcls5
