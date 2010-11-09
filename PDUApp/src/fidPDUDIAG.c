@@ -5,8 +5,8 @@
  **   Email:             rcs@slac.stanford.edu
  **   Phone:             408-464-5853
  **   Company:           SLAC
- **   Date:              08/2010
- **   Version:           1.0
+ **   Date:              10/2010
+ **   Version:           2.0
  **
  **   Collect actual PDU timing delays. This module has the following routines:
  ** 
@@ -31,7 +31,7 @@ extern epicsEventId fidCollectionDone; /* Set when collection is done. Defined i
 ** started by the single waveform execution thread that waits for the
 ** event signaling that collection is complete.
 */
-typedef enum {WAITING_SECOND, CHECK_MATCH, STORE_MODS, READ_REARM, SKIP_WRAP} STATES;
+typedef enum {WAITING_SECOND, STORE_MODS, READ_REARM, SKIP_WRAP} STATES;
 static STATES State = WAITING_SECOND; 
 static UINT32         Sav_count   = 0;  /* Count of samples we've saved */
 static UINT32         Dat_index   = 0;  /* Running index to data array */   
@@ -105,12 +105,14 @@ void fidPDUDIAGPreCam (void *pkg_p)
                                     | (STB_MODULE << CCTLW__M_shc);
             Mode_ctlw = CCTLW__F17  | CCTLW__QM1 
                                     | (Wfd_s.crate << CCTLW__C_shc) | (STB_MODULE << CCTLW__M_shc);
+            /*
+            ** Enter non-zero PPYY even though we want to match ANY else it doesn't work.
+	    */
             Mode_sdat_s.sdat  = (Wfd_s.channel << STB_CHAN_SHIFT)   | (STB_MODE_ANY << STB_MODE_SHIFT) 
                                                                     | 0xFF;
             /*
-            ** Add packet to set read out interval from anythin previous and
-	    ** set mode/channel and enable timer. Module is always 21.
-            ** Enter non-zero PPYY even though we want to match ANY else it doesn't work.
+            ** Add packet to set read out interval from anything previous and
+	    ** set mode/channel but disable timer. Module is always 21.
             */
             bcnt = 4;
             if (!SUCCESS (iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, pkg_p)))
@@ -119,15 +121,17 @@ void fidPDUDIAGPreCam (void *pkg_p)
                goto leave; /* Abort this collection on Camac error */
 	    }
             bcnt = 2;
+            Mode_sdat_s.sdat  |= STB_STOP_TIMER;
             if(!SUCCESS(iss = camadd (&Mode_ctlw, &Mode_sdat_s, &bcnt, &Emask, pkg_p)))
             {
                fidPDUDIAGDone(iss);
                goto leave; /* Abort this collection on Camac error */
             }
+            Mode_sdat_s.sdat  &= ~STB_STOP_TIMER;  /* Clear out the stop bit to re-enable */
             Fids_wait  = 0;
 	    First_call = 0;
 	 }
-         stat = evrTimeGetFromPipeline(&Wfd_s.timestamp,  evrTimeNext2, modifier_a, &patternStatus, 0,0,0);
+         stat = evrTimeGetFromPipeline(&Wfd_s.timestamp,  evrTimeNext1, modifier_a, &patternStatus, 0,0,0);
          if(stat || patternStatus)
          {
                fidPDUDIAGDone(DIAG_BADPATTERN);
@@ -141,31 +145,11 @@ void fidPDUDIAGPreCam (void *pkg_p)
               && ((modifier_a[MOD2_IDX] & TIMESLOT1_MASK) != 0) )
 	 {
 	    Wfd_s.status = DIAG_OKOK;
-            /*
-	    ** Read the previous value which re-arms the counter for fid+2
-	    */
-            bcnt = 4;
-            if (!SUCCESS (iss = camadd (&Read_ctlw, &Read_ldat_s, &bcnt, &Emask, pkg_p)))
-	    {
-               fidPDUDIAGDone(iss);
-               goto leave; /* Abort this collection on Camac error */
-	    }
             State = SKIP_WRAP;
 	 }
 	 else
             Fids_wait++;   /* Count fids we wait */
 	 break;
-      case CHECK_MATCH:
-         /*
-	 ** Check that we'll match on the next fiducial
-	 */
-         bcnt = 0;
-         if (!SUCCESS(iss = camadd (&Match_ctlw, &Match_stat, &bcnt, &Emask, pkg_p)))
-	 {
-	    fidPDUDIAGDone(iss);
-	    goto leave;
-	 }
-         break;
       case STORE_MODS:
          /*
 	 ** The STB time will measure this fid to be read out on the next.
@@ -182,7 +166,7 @@ void fidPDUDIAGPreCam (void *pkg_p)
       case READ_REARM:
          /* 
 	 ** READ_REARM Reads the actual delay from the previous fid which 
-	 ** rearms the counter for fid+2. Make sure data is available. 
+	 ** rearms the counter for fid+1. Make sure data is available. 
          */
          bcnt = 0;
          if (!SUCCESS (iss = camadd (&Avail_ctlw, &Avail_stat, &bcnt, &Emask, pkg_p)))
@@ -197,10 +181,19 @@ void fidPDUDIAGPreCam (void *pkg_p)
             goto leave; /* Abort this collection on Camac error */
 	 }
          /*
+	 ** Check that we'll match on the next fiducial
+	 */
+         bcnt = 0;
+         if (!SUCCESS(iss = camadd (&Match_ctlw, &Match_stat, &bcnt, &Emask, pkg_p)))
+	 {
+	    fidPDUDIAGDone(iss);
+	    goto leave;
+	 }
+         /*
 	 ** If this sample is the last for this pass then disable the interval timer
 	 ** for one fid.
 	 */
-         if ( (Dat_index + 3) > MAX_SAMPLES-1) /* After this sample start the next pass */
+         if ( (Dat_index + 2) > MAX_SAMPLES-1) /* After this sample start the next pass */
 	 {
             Mode_sdat_s.sdat  |= STB_STOP_TIMER;
             bcnt = 2;
@@ -212,13 +205,19 @@ void fidPDUDIAGPreCam (void *pkg_p)
             Mode_sdat_s.sdat  &= ~STB_STOP_TIMER;  /* Clear out the stop bit to re-enable */
 	 }
 	 break;
-      case SKIP_WRAP:    /* Re-enable interval timer */
+      case SKIP_WRAP:    /* Re-enable interval timer & check match */
          bcnt = 2;
          if(!SUCCESS(iss = camadd (&Mode_ctlw, &Mode_sdat_s, &bcnt, &Emask, pkg_p)))
          {
             fidPDUDIAGDone(iss);
-            goto leave; /* Abort this collection on Camac error */
+            goto leave; 
          }
+         bcnt = 0;
+         if (!SUCCESS(iss = camadd (&Match_ctlw, &Match_stat, &bcnt, &Emask, pkg_p)))
+	 {
+	    fidPDUDIAGDone(iss);
+	    goto leave;
+	 }
 	 break;
    }
 leave:
@@ -240,15 +239,12 @@ void fidPDUDIAGPostCam (void)
    {
       case WAITING_SECOND:   /* Nothing to do */
          break;  
-      case CHECK_MATCH:
-         Wfd_s.fiddata[Dat_index].matchstatus = Match_stat; /* Save match status */
-         State = STORE_MODS;  /* Store modifiers for next state */
-	 break;
       case STORE_MODS:    /* Just change state */
          State = READ_REARM;
 	 break;
       case READ_REARM:
-         State = CHECK_MATCH;   /* Assume we're in the middle of a pass */
+	 State = STORE_MODS;
+         Wfd_s.fiddata[Dat_index].matchstatus = Match_stat; /* Save match status */
          /*
          ** Check if we got a good measurement on the last read
          */
@@ -268,7 +264,7 @@ void fidPDUDIAGPostCam (void)
                fidPDUDIAGDone(DIAG_OKOK);     /* This collection is done */
 	       goto leave;
 	 }
-	 Dat_index+=3;  /* Asssume we're in the middle of a pass */
+	 Dat_index+=2;  /* Asssume we're in the middle of a pass */
          /*
 	 ** Start next pass if Dat_index is off the end.
 	 */
@@ -279,7 +275,7 @@ void fidPDUDIAGPostCam (void)
 	 }
          break;
       case SKIP_WRAP:     /* Just set next state */
-         State = CHECK_MATCH;
+	 State = STORE_MODS;
 	 break;
    }     /* End switch */
 leave:
