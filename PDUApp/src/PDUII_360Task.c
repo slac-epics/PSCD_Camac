@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.9 2010/04/20 12:09:13 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.10 2010/04/20 12:59:21 pengs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -17,6 +17,7 @@
 
 #include "drvPSCDLib.h"
 #include "devPDUII.h"
+#include "devPDUDIAG.h"
 #include "slc_macros.h"
 #include "cam_proto.h"
 #include "cctlwmasks.h"
@@ -187,7 +188,7 @@ static int PDUIIFidu360Task(void * parg)
                     /* broadcast to slot 31 
                        unsigned long ctlwF19A8 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8;
                        unsigned long ctlwF19A9 = (PDU_F19_CRATE << CCTLW__C_shc) | (31 << CCTLW__M_shc) | CCTLW__F19 | CCTLW__A8 | CCTLW__A1; */
-                    if(infoNext1OK)
+                     if(infoNext1OK)
                     {/* Do F19A8 */
                         if(totalPkts >= MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH || numPktsCurBranch >= MAX_PKTS_PER_BRANCH)
                         {
@@ -333,7 +334,10 @@ static int PDUIIFidu360Task(void * parg)
 
 	    if(totalPkts > 0)
             {
-                if (!SUCCESS(iss = camgo (&F19pkg_p)))
+                fidPDUDIAGPreCam (&F19pkg_p);
+                iss = camgo (&F19pkg_p);
+                fidPDUDIAGPostCam ();
+                if (!SUCCESS(iss))
                 {/* Failed, leave as invalid */
                     errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
                 }
