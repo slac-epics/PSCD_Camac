@@ -13,7 +13,8 @@ LIBRARY_IOC_RTEMS += PDU
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install PDU.dbd into <top>/dbd
-DBD += PDU.dbd
+# For test version of 360Hz fiducial
+#DBD += PDU.dbd
 DBD += PDUII.dbd
 DBD += PDUDIAG.dbd
 
@@ -21,7 +22,8 @@ DBD += PDUDIAG.dbd
 USR_CFLAGS += -O0
 
 # specify all source files to be compiled and added to the library
-PDU_SRCS += PDU_Fiducial.c
+# Test version of 360Hz fiducial
+#PDU_SRCS += PDU_Fiducial.c
 #PDU_SRCS += PDU_F19.c
 
 PDU_SRCS += PDUIITest_Fiducial.c
