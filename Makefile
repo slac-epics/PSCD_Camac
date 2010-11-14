@@ -1,8 +1,11 @@
-TOP = ..
+#Makefile at top of application tree
+TOP = .
 include $(TOP)/configure/CONFIG
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *src*))
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *Src*))
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *db*))
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *Db*))
-include $(TOP)/configure/RULES_DIRS
-
+DIRS := $(DIRS) $(filter-out $(DIRS), configure)
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard PSCDApp))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard CAMRoutineApp))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *App))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *app))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocBoot))
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocboot))
+include $(TOP)/configure/RULES_TOP
