@@ -17,6 +17,20 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-3
+Date: 13-Nov-2010, Robert C. Sass (RCS)
+Functional msgPIOP.c routine.
+
+PSCD_Camac-R1-6-2
+Date: 10-Nov-2010, Robert C. Sass (RCS)
+Tag command interrupted and wouldn't put PSCD_Camac-R1-6-1 on several PDU files.
+Functional msgPIOP.c routine.
+
+PSCD_Camac-R1-6-1
+Date: 10-Nov-2010, Robert C. Sass (RCS)
+Add functional PDU diagnostic. Comment out PDU test code in PDU Makefile.
+Remove debug message from devCAMCOM.c
+
 PSCD_Camac-R1-6-1  
 Date: 02-Nov-2010, K. Luchini (LUCHINI)
 Tag Bob's latest changes to the PDU diagnostic.
@@ -40,7 +54,6 @@ PIOP code does not compile
 PSCD_Camac_R1-2:
 Fix SAM channel number bug
 Add IDOM support, not fully tested yet
-
 
 PSCD_Camac_R1-1:
    Change SAM driver to one thread per module
