@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.8 2010/05/20 16:28:26 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.9 2010/07/21 19:25:41 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -399,9 +399,6 @@ void threadSBI (void * msgQId)
                unsigned short *us_p; /* To put data into void *val_p */
 	       us_p = pvt_p->val_p;
                *us_p = read_status_only_s.data;
-#ifndef _X86_
-               *us_p = *us_p >> 16;       /* To lower 16 bits of val if big endian */
-#endif
             }
             pvt_p->status = iss;
             dbScanLock(reccom_p);
