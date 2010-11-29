@@ -106,6 +106,9 @@ long msgPIOPproc (struct subRecord *subr_p)
       goto egress;              /* Don't log if same as last time */
 
    subr_p->val = piopword;     /* Save for next time */
+   if (piopword == 0x8181)     /* Ignore nonsense message */
+      goto egress;
+
    /*
    ** Decode message and optional argument
    */
