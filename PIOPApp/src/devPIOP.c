@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.10 2010/04/23 22:37:45 rcs Exp $
+ *   $Id: devPIOP.c,v 1.11 2010/05/20 16:27:33 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -476,7 +476,7 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
 {
    THREADMSG_TS msg_s;
    PIOP_PVT *pvt_p = (PIOP_PVT *)(mbir_p->dpvt);
-   int *mbival_p;  /* To retrieve value from dev pvt struct */
+   unsigned short *mbival_p;  /* To retrieve value from dev pvt struct */
    int rtn = -1;   /* Assume bad */
    /*---------------------*/
    if (!pvt_p) return (rtn);   /* Bad. Should have a driver private area */
@@ -501,7 +501,7 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
    { /* post-process */
       rtn = 0;     /* Always return good status */
       mbival_p = pvt_p->val_p;  /* Value ptr from pvt */
-      mbir_p->val = *mbival_p;  /* Get value from driver */
+      mbir_p->rval = *mbival_p;  /* Get value from driver */
       if (!SUCCESS(pvt_p->status))    /* Check for different error options?? */
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
