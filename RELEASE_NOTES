@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-4
+Date: 29-Nov-2010, Robert C. Sass (RCS)
+Committed msgPIOP.c, devPIOP.c and drvPIOP.c for the SBI status word
+and message word processing.
+
 PSCD_Camac-R1-6-3
 Date: 13-Nov-2010, Robert C. Sass (RCS)
 Functional msgPIOP.c routine.
