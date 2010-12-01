@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.10 2010/04/20 12:59:21 pengs Exp $
+ **   $Id: PDUII_360Task.c,v 1.11 2010/11/09 21:41:11 rcs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -263,7 +263,7 @@ static int PDUIIFidu360Task(void * parg)
                                 {
                                     pttDelayNew =  pPDUIIModule->rules[loopch][looprule].pttDelay;
                                     if(PDUII_360T_DEBUG >= 1) errlogPrintf("Matched rule[%d] module[C%d,N%d],Channel[%d]\n", looprule, pPDUIIModule->c, pPDUIIModule->n,loopch);
-                                    continue; /* stop matching */
+                                    break; /* stop matching */
                                 }
                             }
                         }
