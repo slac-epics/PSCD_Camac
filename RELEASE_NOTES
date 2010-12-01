@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-5
+Date: 30-Nov-2010, K. Luchini & T. Himel
+Chg PDUII_360Task.c to break when a rule match is found rather than
+continue in the for loop search.
+
 PSCD_Camac-R1-6-4
 Date: 29-Nov-2010, Robert C. Sass (RCS)
 Committed msgPIOP.c, devPIOP.c and drvPIOP.c for the SBI status word
