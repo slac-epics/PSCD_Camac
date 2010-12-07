@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.10 2010/04/17 12:28:00 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.11 2010/04/18 18:28:07 pengs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -273,8 +273,9 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF1A0 = 0x0;
 
-        STAS_DAT read_pduii[2];	/* need to set PTTP first, then read mode */
-        UINT16 nops = 2;
+        STAS_DAT read_pduii[3];	/* need to set PTTP first, then double read mode */
+        UINT16 nops = 3;
+        UINT16 read1,read2;     /* double read of mode */
 
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
@@ -302,6 +303,10 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
+        /*
+	** Read the mode. We do a double read and ignore the result if they don't match. The PDU
+	** has a bug which returns 0 ~1% of the time.
+	*/
         ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0;
         bcnt = 2;
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
@@ -310,21 +315,33 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
-
-        if (!SUCCESS(iss = camgo (&pkg_p)))
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF1A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
-            status = (PDUII_CAM_GO_FAIL|iss);
+            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
-	pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
-        pPDUIIModule->chnlMode[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
- 
+        if (!SUCCESS(iss = camgo (&pkg_p)))
+        {
+	    errlogPrintf("drvPDUII camgo error 0x%08X reading mode.\n",(unsigned int) iss);
+            status = (PDUII_CAM_GO_FAIL|iss);
+            goto release_campkg;
+        }
+        else
+        {
+            read1 = ((*((UINT16 *)(&(read_pduii[1].data))) >> 12) & 0x7);
+            read2 = ((*((UINT16 *)(&(read_pduii[2].data))) >> 12) & 0x7);
+            if (read1 == read2)
+	    {
+	        pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
+                pPDUIIModule->chnlMode[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
+	    }
+        }
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camdel error 0x%08X\n",(unsigned int) iss);
     }
     else
         status = PDUII_MODULE_NOT_EXIST;
@@ -404,7 +421,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         pPDUIIModule->chnlMode[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Fail to set mode, leave as invalid */
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camgo error 0x%08X setting mode\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
@@ -450,8 +467,8 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF0A1 = 0x0;
 
-        STAS_DAT read_pduii[2];	/* need to set PTTP first, then read mode */
-        UINT16 nops = 2;
+        STAS_DAT read_pduii[3];	/* need to set PTTP first, then double read PTT val */
+        UINT16 nops = 3;
 
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
@@ -460,7 +477,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
             goto egress;
         }
 
-        /** Allocate package for PDUII mode read */
+        /** Allocate package for PTT read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
             errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
@@ -480,6 +497,10 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
+        /*
+	** Read the PTT. We do a double read and ignore the result if they don't match. The PDU
+	** has a bug which returns 0 ~1% of the time.
+	*/
         ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
         bcnt = 4;
         if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
@@ -488,18 +509,23 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            status = (PDUII_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+	    errlogPrintf("drvPDUII camgo error 0x%08X reading the PTT\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
-        else
+        else if ( (read_pduii[1].data & 0xFFFF) == (read_pduii[2].data & 0xFFFF) )
         {
 	    pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = pPDUIIRequest->val;
         }
- 
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
@@ -585,7 +611,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Failed, leave as invalid */
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camgo error 0x%08X writing PTT\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
