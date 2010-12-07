@@ -28,6 +28,8 @@ extern ELLLIST PDUIIModuleList;
 int PDUII_360T_DEBUG = 0;
 epicsExportAddress(int, PDUII_360T_DEBUG);
 
+int PDUII_360T_BADCAM = 0;
+
 #define DEFAULT_EVR_TIMEOUT 0.2
 
 #define MAX_PKTS_PER_BRANCH	20
@@ -122,7 +124,7 @@ static int PDUIIFidu360Task(void * parg)
             void *F19pkg_p;
             UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
 
-            UINT16 emask= 0xE0E0;
+            UINT16 emask= 0xE000;
             UINT16 bcnt = 2;
 
             STAS_DAT stat_data[MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH];
@@ -339,11 +341,17 @@ static int PDUIIFidu360Task(void * parg)
                 fidPDUDIAGPostCam ();
                 if (!SUCCESS(iss))
                 {/* Failed, leave as invalid */
-                    errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
-                }
+		   if (PDUII_360T_BADCAM == 0)
+                   {
+	  	       errlogPrintf("PDUII_360Task camgo error 0x%08X\n",(unsigned int) iss);
+		       PDUII_360T_BADCAM++;    /* Count bad camgos */
+		   }
+                   PDUII_360T_BADCAM++;
+		}
                 else
                 {/* Succeed, validate it */
                     int loop;
+                    PDUII_360T_BADCAM = 0;    /* Reset bad camgo counter */
                     for( pPDUIIModule = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModule; pPDUIIModule = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModule) )
                         for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
                             pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
