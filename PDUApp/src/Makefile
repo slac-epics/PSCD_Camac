@@ -10,6 +10,9 @@ include $(TOP)/configure/CONFIG
 
 LIBRARY_IOC_RTEMS += PDU
 
+# Install include file
+INC += devPDUII.h
+
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install PDU.dbd into <top>/dbd
