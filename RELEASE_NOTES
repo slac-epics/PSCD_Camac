@@ -17,6 +17,12 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-6
+Date: 06-Dec-2010, B. Sass
+Chg drvPDUII.c, add double read of PTT PDUII  
+Chg PDUII_360Task.c, errlog only on first new gamgo error after last success
+PDUApp/src/Makefile, install devPDUII.h
+
 PSCD_Camac-R1-6-5
 Date: 30-Nov-2010, K. Luchini & T. Himel
 Chg PDUII_360Task.c to break when a rule match is found rather than
