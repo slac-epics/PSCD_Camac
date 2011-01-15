@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-7
+Date: 14-Jan-2011, K. Luchini
+Chg PDUII_360Task.c to not allow beamcode 0.
+
 PSCD_Camac-R1-6-6
 Date: 06-Dec-2010, B. Sass
 Chg drvPDUII.c, add double read of PTT PDUII  
