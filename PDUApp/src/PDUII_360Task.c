@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.12 2010/12/01 00:53:16 luchini Exp $
+ **   $Id: PDUII_360Task.c,v 1.14 2010/12/07 00:20:29 rcs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -255,6 +255,9 @@ static int PDUIIFidu360Task(void * parg)
 
                             for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
                             {
+			        /* Don't allo w Beam code 0, which is a wildcard for ALL beam codes */
+			        if (pPDUIIModule->rules[loopch][looprule].beamCode==0) continue;
+
                                 epicsMutexMustLock(pPDUIIModule->lockRule);
                                 matched = evrPatternCheck(pPDUIIModule->rules[loopch][looprule].beamCode, 0 /* any TS */,
                                               pPDUIIModule->rules[loopch][looprule].inclusionMask,
@@ -276,6 +279,9 @@ static int PDUIIFidu360Task(void * parg)
                             pttLocation = beamCode2;
                             for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
                             {
+			        /* Don't allow Beam code 0, which is a wildcard for ALL beam codes. */
+			        if (pPDUIIModule->rules[loopch][looprule].beamCode==0) continue;
+
                                 epicsMutexMustLock(pPDUIIModule->lockRule);
                                 matched = evrPatternCheck(pPDUIIModule->rules[loopch][looprule].beamCode, 0 /* any TS */,
                                               pPDUIIModule->rules[loopch][looprule].inclusionMask,
