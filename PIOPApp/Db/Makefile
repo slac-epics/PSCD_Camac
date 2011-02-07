@@ -16,6 +16,7 @@ DB += PIOP_msg.template
 DB += PIOP_updt.template
 DB += PIOP_volts.template
 DB += PIOP_status_block.template
+DB += PIOP_phase_test.db
 DB += SBI.template 
 #DB_INSTALLS += PIOPdemo.db
 DB_INSTALLS += ../mksu.img
