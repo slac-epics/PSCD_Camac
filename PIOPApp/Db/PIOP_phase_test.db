@@ -1,0 +1,160 @@
+########################################
+# Test fiducial-based read of PIOP Phase
+# Just SBST and constants for LI17
+########################################
+
+#
+# Extract the 6 poly exponents
+#
+record(subArray, "SBST:$(LOCA):1:POLY1") {
+  field(DESC, "Constant term")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "1")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+record(subArray, "SBST:$(LOCA):1:POLY2") {
+  field(DESC, "Exponent 1")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "2")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+
+record(subArray, "SBST:$(LOCA):1:POLY3") {
+  field(DESC, "Exponent 3")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "3")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+record(subArray, "SBST:$(LOCA):1:POLY4") {
+  field(DESC, "Exponent 4")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "2")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+record(subArray, "SBST:$(LOCA):1:POLY5") {
+  field(DESC, "Exponent 5")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "5")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+record(subArray, "SBST:$(LOCA):1:POLY6") {
+  field(DESC, "Exponent 6")
+  field(SCAN, "Passive")
+  field(FTVL, "FLOAT")
+  field(DTYP, "Soft Channel")
+  field(INP,  "SBST:$(LOCA):1:POLY")
+  field(INDX, "6")
+  field(NELM, "1")
+  field(PRIO, "HIGH")
+}
+
+# ai record to receive the raw phase @120Hz
+record(ai, "SBST:$(LOCA):1:PHASERAW") {
+  field(DESC, "SubBooster RT Raw Phase")
+  field(LINR, "NO CONVERSION")
+  field(EGU, "deg")
+  field(DTYP, "PIOP")
+  field(INP, "#B0 C2 N5 A0 F0 @PHASE")
+  field(SCAN, "I/O Intr")
+  field(PRIO, "HIGH")
+  field(FLNK, "SBST:$(LOCA):1:PHASECONVERT.PROC")
+}
+
+#
+#  INPA   = raw phase
+#  INPB   = gold offset
+#  INPC-H = Poly coefficients
+#
+record(sub, "SBST:$(LOCA):1:PHASECONVERT") {
+  field(DESC, "SBST $(LOCA) 1 RT Phase Convert")
+  field(SCAN, "Passive")
+  field(INAM, "phasePIOPinit")
+  field(SNAM, "phasePIOPproc")
+  field(INPA, "SBST:$(LOCA):1:PHASERAW.RVAL")
+#  field(INPB, "SBST:$(LOCA):1:GOLD.VAL")
+# LI17 gold offset
+  field(INPB, "-142.4269")
+#
+#  field(INPC, "SBST:$(LOCA):1:POLY1")
+#  field(INPD, "SBST:$(LOCA):1:POLY2")
+#  field(INPE, "SBST:$(LOCA):1:POLY3")
+#  field(INPF, "SBST:$(LOCA):1:POLY4")
+#  field(INPG, "SBST:$(LOCA):1:POLY5")
+#  field(INPH, "SBST:$(LOCA):1:POLY6")
+# Hard coded constants from LI17
+  field(INPC, "-0.8934662")
+  field(INPD, "0.6577876")
+  field(INPE, "4.1568736E-03")
+  field(INPF, "3.4819343E-05")
+  field(INPG, "-5.0758342E-07")
+  field(INPH, "1.3679148E-09")
+  field(PRIO, "HIGH")
+  field(FLNK, "SBST:(LOCA):1:PHASE.PROC")
+}
+
+#This is the limit checked record that goes to BSA
+
+record(ai, "SBST:$(LOCA):1:RTPHASE") {
+  field(DESC, "SBST $(LOCA) 1 Phase")
+  field(EGU, "deg")
+  field(SCAN,"Passive")
+  field(INP,  "SBST:$(LOCA):1:PHASECONVERT.VAL")
+  field(PRIO, "HIGH")
+}
+
+################################
+#record(ai, "KLYS:$(LOCA):11:PHASERAW") {
+#  field(DESC, "Klys 11 RT Phase")
+#  field(EGU, "deg")
+#  field(DTYP, "PIOP")
+#  field(INP, "#B0 C2 N2 A0 F0 @PHASE")
+#  field(SCAN, "I/O Intr")
+#  field(PRIO, "HIGH")
+#}
+
+
+#record(ai, "KLYS:$(LOCA):21:PHASERAW") {
+#  field(DESC, "Klys 11 RT Phase")
+#  field(EGU, "deg")
+#  field(DTYP, "PIOP")
+#  field(INP, "#B0 C2 N3 A0 F0 @PHASE")
+#  field(SCAN, "I/O Intr")
+#  field(PRIO, "HIGH")
+#}
+
+
+#record(ai, "KLYS:$(LOCA):31:PHASERAW") {
+#  field(DESC, "Klys 11 RT Phase")
+#  field(EGU, "deg")
+#  field(DTYP, "PIOP")
+#  field(INP, "#B0 C2 N4 A0 F0 @PHASE")
+#  field(SCAN, "I/O Intr")
+#  field(PRIO, "HIGH")
+#}
+
+
