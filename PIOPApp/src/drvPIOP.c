@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.9 2010/07/21 19:25:41 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.10 2010/11/29 23:24:10 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -43,8 +43,18 @@ epicsExportAddress(drvet,drvPIOP);
 ** MSGn record encountered.
 */
 
-void *msgw_pkg_p = NULL;
+void *Msgw_pkg_p = NULL;
 STAT_DAT16 Piop_Msgs_s[MAX_PIOPS];
+
+/*
+** One camac package and data to read all of the PIOP phase words.
+** These are externed by device support which adds packets for each 
+** PHASE AI record encountered.
+*/
+
+void *Phase_pkg_p = NULL;
+STAT_DAT16 Phase_s[MAX_PIOPS];
+IOSCANPVT PhaseIoPvt;
 
 /********************************
  ** One time global driver init
@@ -54,12 +64,22 @@ static long PIOP_EPICS_Init()
    vmsstat_t iss;
    unsigned short nops = MAX_PIOPS;
    /*-------------------------------*/
-   if (!SUCCESS(iss = camalo (&nops, &msgw_pkg_p)))
+   /*
+   ** Allocate message word and phase camac packages.
+   */
+   if (!SUCCESS(iss = camalo (&nops, &Msgw_pkg_p)))
    {
       errlogSevPrintf(errlogFatal,
-         "PIOP global driver init failed to init Camac package with status %x\n", 
+         "PIOP_EPICS_Init failed to alloc msg word Camac package with status %x\n", 
           (unsigned int) iss);
    }
+   if (!SUCCESS(iss = camalo (&nops, &Phase_pkg_p)))
+   {
+      errlogSevPrintf(errlogFatal,
+         "PIOP_EPICS_init failed to init phase word Camac package with status %x\n", 
+          (unsigned int) iss);
+   }
+   scanIoInit (&PhaseIoPvt);   /* All phase reads are in one Camac pkg */
    /*
    ** Init msg word status to -1
    */
@@ -385,7 +405,7 @@ void threadSBI (void * msgQId)
       {
          case SBIMSGPIOP:  /* Execute the PIOP MSG package that reads msg for all PIOPS */
          {
-  	    iss = camgo (&msgw_pkg_p);
+  	    iss = camgo (&Msgw_pkg_p);
             pvt_p->status = iss;
             dbScanLock(reccom_p);
             (*(reccom_p->rset->process))(reccom_p);
