@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.11 2010/05/20 16:27:33 rcs Exp $
+ *   $Id: devPIOP.c,v 1.12 2010/11/29 23:24:56 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -14,10 +14,9 @@
 
 #include <slc_macros.h>
 #include <devPIOP.h>    /* All other includes & PIOP definitions */
-#include <drvPIOP.h>    /* Temp for debugging!!! */
 
 /******************************************************************************************/
-/*********************      Externs defined in drvPIOP          ***************************/
+/*********************  Externs defined in drvPIOP or fidPHASE     ************************/
 /******************************************************************************************/
 
 /*
@@ -30,64 +29,20 @@ extern epicsMessageQueueId piop_msgQId[MAX_CRATES][MAX_SLOTS];
 */
 extern epicsMessageQueueId sbi_msgQId;
 
+extern epicsThreadId fidPHASEStart (void);
 /*
 ** Camac package and stat/data array for PIOP message word from drvPIOP
 */
-extern void *msgw_pkg_p;
+extern void *Msgw_pkg_p;
 extern STAT_DAT16 Piop_Msgs_s[MAX_PIOPS];
 
-
-/******************************************************************************************/
-/***********************  local routine prototypes         ********************************/
-/******************************************************************************************/
-
 /*
-** Stringout record support; Used for PIOP IPL.
+** Camac package, stat/data array & IOSCANPVT for PIOP phase words from drvPIOP
 */
-
-static long So_init (int); 
-static long So_init_record (struct stringoutRecord *sor_p);
-static long So_write (struct stringoutRecord *sor_p);
-
-/*
-** Waveform record support
-*/
-
-static long Wf_init (int); 
-static long Wf_init_record (struct waveformRecord *wfr_p);
-static long Wf_read_write (struct waveformRecord *wfr_p);
-
-/*
-** Mbbi record support
-*/
-
-static long Mbi_init (int); 
-static long Mbi_init_record (struct mbbiRecord *mbir_p);
-static long Mbi_read (struct mbbiRecord *mbir_p);
-
-/*
-** bi record support
-*/
-
-static long Bi_init (int); 
-static long Bi_init_record (struct biRecord *bir_p);
-static long Bi_read (struct biRecord *bir_p);
-
-/*
-** longin record support
-*/
-
-static long Li_init (int); 
-static long Li_init_record (struct longinRecord *lir_p);
-static long Li_read (struct longinRecord *lir_p);
-
-/*
-** longout record support
-*/
-
-static long Lo_init (int); 
-static long Lo_init_record (struct longoutRecord *lor_p);
-static long Lo_write (struct longoutRecord *lor_p);
+extern void *Phase_pkg_p;
+extern STAT_DAT16 Phase_s[MAX_PIOPS];
+extern IOSCANPVT PhaseIoPvt;
+static int phase_idx = 0;     /* To assign phase index as records are initialized */
 
 /******************************************************************************************/
 /*********************              implementation              ***************************/
@@ -109,63 +64,65 @@ typedef struct {
 /*
 ** Stringout PIOP device support functions
 */
-DEV_SUP devSoPIOP = {6, NULL, So_init, So_init_record, NULL, So_write, NULL};
-
+static long So_init_record (struct stringoutRecord *sor_p);
+static long So_write (struct stringoutRecord *sor_p);
+DEV_SUP devSoPIOP = {6, NULL, NULL, So_init_record, NULL, So_write, NULL};
 epicsExportAddress(dset, devSoPIOP);
 
 /*
 ** Waveform PIOP device support functions
 */
-DEV_SUP devWfPIOP = {6, NULL, Wf_init, Wf_init_record, NULL, Wf_read_write, NULL};
-
+static long Wf_init_record (struct waveformRecord *wfr_p);
+static long Wf_read_write (struct waveformRecord *wfr_p);
+DEV_SUP devWfPIOP = {6, NULL, NULL, Wf_init_record, NULL, Wf_read_write, NULL};
 epicsExportAddress(dset, devWfPIOP);
 
 /*
 ** MBBI SBI device support functions
 */
-DEV_SUP devMbiSBI = {6, NULL, Mbi_init, Mbi_init_record, NULL, Mbi_read, NULL};
-
+static long Mbi_init_record (struct mbbiRecord *mbir_p);
+static long Mbi_read (struct mbbiRecord *mbir_p);
+DEV_SUP devMbiSBI = {6, NULL, NULL, Mbi_init_record, NULL, Mbi_read, NULL};
 epicsExportAddress(dset, devMbiSBI);
 
 /*
 ** binary input device support functions
 */
-DEV_SUP devBiPIOP = {6, NULL, Bi_init, Bi_init_record, NULL, Bi_read, NULL};
-
+static long Bi_init_record (struct biRecord *bir_p);
+static long Bi_read (struct biRecord *bir_p);
+DEV_SUP devBiPIOP = {6, NULL, NULL, Bi_init_record, NULL, Bi_read, NULL};
 epicsExportAddress(dset, devBiPIOP);
 
 /*
 ** Longin device support functions
 */
-DEV_SUP devLiPIOP = {6, NULL, Li_init, Li_init_record, NULL, Li_read, NULL};
-
+static long Li_init_record (struct longinRecord *lir_p);
+static long Li_read (struct longinRecord *lir_p);
+DEV_SUP devLiPIOP = {6, NULL, NULL, Li_init_record, NULL, Li_read, NULL};
 epicsExportAddress(dset, devLiPIOP);
 
 /*
 ** Longout device support functions
 */
-DEV_SUP devLoSBI = {6, NULL, Lo_init, Lo_init_record, NULL, Lo_write, NULL};
-
+static long Lo_init_record (struct longoutRecord *lor_p);
+static long Lo_write (struct longoutRecord *lor_p);
+DEV_SUP devLoSBI = {6, NULL, NULL, Lo_init_record, NULL, Lo_write, NULL};
 epicsExportAddress(dset, devLoSBI);
+
+/*
+** Analog input device support functions for phase read
+*/
+static long Ai_init (int); 
+static long Ai_init_record (struct aiRecord *air_p);
+static long Ai_ioint_info (int cmd, struct aiRecord *air_p, IOSCANPVT *iopvt); 
+static long Ai_read (struct aiRecord *air_p);
+DEV_SUP devAiPIOP = {6, NULL, Ai_init, Ai_init_record, Ai_ioint_info, Ai_read, NULL};
+epicsExportAddress(dset, devAiPIOP);
 
 
 /*********************************************************
  ******** Stringout Record Support; PIOP IPL *************
  ********************************************************/
-/*
-** Stringout initialization. 
-** Called twice during IOC initialization for module setup.
-** after=0 called before database records are initialized
-** after=1 called after database records were initialized
-**
-** We do any required local initialization here since there must be
-** at least one stringout record/PIOP for IPL.
-*/
-
-static long So_init (int after)
-{
-   return 0;
-}
 
 /*
 ** Since stringout is used for PIOP IPL we create the thread and associated message queue
@@ -270,7 +227,7 @@ static long So_write (struct stringoutRecord *sor_p)
    else
    { /* post-process */
       rtn = 0;     /* Always return good status */
-      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", sor_p->name, 
@@ -318,14 +275,6 @@ static CAMFUNC_TE xlate_wf_parm (char *inparm_p)
       }
    }
    return (camfunc_e);
-}
-
-/*
-** Init for Waveform record
-*/
-static long Wf_init (int after)
-{
-   return 0;
 }
 
 /*
@@ -404,7 +353,7 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
    else
    { /* post-process */
       rtn = 0;     /* Always return good status */
-      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
@@ -421,14 +370,6 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
 /*********************************************************
  *********** Mbbi Record Support *************************
  ********************************************************/
-
-/*
-** Init for Mbbi record
-*/
-static long Mbi_init (int after)
-{
-   return 0;
-}
 
 /*
 ** Record init for Mbbi
@@ -502,7 +443,7 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
       rtn = 0;     /* Always return good status */
       mbival_p = pvt_p->val_p;  /* Value ptr from pvt */
       mbir_p->rval = *mbival_p;  /* Get value from driver */
-      if (!SUCCESS(pvt_p->status))    /* Check for different error options?? */
+      if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", mbir_p->name, 
@@ -516,13 +457,6 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
 /*********************************************************
  *********** Binary input Record Support *****************
  ********************************************************/
-
-
-static long Bi_init (int after)
-{
-   return 0;
-}
-
 
 static long Bi_init_record (struct biRecord *bir_p)
 {
@@ -591,7 +525,7 @@ static long Bi_read (struct biRecord *bir_p)
    else
    { /* post-process */
       rtn = 0;     /* Always return good status */
-      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", bir_p->name, 
@@ -605,13 +539,6 @@ static long Bi_read (struct biRecord *bir_p)
 /*********************************************************
  *********** Longin Record Support ***********************
  ********************************************************/
-
-
-static long Li_init (int after)
-{
-   return 0;
-}
-
 
 static long Li_init_record (struct longinRecord *lir_p)
 {
@@ -673,7 +600,7 @@ static long Li_init_record (struct longinRecord *lir_p)
    */
    ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc)
 	              | CCTLW__A2 | CCTLW__A1 | CCTLW__F2;
-   if (!SUCCESS(iss = camadd(&ctlw, &(Piop_Msgs_s[msgidx]), &twobytes, &emaskzero, &msgw_pkg_p)))
+   if (!SUCCESS(iss = camadd(&ctlw, &(Piop_Msgs_s[msgidx]), &twobytes, &emaskzero, &Msgw_pkg_p)))
    {
       recGblRecordError(S_db_badField, (void *)lir_p, 
                         "devLiPIOP Li_init_record MSG, Camadd failure");
@@ -706,12 +633,6 @@ static long Li_read (struct longinRecord *lir_p)
 /*********************************************************
  *********** Longout Record Support ***********************
  ********************************************************/
-
-static long Lo_init (int after)
-{
-   return 0;
-}
-
 
 static long Lo_init_record (struct longoutRecord *lor_p)
 {
@@ -792,7 +713,7 @@ static long Lo_write (struct longoutRecord *lor_p)
    else
    { /* post-process */
       rtn = 0;     /* Always return good status */
-      if (!SUCCESS(pvt_p->status))  /* Check for different error options?? */
+      if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
          errlogPrintf("Record [%s] receive error code [0x%08x]!\n", lor_p->name, 
@@ -801,3 +722,118 @@ static long Lo_write (struct longoutRecord *lor_p)
    }   /* post-process */
    return (rtn);
 }
+
+/*********************************************************
+ ******* Analog input Record Support for phase read ******
+ ********************************************************/
+/*
+** Called twice during IOC initialization for module setup.
+** final=0 called before database records are initialized
+** final=1 called after database records were initialized
+**
+** Start the task to read the phase on each beam crossing
+** after all records initialized.
+*/
+
+static long Ai_init (int final)
+{
+   if (final)
+      fidPHASEStart();  /* Start fiducial phase collection thread */
+   return 0;
+}
+
+/*
+** Record init for Analog input
+*/
+static long Ai_init_record (struct aiRecord *air_p)
+{
+   struct camacio *cam_ps = &(air_p->inp.value.camacio);
+   short crate = cam_ps->c;
+   short slot  = cam_ps->n;
+   char *parm_p= cam_ps->parm;
+   unsigned long ctlw;      /* Camac ctlw for camadd */
+   /*!!?? Emask s/b F300  F2 for now so get results back */
+   unsigned short emaskf300 = 0xF200; /* emask no msgs; called from intrpt level */
+   unsigned short bcnt = 2; /* 2 byte status word */
+   PIOP_PVT      *pvt_p;
+   /*------------------------------------------------*/
+   if(air_p->inp.type!=CAMAC_IO)
+   {
+      recGblRecordError(S_db_badField, (void *)air_p, 
+                         "devAiPIOP Ai_init_record, not CAMAC");
+      air_p->pact=TRUE;
+      return(S_db_badField);
+   }
+   if( (crate > MAX_CRATES) || (slot > MAX_SLOTS) )
+   {
+      recGblRecordError(S_db_badField, (void *)air_p, 
+                        "devAiPIOP Ai_init_record, illegal crate or slot");
+      air_p->pact=TRUE;
+      return(S_db_badField);
+   }
+   /*
+   ** Check if is "PHASE" param.
+   */
+   if (strcmp("PHASE", parm_p) != 0)
+   {
+      recGblRecordError(S_db_badField, (void *)air_p, 
+                        "devAiPIOP Ai_init_record, illegal param name");
+      air_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** Check that we don't have too many PHASE records.
+   */
+   if (phase_idx >= MAX_PIOPS-1)
+   {
+      recGblRecordError(S_db_badField, (void *)air_p, 
+                        "devAiPIOP Ai_init_record, too many PHASE records");
+      air_p->pact=TRUE;
+      return (S_db_badField);
+   }
+   /*
+   ** Add camac packets for this phase.
+   */
+   ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc) | CCTLW__F2 | CCTLW__A2;
+   if (!SUCCESS(camadd(&ctlw, &Phase_s[phase_idx], &bcnt, &emaskf300,  &Phase_pkg_p)))
+   {
+      recGblRecordError(S_db_badField, (void *)air_p, 
+                        "devAiPIOP Ai_init_record, camadd error.");
+      air_p->pact=TRUE;
+      return (S_db_badField);
+   } 
+   /*
+   ** All params look OK. Init driver private struct.
+   */
+   PIOPDriverInit((dbCommon *)air_p, cam_ps, EPICS_RECTYPE_AI);
+   pvt_p = (PIOP_PVT *)(air_p->dpvt);
+   pvt_p->val_p = &(air_p->val);
+   pvt_p->phase_idx = phase_idx++;
+   return (0);
+}
+
+/*
+** Ioint_info routine to add this record to our IOSCANPVT list.
+*/
+static long Ai_ioint_info (int cmd, struct aiRecord *air_p, IOSCANPVT *iopvt)
+{
+   *iopvt = PhaseIoPvt;   /* Add this record to the list */
+   return 0;
+} 
+
+/*********************************
+** Read routine for PIOP ai record
+**********************************/
+
+static long Ai_read (struct aiRecord *air_p)
+{
+   PIOP_PVT *pvt_p = (PIOP_PVT *)(air_p->dpvt);
+   /*---------------------*/
+   if (!pvt_p) return (-1);   /* Bad. Should have a driver private area ??*/
+   /*
+   ** Record only activated if Camac is OK. 
+   */
+   air_p->rval = Phase_s[pvt_p->phase_idx].data;  /* Just save raw 16 bit value */
+   return (0);
+}
+
