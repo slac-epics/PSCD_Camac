@@ -12,6 +12,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "math.h"
 #include "errno.h"
 
 /*
@@ -36,6 +37,7 @@
 #include <epicsMutex.h>
 #include <epicsMessageQueue.h>
 #include <epicsThread.h>
+#include <epicsEvent.h>
 #include <cantProceed.h>
 
 /*
@@ -58,6 +60,7 @@
 #include <waveformRecord.h>
 #include <mbbiRecord.h>
 #include <biRecord.h>
+#include <aiRecord.h>
 #include <longinRecord.h>
 #include <longoutRecord.h>
 #include <subRecord.h>
@@ -81,7 +84,8 @@ typedef enum EPICS_RECTYPE
     EPICS_RECTYPE_MBBI,
     EPICS_RECTYPE_BI,
     EPICS_RECTYPE_LI,
-    EPICS_RECTYPE_LO
+    EPICS_RECTYPE_LO,
+    EPICS_RECTYPE_AI,
 }   E_EPICS_RECTYPE;
 
 /******************************************************
@@ -122,15 +126,17 @@ typedef enum {IPL, PPNOFTP, PPFTP, STATUSBLOCK, FTP, PAD, MK2, TRIMSLED, FOXHOME
               SBIMSGPIOP, SBISTATUS, SBIDELAY, INVALID } CAMFUNC_TE; /* Camac funcs to perform */
 
 /********************************************
- ** Driver private structure for each record.
+ ** Driver private structure for all record.
+ ** Not all fields are used by all records.
  *******************************************/
 typedef struct
 {
-  vmsstat_t     status;   /* Status returned from driver */
-  short         crate;
-  short         slot;
-  void         *val_p;     /* Local record's val field */
-  CAMFUNC_TE    camfunc_e; /* Camac function */
+   vmsstat_t     status;    /* Status returned from driver */
+   short         crate;
+   short         slot;
+   void         *val_p;     /* Local record's val field */
+   CAMFUNC_TE    camfunc_e; /* Camac function for waveforms */
+   int           phase_idx; /* Index into Piop_Phase_s for RT ai phase */
 } PIOP_PVT;
 
 /*
@@ -150,6 +156,10 @@ typedef struct
 
 void threadPIOP (void * msgQId);
 void threadSBI  (void * msgQId);
+
+/* Start phase read thread */
+
+epicsThreadId fidPHASEStart(void);
 
 /* Record-specific driver init */
 
