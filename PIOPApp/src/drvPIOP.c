@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.10 2010/11/29 23:24:10 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.11 2011/02/07 15:21:35 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -73,7 +73,7 @@ static long PIOP_EPICS_Init()
          "PIOP_EPICS_Init failed to alloc msg word Camac package with status %x\n", 
           (unsigned int) iss);
    }
-   if (!SUCCESS(iss = camalo (&nops, &Phase_pkg_p)))
+   if (!SUCCESS(iss = camaloh (&nops, &Phase_pkg_p)))
    {
       errlogSevPrintf(errlogFatal,
          "PIOP_EPICS_init failed to init phase word Camac package with status %x\n", 
