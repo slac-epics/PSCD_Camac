@@ -17,6 +17,12 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-9
+Date: 18-Feb-2011, S. Hoobler
+Add database for real-time phase acquisition to PIOPApp.
+	New file: PIOPApp/Db/PIOP_phase.template
+	Removed:  PIOPApp/Db/PIOP_phase_test.db
+
 PSCD_Camac-R1-6-8
 Date: 07-Feb-2011, R. Sass
 Add real-time phase acquisition to PIOPApp.
