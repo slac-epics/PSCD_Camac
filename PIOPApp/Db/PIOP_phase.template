@@ -1,5 +1,5 @@
 # Read raw phase from PIOP at 120 Hz
-record(ai, "$(DEV):PHAS_RAW") {
+record(ai, "$(DEV):PHAS_FAST_RAW") {
   field(DESC, "Raw phase")
   field(SCAN, "I/O Intr")
   field(DTYP, "PIOP")
@@ -7,7 +7,7 @@ record(ai, "$(DEV):PHAS_RAW") {
   field(LINR, "NO CONVERSION")
   field(EGU, "")
   field(PRIO, "HIGH")
-  field(FLNK, "$(DEV):PHAS_CONVERT")
+  field(FLNK, "$(DEV):PHAS_FAST_CONVERT")
 }
 
 # Convert raw phase to real phase units using
@@ -17,12 +17,12 @@ record(ai, "$(DEV):PHAS_RAW") {
 #  INPB   = Gold offset
 #  INPC-H = Polynomial coefficients
 #
-record(sub, "$(DEV):PHAS_CONVERT") {
+record(sub, "$(DEV):PHAS_FAST_CONVERT") {
   field(DESC, "Convert raw phase")
   field(SCAN, "Passive")
   field(INAM, "phasePIOPinit")
   field(SNAM, "phasePIOPproc")
-  field(INPA, "$(DEV):PHAS_RAW.RVAL MS NPP")
+  field(INPA, "$(DEV):PHAS_FAST_RAW.RVAL MS NPP")
   field(INPB, "$(INPB)")
   field(INPC, "$(INPC)")
   field(INPD, "$(INPD)")
@@ -37,7 +37,7 @@ record(ai, "$(DEV):PHAS_FAST") {
   field(DESC, "Phase")
   field(SCAN,"Passive")
   field(EGU, "$(EGU)")
-  field(INP,  "$(DEV):PHAS_CONVERT MS NPP")
+  field(INP,  "$(DEV):PHAS_FAST_CONVERT MS NPP")
 # FLNK to BSA
   field(FLNK, "$(DEV):EFPHAS_FAST.PROC")
 }
