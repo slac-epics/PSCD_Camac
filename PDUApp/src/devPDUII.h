@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.9 2010/04/17 01:39:44 pengs Exp $
+ *   $Id: devPDUII.h,v 1.10 2010/04/17 12:28:00 pengs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -126,7 +126,8 @@ typedef struct PDUII_MODULE
 
     PDUII_RULE			rules[N_CHNLS_PER_MODU][N_RULES_PER_CHNL];
 
-    UINT32			chnlMode[N_CHNLS_PER_MODU];
+    UINT32			chnlModeRbk[N_CHNLS_PER_MODU];
+    UINT32			chnlModeSet[N_CHNLS_PER_MODU];
 
     UINT32			pttCache[N_CHNLS_PER_MODU*256];
 
