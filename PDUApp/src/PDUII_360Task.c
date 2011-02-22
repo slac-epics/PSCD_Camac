@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.14 2010/12/07 00:20:29 rcs Exp $
+ **   $Id: PDUII_360Task.c,v 1.15 2011/01/15 00:21:46 luchini Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -249,7 +249,7 @@ static int PDUIIFidu360Task(void * parg)
                         int matched = 0;
 
                         /* If MODE PP0, match infoNext1 */
-                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP0 && infoNext1OK)
+                        if(pPDUIIModule->chnlModeSet[loopch] == CHNL_MODE_PP0 && infoNext1OK)
                         {
                             pttLocation = beamCode1;
 
@@ -274,7 +274,7 @@ static int PDUIIFidu360Task(void * parg)
                         }
 
                         /* If MODE PP1, match infoNext2 */
-                        if(pPDUIIModule->chnlMode[loopch] == CHNL_MODE_PP1 && infoNext2OK)
+                        if(pPDUIIModule->chnlModeSet[loopch] == CHNL_MODE_PP1 && infoNext2OK)
                         {
                             pttLocation = beamCode2;
                             for(looprule=0; looprule<N_RULES_PER_CHNL; looprule++)
