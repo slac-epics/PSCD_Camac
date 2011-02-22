@@ -17,6 +17,16 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-10
+Date: 22-Feb-2011, K. Luchini
+Modify PDUApp. modify devPDUII.h to add mode read set point.
+Chg drvPDUII.c mode set point, storing value in module structure.
+Modify mode read back to use new variable name to store value
+Modify ptt read back to do double write/read pair instead of 
+write/read/read CAMAC package.
+Chg PDUII_360Task.c base decision for PP0/PP1 on mode set point
+rather than read back.
+
 PSCD_Camac-R1-6-9
 Date: 18-Feb-2011, S. Hoobler
 Add database for real-time phase acquisition to PIOPApp.
