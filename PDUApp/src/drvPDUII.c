@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.11 2010/04/18 18:28:07 pengs Exp $
+ *   $Id: drvPDUII.c,v 1.12 2010/12/07 00:23:59 rcs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -335,7 +335,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
             if (read1 == read2)
 	    {
 	        pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
-                pPDUIIModule->chnlMode[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
+                pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
 	    }
         }
 release_campkg: 
@@ -418,7 +418,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         /* Each entry is independent, and only one op thread per module, so no need to lock. */
         /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
         /* So be conservetive, marking as TRANSITING asap will be good enough */
-        pPDUIIModule->chnlMode[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
+        pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Fail to set mode, leave as invalid */
             errlogPrintf("drvPDUII camgo error 0x%08X setting mode\n",(unsigned int) iss);
@@ -426,7 +426,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         }
         else
         {/* Succeed. Validate chnlMode */
-            pPDUIIModule->chnlMode[pPDUIIRequest->a] = (pPDUIIRequest->val & 0x7);
+            pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = (pPDUIIRequest->val & 0x7);
         }
 
 release_campkg: 
@@ -467,8 +467,8 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF0A1 = 0x0;
 
-        STAS_DAT read_pduii[3];	/* need to set PTTP first, then double read PTT val */
-        UINT16 nops = 3;
+        STAS_DAT read_pduii[4];	/* need to set PTTP first, then double read PTT val */
+        UINT16 nops = 4;
 
         if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
         {
@@ -509,7 +509,21 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+
+
+	bcnt = 2;
+        *((UINT16 *)(&(read_pduii[2].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
+        if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            status = (PDUII_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        } 
+
+        /************** Double read ****************/
+        bcnt = 4;
+        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[3], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -521,7 +535,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	    errlogPrintf("drvPDUII camgo error 0x%08X reading the PTT\n",(unsigned int) iss);
             status = (PDUII_CAM_GO_FAIL|iss);
         }
-        else if ( (read_pduii[1].data & 0xFFFF) == (read_pduii[2].data & 0xFFFF) )
+        else if ( (read_pduii[1].data & 0xFFFF) == (read_pduii[3].data & 0xFFFF) )
         {
 	    pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = pPDUIIRequest->val;
@@ -811,7 +825,7 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
             pPDUIIModule->rules[loopch][looprule].pttDelay=0xFFFFF;
         }
 
-        /* pPDUIIModule->chnlMode, record autoSaveRestore will init it */
+        /* pPDUIIModule->chnlModeSet, record autoSaveRestore will init it */
         for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
         {
             pPDUIIModule->pttCache[loop] = PTT_ENTRY_UNKNOWN;
