@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.12 2010/11/29 23:24:56 rcs Exp $
+ *   $Id: devPIOP.c,v 1.13 2011/02/07 15:19:53 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -784,7 +784,7 @@ static long Ai_init_record (struct aiRecord *air_p)
    /*
    ** Check that we don't have too many PHASE records.
    */
-   if (phase_idx >= MAX_PIOPS-1)
+   if (phase_idx > MAX_PIOPS-1)
    {
       recGblRecordError(S_db_badField, (void *)air_p, 
                         "devAiPIOP Ai_init_record, too many PHASE records");
