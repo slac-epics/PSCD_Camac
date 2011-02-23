@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.13 2011/02/07 15:19:53 rcs Exp $
+ *   $Id: devPIOP.c,v 1.14 2011/02/23 03:34:54 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -230,8 +230,8 @@ static long So_write (struct stringoutRecord *sor_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", sor_p->name, 
-                      (unsigned int)pvt_p->status);
+         errlogPrintf("Record [%s] error %s!\n", sor_p->name, 
+                      cammsg(pvt_p->status));
       }
    }   /* post-process */ 
    return (rtn);
@@ -356,8 +356,8 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", wfr_p->name, 
-                      (unsigned int)pvt_p->status);
+         if(pvt_p->status != CAM_NGNG)
+            errlogPrintf("Record [%s] error %s!\n", wfr_p->name, cammsg(pvt_p->status));
       }
       else if (pvt_p->camfunc_e == STATUSBLOCK)
       {
@@ -446,8 +446,8 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", mbir_p->name, 
-                      (unsigned int)pvt_p->status);
+         if (pvt_p->status != CAM_NGNG)
+            errlogPrintf("Record [%s] error %s!\n", mbir_p->name,cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);
@@ -528,8 +528,8 @@ static long Bi_read (struct biRecord *bir_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", bir_p->name, 
-                      (unsigned int)pvt_p->status);
+         if (pvt_p->status != CAM_NGNG)
+            errlogPrintf("Record [%s] error %s!\n", bir_p->name, cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);
@@ -546,9 +546,9 @@ static long Li_init_record (struct longinRecord *lir_p)
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
    char *parm_p= cam_ps->parm;  
-   vmsstat_t iss = KLYS_OKOK;
+   vmsstat_t iss = CAM_OKOK;
    int msgidx;
-   unsigned long ctlw;
+   unsigned int ctlw;
    unsigned short twobytes = 2;
    unsigned short emaskzero = 0;
    /*------------------------------------------------*/
@@ -696,7 +696,7 @@ static long Lo_write (struct longoutRecord *lor_p)
    if(!lor_p->pact)
    {  /* Pre-process */
      /* 
-      ** This camac pkg writes the sBI delay and PSK enable to the SBI. 
+      ** This camac pkg writes the SBI delay and PSK enable to the SBI. 
       */
       msg_s.rec_p = (dbCommon *)lor_p;
       if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
@@ -716,8 +716,8 @@ static long Lo_write (struct longoutRecord *lor_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", lor_p->name, 
-                      (unsigned int)pvt_p->status);
+         if (pvt_p->status != CAM_NGNG)
+            errlogPrintf("Record [%s] error %s!\n", lor_p->name, cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);
@@ -751,9 +751,8 @@ static long Ai_init_record (struct aiRecord *air_p)
    short crate = cam_ps->c;
    short slot  = cam_ps->n;
    char *parm_p= cam_ps->parm;
-   unsigned long ctlw;      /* Camac ctlw for camadd */
-   /*!!?? Emask s/b F300  F2 for now so get results back */
-   unsigned short emaskf300 = 0xF200; /* emask no msgs; called from intrpt level */
+   unsigned int ctlw;      /* Camac ctlw for camadd */
+   unsigned short emaskf200 = 0xF200; /* emask no msgs; called from intrpt level */
    unsigned short bcnt = 2; /* 2 byte status word */
    PIOP_PVT      *pvt_p;
    /*------------------------------------------------*/
@@ -795,7 +794,7 @@ static long Ai_init_record (struct aiRecord *air_p)
    ** Add camac packets for this phase.
    */
    ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc) | CCTLW__F2 | CCTLW__A2;
-   if (!SUCCESS(camadd(&ctlw, &Phase_s[phase_idx], &bcnt, &emaskf300,  &Phase_pkg_p)))
+   if (!SUCCESS(camadd(&ctlw, &Phase_s[phase_idx], &bcnt, &emaskf200,  &Phase_pkg_p)))
    {
       recGblRecordError(S_db_badField, (void *)air_p, 
                         "devAiPIOP Ai_init_record, camadd error.");
