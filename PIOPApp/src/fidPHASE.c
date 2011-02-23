@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: fidPHASE.c,v 1.0 2011/01/17 00:20:29 rcs Exp $
+ **   $Id: fidPHASE.c,v 1.1 2011/02/07 15:24:59 rcs Exp $
  **   File:              fidPHASE.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -109,8 +109,7 @@ static int fidPHASETask(void * parg)
     */
     if (campkg_p->iop == 0)
     {
-       errlogSevPrintf(errlogFatal,
-                       "No packets to execute in  fidPHASETask. We die now.\n");
+       errlogPrintf("No packets to execute in  fidPHASETask.\n");
        epicsThreadSuspendSelf();
     }
     /*
