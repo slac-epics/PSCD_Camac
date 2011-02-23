@@ -67,7 +67,7 @@
        /****************************************************************/
  
  /**procedure**/
- vmsstat_t cammod(const unsigned long *cctlw_p, const unsigned long *mask_p,
+ vmsstat_t cammod(const unsigned int *cctlw_p, const unsigned int *mask_p,
                   const campkgp_t *camblk_pp)
  {
      #define CAMBLK_p (*camblk_pp)
