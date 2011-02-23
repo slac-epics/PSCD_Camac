@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+
+PSCD_Camac-R1-6-11
+Date: 23-Feb-2011, R. Sass
+Change every App to use cammsg to log camac errors.
+PDUDIAG emask ignores Q.
+Change PIOP to only use CAM* error codes.
+
 PSCD_Camac-R1-6-10
 Date: 22-Feb-2011, K. Luchini
 Modify PDUApp. modify devPDUII.h to add mode read set point.
