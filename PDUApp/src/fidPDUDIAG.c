@@ -1,5 +1,5 @@
 /****************************************************************************
- **   $Id: fidPDUDIAG.c,v 1.2 2010/09/23 15:47:07 rcs Exp $
+ **   $Id: fidPDUDIAG.c,v 1.4 2010/11/09 21:39:29 rcs Exp $
  **   File:              fidPDUDIAG.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -39,13 +39,13 @@ static UINT32         Pass_num    = 0;  /* Collection pass */
 static UINT32         Fids_wait   = 0;  /* Fids waiting for next second */
 static UINT32         First_call  = 1;  /* First call of a new request */
    
-static unsigned short Emask = 0xF300;
-static unsigned long  Mode_ctlw;      /* ctlw to set mode */
-static unsigned long  Read_ctlw;      /* ctlw to read delay */
-static unsigned long  Avail_ctlw;     /* ctlw to check if data available */
-static unsigned long  Match_ctlw;     /* ctlw to check if measurement on next fiducial */
-static unsigned long  Match_stat;     /* Status to check if will measure next fiducial */
-static unsigned long  Avail_stat;     /* Status to check if data is available */
+static unsigned short Emask = 0xF200;
+static unsigned int   Mode_ctlw;      /* ctlw to set mode */
+static unsigned int   Read_ctlw;      /* ctlw to read delay */
+static unsigned int   Avail_ctlw;     /* ctlw to check if data available */
+static unsigned int   Match_ctlw;     /* ctlw to check if measurement on next fiducial */
+static unsigned int   Match_stat;     /* Status to check if will measure next fiducial */
+static unsigned int   Avail_stat;     /* Status to check if data is available */
 static STAT_LDAT      Read_ldat_s;    /* Delay interval status/data */
 static STAT_SDAT      Mode_sdat_s;    /* Mode status/data */
 
