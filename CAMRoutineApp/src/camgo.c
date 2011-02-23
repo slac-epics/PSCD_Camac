@@ -66,7 +66,6 @@
 #include "cam_proto.h"             /* (Self).                                 */
 #include "errlog.h"                /* errlogSevPrintf                         */
 #include "camdef.h"               /* CAM_OKOK,...                            */
-#include "micrdef.h"              /* MICR_EPMUTEXCREA.                       */
 #include "epicsThread.h"
 
 int MBCD_MODE = 0;   /* Global flag to disable crate/soft timeout msgs when in MBCD mode */
@@ -198,7 +197,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
          /* Arg:  PSCD card structure.                               */
          /* Ctxt: camgo_sem_toks - Mutex semaphore for each priority */
          /* Ret:  CAM_OKOK if successfull; possible bad status return*/
-         /*       camioi MICR_EPMUTEXCREA if mutex can't be created. */
+         /*       camioi CAM_NGNG if mutex can't be created.         */
          /*                                                          */
          /************************************************************/
  
@@ -217,7 +216,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
      {
        if ((camgo_sem_toks[i] = epicsMutexCreate()) == NULL)
        {
-         iss = MICR_EPMUTEXCREA;
+         iss = CAM_NGNG;
          errlogSevPrintf (errlogFatal, "CAMGO - Cannot create EPICS mutex\n");
        }
      }
@@ -296,7 +295,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
 
      if ((oss = epicsMutexLock(camgo_sem_toks[prior])) != 0)
      {
-         iss = MICR_UNK_IRMXERR;
+         iss = CAM_NGNG;
          errlogSevPrintf (errlogFatal, "CAMGO - Unable to lock Mutex with EPICS code %x\n", oss);
          goto egress;
      }         
@@ -342,7 +341,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
         {
 	   if ((ess = epicsEventWaitWithTimeout(pscd_card.semSio[prior], 0.1)) != epicsEventWaitOK)
 	   {
-              iss = MICR_UNK_IRMXERR;        
+              iss = CAM_NGNG;        
               errlogSevPrintf (errlogMinor, "CAMGO - timeout waiting for interrupt %x\n",ess);
               pscd_card.waitSemSio[prior] = FALSE;  /* Tell ISR no longer waiting for interrupt */
 	   }
@@ -564,7 +563,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  
          if ((mbcd_pkt_p[jp].cctlw & CCTLW__C) == 0 && !unwou_errf)
          {
-             iss = CAM_ZERCRATAD;
+             iss = CAM_BAD_C;
              errlogSevPrintf (errlogMinor, 
                  "CAMGO - Zero crate address is invalid.\n");
              ++unwou_errf;
