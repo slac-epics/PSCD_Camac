@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.15 2011/01/15 00:21:46 luchini Exp $
+ **   $Id: PDUII_360Task.c,v 1.16 2011/02/22 19:37:01 luchini Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -76,12 +76,6 @@ static int PDUIIFidu360Task(void * parg)
     unsigned int fiduCnt = 0;
     vmsstat_t iss;
 
-    if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-    {
-        errlogPrintf("cam_ini error 0x%08X within PDUII 360Hz task\n",(unsigned int) iss);
-        return -1;
-    }
-
     /* Create event and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
 
@@ -128,7 +122,7 @@ static int PDUIIFidu360Task(void * parg)
             UINT16 bcnt = 2;
 
             STAS_DAT stat_data[MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH];
-            unsigned long ctlword[MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH];
+            unsigned int ctlword[MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH];
 
             PDUII_MODULE * pPDUIIModule = NULL;
             int currentBranch = -1;
@@ -168,7 +162,7 @@ static int PDUIIFidu360Task(void * parg)
             {/* Get at least good info for one pulse */
                 if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
                 {/* Allocate max possible slots */
-                    if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error 0x%08X\n",(unsigned int) iss);
+                    if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error %s\n",cammsg(iss));
                     continue;
                 }
             }
@@ -204,7 +198,7 @@ static int PDUIIFidu360Task(void * parg)
                             if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A8 for module[C%d,N%d] as No.%d packet\n", pPDUIIModule->c, pPDUIIModule->n, totalPkts);
                             if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
-                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
                                 goto release_campkg;
                             }
                             totalPkts++;
@@ -226,7 +220,7 @@ static int PDUIIFidu360Task(void * parg)
                             if(PDUII_360T_DEBUG >= 1) errlogPrintf("Add F19A9 for module[C%d,N%d] as No.%d packet\n", pPDUIIModule->c, pPDUIIModule->n, totalPkts);
                             if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
-                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
                                 goto release_campkg;
                             }
                             totalPkts++;
@@ -314,7 +308,7 @@ static int PDUIIFidu360Task(void * parg)
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
-                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
                                 goto release_campkg;
                             }
                             totalPkts++;
@@ -326,7 +320,7 @@ static int PDUIIFidu360Task(void * parg)
                             if (!SUCCESS(iss = camadd (&ctlword[totalPkts], &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
-                                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                                errlogPrintf("camadd error %s\n",cammsg(iss));
                                 goto release_campkg;
                             }
                             totalPkts++;
@@ -349,7 +343,7 @@ static int PDUIIFidu360Task(void * parg)
                 {/* Failed, leave as invalid */
 		   if (PDUII_360T_BADCAM == 0)
                    {
-	  	       errlogPrintf("PDUII_360Task camgo error 0x%08X\n",(unsigned int) iss);
+	  	       errlogPrintf("PDUII_360Task camgo error %s\n",cammsg(iss));
 		       PDUII_360T_BADCAM++;    /* Count bad camgos */
 		   }
                    PDUII_360T_BADCAM++;

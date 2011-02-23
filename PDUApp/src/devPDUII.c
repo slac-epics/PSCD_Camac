@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.5 2010/04/12 15:50:17 pengs Exp $
+ *   $Id: devPDUII.c,v 1.6 2010/04/17 12:18:22 pengs Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -142,7 +142,7 @@ static long write_bo(struct boRecord *pbo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pbo->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -216,7 +216,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbid, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pmbbid->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -291,7 +291,7 @@ static long read_mbbi(struct mbbiRecord *pmbbi)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbi, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pmbbi->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pmbbi->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -371,7 +371,7 @@ static long write_mbbo(struct mbboRecord *pmbbo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pmbbo->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pmbbo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -445,7 +445,7 @@ static long read_li(struct longinRecord *pli)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pli, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pli->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pli->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -532,7 +532,7 @@ static long write_lo(struct longoutRecord *plo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(plo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", plo->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", plo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

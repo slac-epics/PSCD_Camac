@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.12 2010/12/07 00:23:59 rcs Exp $
+ *   $Id: drvPDUII.c,v 1.13 2011/02/22 19:37:45 luchini Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devPDUII.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 #include "cctlwmasks.h"
 
 extern struct PSCD_CARD pscd_card;
@@ -107,9 +105,6 @@ UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
         UINT16 bcnt = 0;
         UINT16 emask= 0xE0E0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-            return (PDUII_CAM_INIT_FAIL|iss);
-
         /* 360Hz task will try lock to detect if module is going thru reset */
         epicsMutexMustLock(pPDUIIModule->lockModule);
 
@@ -118,10 +113,10 @@ UINT32 PDUII_Reset(PDUII_MODULE * pPDUIIModule)
         /* F9A0 to reset, ignore-overwrite whatever a,f in record */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (9 << 16) | 0;
 	bcnt = 0;
-        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {/* Reset failed, Leave all pttCache invalidated. Unlock module. */
             epicsMutexUnlock(pPDUIIModule->lockModule); 
-            errlogPrintf ("camio error 0x%08X for PDUII reset\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for PDUII reset\n", cammsg(iss));
             return (PDUII_RST_CAMIO_FAIL|iss);
         }
         else
@@ -154,9 +149,6 @@ UINT32 PDUII_UpperBplnEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
         UINT16 bcnt = 0;
         UINT16 emask= 0xE0E0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-            return (PDUII_CAM_INIT_FAIL|iss);
-
         /* F24A1 to disable and F26A1 to enable, ignore-overwrite whatever a,f in record */
 	if(enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (26 << 16) | 1;
@@ -164,9 +156,9 @@ UINT32 PDUII_UpperBplnEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (24 << 16) | 1;
 
 	bcnt = 0;
-        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for PDUII enable-disable output\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for PDUII enable-disable output\n", cammsg(iss));
             return (PDUII_ENO_CAMIO_FAIL|iss);
         }
 
@@ -193,9 +185,6 @@ UINT32 PDUII_SeqrEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
         UINT16 bcnt = 0;
         UINT16 emask= 0xE0E0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-            return (PDUII_CAM_INIT_FAIL|iss);
-
         /* F24A2 to disable and F26A2 to enable, ignore-overwrite whatever a,f in record */
 	if(enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (26 << 16) | 2;
@@ -203,9 +192,9 @@ UINT32 PDUII_SeqrEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
             pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (24 << 16) | 2;
 
 	bcnt = 0;
-        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio (&pduiictlw, NULL, &bcnt, &(cmd_pduii.stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for PDUII enable-disable sequencer\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for PDUII enable-disable sequencer\n", cammsg(iss));
             return (PDUII_ENS_CAMIO_FAIL|iss);
         }
 
@@ -232,16 +221,13 @@ UINT32 PDUII_Status(PDUII_MODULE *pPDUIIModule, UINT32 *pStatus)
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-            return (PDUII_CAM_INIT_FAIL|iss);
-
         /* F2A2 to read status, ignore-overwrite whatever a,f in record */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (2 << 16) | 2;
 
 	bcnt = 4;
-        if (!SUCCESS(iss = camio ((const unsigned long *)&pduiictlw, &(read_pduii.data), &bcnt, &(read_pduii.stat), &emask)))
+        if (!SUCCESS(iss = camio (&pduiictlw, &(read_pduii.data), &bcnt, &(read_pduii.stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for PDUII enable-disable sequencer\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for PDUII enable-disable sequencer\n", cammsg(iss));
             return (PDUII_STS_CAMIO_FAIL|iss);
         }
         if(pStatus) *pStatus = read_pduii.data & 0xFF;
@@ -277,17 +263,10 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         UINT16 nops = 3;
         UINT16 read1,read2;     /* double read of mode */
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            status = (PDUII_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /** Allocate package for PDUII mode read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error %s\n",cammsg(iss));
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -296,9 +275,9 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = pPDUIIRequest->a << 8;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -309,22 +288,22 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 	*/
         ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0;
         bcnt = 2;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF1A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-	    errlogPrintf("drvPDUII camgo error 0x%08X reading mode.\n",(unsigned int) iss);
+	    errlogPrintf("drvPDUII camgo error %s reading mode.\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -341,7 +320,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("drvPDUII camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camdel error %s\n",cammsg(iss));
     }
     else
         status = PDUII_MODULE_NOT_EXIST;
@@ -379,17 +358,10 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         STAS_DAT write_pduii[2];	/* need to set PTTP first, then read mode */
         UINT16 nops = 2;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            status = (PDUII_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /** Allocate package for PDUII mode read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error %s\n",cammsg(iss));
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -398,9 +370,9 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = pPDUIIRequest->a << 8;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -408,9 +380,9 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 1;
         bcnt = 2;
         *((UINT16 *)(&(write_pduii[1].data))) = pPDUIIRequest->val & 0x7;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -421,7 +393,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Fail to set mode, leave as invalid */
-            errlogPrintf("drvPDUII camgo error 0x%08X setting mode\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camgo error %s setting mode\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
@@ -432,7 +404,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         status = PDUII_MODULE_NOT_EXIST;
@@ -470,17 +442,10 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         STAS_DAT read_pduii[4];	/* need to set PTTP first, then double read PTT val */
         UINT16 nops = 4;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            status = (PDUII_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /** Allocate package for PTT read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error %s\n",cammsg(iss));
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -490,9 +455,9 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -503,9 +468,9 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	*/
         ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
         bcnt = 4;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -514,25 +479,25 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	bcnt = 2;
         *((UINT16 *)(&(read_pduii[2].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         } 
 
         /************** Double read ****************/
         bcnt = 4;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF0A1, &read_pduii[3], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[3], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-	    errlogPrintf("drvPDUII camgo error 0x%08X reading the PTT\n",(unsigned int) iss);
+	    errlogPrintf("drvPDUII camgo error %s reading the PTT\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else if ( (read_pduii[1].data & 0xFFFF) == (read_pduii[3].data & 0xFFFF) )
@@ -543,7 +508,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         status = PDUII_MODULE_NOT_EXIST;
@@ -581,17 +546,10 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         STAS_DAT write_pduii[2];	/* need to set PTTP first, then read mode */
         UINT16 nops = 2;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            status = (PDUII_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /** Allocate package for PDUII mode read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
-            errlogPrintf("camalo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalo error %s\n",cammsg(iss));
             status = (PDUII_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -601,9 +559,9 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("Set PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -611,9 +569,9 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF16A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
         bcnt = 4;
         write_pduii[1].data = pPDUIIRequest->val & 0xFFFFF;
-        if (!SUCCESS(iss = camadd ((const unsigned long *)&ctlwF16A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF16A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -625,7 +583,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Failed, leave as invalid */
-            errlogPrintf("drvPDUII camgo error 0x%08X writing PTT\n",(unsigned int) iss);
+            errlogPrintf("drvPDUII camgo error %s writing PTT\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else
@@ -636,7 +594,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         status = PDUII_MODULE_NOT_EXIST;
@@ -667,8 +625,8 @@ static int PDUII_Operation(void * parg)
     errCode = PDUII_Reset(pPDUIIModule);
     if(errCode)
     {
-        errlogPrintf("Fail to call PDUII_Reset PDUII[%d,%d,%d], error 0x%08X\n", 
-            pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n, errCode);
+        errlogPrintf("Fail to call PDUII_Reset PDUII[%d,%d,%d], error %s\n", 
+            pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n, cammsg(errCode));
         return -1;
     }
 #endif
