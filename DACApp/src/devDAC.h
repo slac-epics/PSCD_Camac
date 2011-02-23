@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devDAC.h,v 1.4 2009/04/08 22:07:40 pengs Exp $
+ *   $Id: devDAC.h,v 1.1 2009/05/12 07:40:23 pengs Exp $
  *   File:		devDAC.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -57,6 +57,9 @@
 
 #include "genType.h"
 #include "drvPSCDLib.h"
+
+#include "slc_macros.h"
+#include "cam_proto.h"
 
 #ifdef __cplusplus
 extern "C" {
