@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUDIAG.c,v 1.2 2010/09/23 15:47:07 rcs Exp $
+ *   $Id: drvPDUDIAG.c,v 1.4 2010/11/09 20:04:01 luchini Exp $
  *   File:		drvPDUDIAG.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -12,8 +12,6 @@
  *
 \***************************************************************************/
 #include "devPDUDIAG.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 #include "cctlwmasks.h"
 
 /*********************************************************************************/
