@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUIITest_Fiducial.c,v 1.2 2010/04/20 12:09:13 pengs Exp $
+ **   $Id: PDUIITest_Fiducial.c,v 1.3 2010/04/20 12:18:40 pengs Exp $
  **   File:              PDU_Fiducial.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -56,7 +56,7 @@ static void EVRFiducial(void)
     epicsTimeStamp time_s;
     unsigned long  patternStatus; /* see evrPattern.h for values */
 
-    int status = evrTimeGetFromPipeline(&time_s,  evrTimeCurrent, modifier_a, &patternStatus, 0,0,0);
+    evrTimeGetFromPipeline(&time_s,  evrTimeCurrent, modifier_a, &patternStatus, 0,0,0);
 
     /* This is 120Hz. So printf will screw timing */
     if(PDUII_Test_F19_DEBUG >= 3) printk("Got fiducial\n");
