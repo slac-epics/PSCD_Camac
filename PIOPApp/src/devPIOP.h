@@ -43,13 +43,12 @@
 /*
 ** We'll preserve/use VMS status words to pass back so we need the SUCCESS macro
 */
-
-#include <slc_macros.h>
-#include <klysdef.h>        /* VMS/micro error codes */
+#include <camdef.h>         /* VMS/micro error codes */
 
 /*
 ** So we can do Camadd in device support
 */
+#include <slc_macros.h>
 #include <cam_proto.h>
 #include <cctlwmasks.h>
 
@@ -131,6 +130,7 @@ typedef enum {IPL, PPNOFTP, PPFTP, STATUSBLOCK, FTP, PAD, MK2, TRIMSLED, FOXHOME
  *******************************************/
 typedef struct
 {
+   dbCommon     *rec_p;     /* Record pointer */
    vmsstat_t     status;    /* Status returned from driver */
    short         crate;
    short         slot;
