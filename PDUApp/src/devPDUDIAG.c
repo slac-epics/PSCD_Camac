@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUDIAG.c,v 1.1 2010/08/25 22:43:43 rcs Exp $
+ *   $Id: devPDUDIAG.c,v 1.2 2010/09/23 15:47:07 rcs Exp $
  *   File:		devPDUDIAG.c
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -219,8 +219,7 @@ static long read_wf(struct waveformRecord *pwf)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(pwf, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pwf->name,
-                      (unsigned int)pvt_p->status);
+         errlogPrintf("Record [%s] error %s!\n", pwf->name, cammsg(pvt_p->status));
       }
    }  /* end post-process */
    return (0);
