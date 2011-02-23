@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUDIAG.h,v 1.1 2010/08/25 22:43:43 rcs Exp $
+ *   $Id: devPDUDIAG.h,v 1.2 2010/09/23 15:47:07 rcs Exp $
  *   File:		devPDUDIAG.h
  *   Author:		Robert C. Sass
  *   Email:		rcs@slac.stanford.edu
@@ -63,6 +63,7 @@
 */
 
 #include <slc_macros.h>
+#include <cam_proto.h>
 
 #ifdef __cplusplus
 extern "C" {
