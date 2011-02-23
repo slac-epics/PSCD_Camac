@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.10 2010/04/17 12:28:00 pengs Exp $
+ *   $Id: devPDUII.h,v 1.11 2011/02/22 19:36:24 luchini Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -62,6 +62,9 @@
 #include "genType.h"
 
 #include "drvPSCDLib.h"
+
+#include "slc_macros.h"
+#include "cam_proto.h"
 
 #include "evrTime.h"
 #include "evrPattern.h"
