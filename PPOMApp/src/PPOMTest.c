@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: PPOMTest.c,v 1.1 2009/11/02 05:20:18 pengs Exp $
+ *   $Id: PPOMTest.c,v 1.2 2009/11/16 12:40:23 pengs Exp $
  *   File:		PPOMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -68,7 +68,6 @@ UINT32 PPOM_Test()
     /* check if module exists */
     if(isModuleExsit(0, 5, 21))
     {
-        unsigned int loop;
 
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
@@ -81,20 +80,13 @@ UINT32 PPOM_Test()
         STAS_DAT read_ppom[2];
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (PPOM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         nops = 1;
  
         /** Allocate package for PPOM reset */
 
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
-            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalol error %s\n",cammsg(iss));
             rtn = (PPOM_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -103,14 +95,14 @@ UINT32 PPOM_Test()
 	bcnt = 4;
         if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_ppom[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (PPOM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camgo error %s\n",cammsg(iss));
             rtn = (PPOM_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -121,7 +113,7 @@ UINT32 PPOM_Test()
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         rtn = PPOM_MODULE_NOT_EXIST;

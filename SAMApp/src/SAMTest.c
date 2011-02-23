@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: SAMTest.c,v 1.2 2009/04/05 22:23:53 pengs Exp $
+ *   $Id: SAMTest.c,v 1.3 2009/04/09 21:56:04 pengs Exp $
  *   File:		SAMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devSAM.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 #include <registryFunction.h>
 
 #if 0
@@ -98,20 +96,13 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
         STAS_DAT read_sam[SAM_NUM_OF_CHANNELS*2 + 1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (SAM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
 	if(rst)
 	{
             /* F9 to reset */
 	    bcnt = 0;
             if (!SUCCESS(iss = camio (&ctlwF9, NULL/*&(read_sam[0].data)*/, &bcnt, &(read_sam[0].stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for SAM reset\n", cammsg(iss));
                 return (SAM_RST_CAMIO_FAIL|iss);
             }
 
@@ -125,7 +116,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
             *((UINT16 *)(&(read_sam[0].data))) = 0x0005; /* 101b, IEEE, normal mode, read firmware version */
             if (!SUCCESS(iss = camio (&ctlwF16, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for SAM setup\n", cammsg(iss));
                 return (SAM_SETUP_CAMIO_FAIL|iss);
             }
 
@@ -137,7 +128,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 	    bcnt = 2;
             if (!SUCCESS(iss = camio (&ctlwF17, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for SAM F11\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for SAM F11\n", cammsg(iss));
                 return (SAM_RST_CAMIO_FAIL|iss);
             }
 
@@ -145,7 +136,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 	    bcnt = 4;
             if (!SUCCESS(iss = camio (&ctlwF0, &read_sam[1].data, &bcnt, &read_sam[1].stat, &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for SAM F0\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for SAM F0\n", cammsg(iss));
                 return (SAM_SETUP_CAMIO_FAIL|iss);
             }
 
@@ -158,7 +149,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
             *((UINT16 *)(&(read_sam[0].data))) = 0x0004; /* 101b, IEEE, normal mode, no read firmware version */
             if (!SUCCESS(iss = camio (&ctlwF16, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for SAM setup\n", cammsg(iss));
                 return (SAM_SETUP_CAMIO_FAIL|iss);
             }
 
@@ -173,7 +164,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
             /** Allocate package for SAM reset */
             if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
             {
-                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camalol error %s\n", cammsg(iss));
                 rtn = (SAM_CAM_ALLOC_FAIL|iss);
                 goto egress;
             }
@@ -183,7 +174,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 	    bcnt = 2;
             if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
             {
-                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camadd error %s\n", cammsg(iss));
                 rtn = (SAM_CAM_ADD_FAIL|iss);
                 goto release_campkg;
             }
@@ -193,7 +184,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 	        bcnt = 4;
                 if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
                 {
-                    errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                    errlogPrintf("camadd error %s\n", cammsg(iss));
                     rtn = (SAM_CAM_ADD_FAIL|iss);
                     goto release_campkg;
                 }
@@ -201,7 +192,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 
             if (!SUCCESS(iss = camgo (&pkg_p)))
             {
-                errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camgo error %s\n", cammsg(iss));
                 rtn = (SAM_CAM_GO_FAIL|iss);
                 goto release_campkg;
             }
@@ -215,7 +206,7 @@ UINT32 SAM_Test(float delay, int rst, int fwver, int readdata, int channel)
 release_campkg: 
 
             if (!SUCCESS(iss = camdel (&pkg_p)))
-                errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camdel error %s\n", cammsg(iss));
         }
     }
     else

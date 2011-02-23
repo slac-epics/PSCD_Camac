@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPPOM.h,v 1.1 2009/11/02 05:20:18 pengs Exp $
+ *   $Id: devPPOM.h,v 1.2 2009/11/02 06:07:58 pengs Exp $
  *   File:		devPPOM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -57,6 +57,9 @@
 
 #include "genType.h"
 #include "drvPSCDLib.h"
+
+#include "slc_macros.h"
+#include "cam_proto.h"
 
 #ifdef __cplusplus
 extern "C" {

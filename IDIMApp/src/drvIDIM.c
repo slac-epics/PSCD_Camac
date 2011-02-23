@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDIM.c,v 1.2 2009/04/08 22:04:01 pengs Exp $
+ *   $Id: drvIDIM.c,v 1.3 2009/04/08 22:06:39 pengs Exp $
  *   File:		drvIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devIDIM.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 
 extern struct PSCD_CARD pscd_card;
 
@@ -112,13 +110,6 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
         UINT32 idimctlw = 0x0;
         STAS_DAT read_idim[2];	/* We put 2 here for future optimization to combine two 16-bit read */
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (IDIM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /* F0 Aa to read IDIM */
         idimctlw = (pIDIMModule->n << 7) | (pIDIMModule->c << 12) | (pIDIMRequest->f << 16) | (pIDIMRequest->a);
         if(IDIM_DRV_DEBUG) printf("IDIM Operation control word is 0x%08x\n", idimctlw);
@@ -127,7 +118,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 #if 1
         if (!SUCCESS(iss = camio (&idimctlw, &read_idim[0].data, &bcnt, &read_idim[0].stat, &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for IDIM F%dA%d\n", (unsigned int) iss, pIDIMRequest->f, pIDIMRequest->a);
+            errlogPrintf ("camio error %s for IDIM F%dA%d\n", cammsg(iss), pIDIMRequest->f, pIDIMRequest->a);
             rtn = (IDIM_READ_CAMIO_FAIL|iss);
             goto egress;
         }
@@ -138,21 +129,21 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 
             if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
             {
-                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camalol error %s\n",cammsg(iss));
                 rtn = (IDIM_CAM_ALLOC_FAIL|iss);
                 goto egress;
             }
 
 	    if (!SUCCESS(iss = camadd (&idimctlw, &read_idim[0], &bcnt, &emask, &pkg_p)))
 	    {
-	        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camadd error %s\n",cammsg(iss));
 	        rtn = (IDIM_CAM_ADD_FAIL|iss);
 	        goto release_campkg;
 	    }
 
 	    if (!SUCCESS(iss = camgo (&pkg_p)))
 	    {
-	        errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camgo error %s\n",cammsg(iss));
 	        rtn = (IDIM_CAM_GO_FAIL|iss);
 	        goto release_campkg;
 	    }
@@ -160,7 +151,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 release_campkg:
 
             if (!SUCCESS(iss = camdel (&pkg_p)))
-	        errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camdel error %s\n",cammsg(iss));
 	}
 #endif
         pIDIMRequest->val = (read_idim[0].data)&0xFFFF;

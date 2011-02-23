@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.17 2009/05/12 08:10:08 pengs Exp $
+ *   $Id: drvSAM.c,v 1.18 2009/09/25 01:16:31 pengs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devSAM.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 
 extern struct PSCD_CARD pscd_card;
 
@@ -97,7 +95,6 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
     /* check if module exists */
     if(isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
     {/* b (Branch) is not used in SLAC system, a is not needed for SAM either */
-        void *pkg_p;  /* A camac package */
         vmsstat_t iss;
 
         UINT32 samctlw = 0x0;
@@ -105,16 +102,12 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         UINT16 bcnt = 4;
         UINT16 emask= 0xE0E0;
 
-	int loop;
-
         union I2F
         {
             UINT32 tempI;
             float tempF;
         } value;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-            return (SAM_CAM_INIT_FAIL|iss);
 
 #if 1
         /* F9 to reset */
@@ -122,7 +115,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
 	bcnt = 0;
         if (!SUCCESS(iss = camio (&samctlw, NULL/*&(read_sam[0].data)*/, &bcnt, &(read_sam[0].stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM reset\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for SAM reset\n", cammsg(iss));
             return (SAM_RST_CAMIO_FAIL|iss);
         }
 	epicsThreadSleep(10);
@@ -135,7 +128,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         /*read_sam[0].data = 0x00000005;*/
         if (!SUCCESS(iss = camio (&samctlw, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for SAM setup\n", cammsg(iss));
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
         epicsThreadSleep(1);
@@ -147,7 +140,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         *((UINT16 *)(&(read_sam[0].data))) = 0x0;	/* Channel 0 */
         if (!SUCCESS(iss = camio (&samctlw, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM F11\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for SAM F11\n", cammsg(iss));
 	    return (SAM_RST_CAMIO_FAIL|iss);
         }
 
@@ -156,7 +149,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         bcnt = 4;
         if (!SUCCESS(iss = camio (&samctlw, &read_sam[1].data, &bcnt, &read_sam[1].stat, &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM F0 fwVer\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for SAM F0 fwVer\n", cammsg(iss));
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
@@ -173,7 +166,7 @@ static UINT32 SAM_Reset(SAM_MODULE * pSAMModule)
         /*read_sam[0].data = 0x00000004;*/
         if (!SUCCESS(iss = camio (&samctlw, &(read_sam[0].data), &bcnt, &(read_sam[0].stat), &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for SAM setup\n", (unsigned int) iss);
+            errlogPrintf ("camio error %s for SAM setup\n", cammsg(iss));
             return (SAM_SETUP_CAMIO_FAIL|iss);
         }
 
@@ -217,19 +210,12 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         STAS_DAT read_sam[SAM_NUM_OF_CHANNELS+1];	/* need to read twice for each channel, each read gets 16 bits of 32-bit float */
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (SAM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         nops = pSAMModule->numChannels + 1;
  
         /** Allocate package for SAM reset */
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
-            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalol error %s\n",cammsg(iss));
             rtn = (SAM_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -240,7 +226,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
         *((UINT16 *)(&(read_sam[0].data))) = pSAMModule->startChannel;
         if (!SUCCESS(iss = camadd (&ctlwF17, &read_sam[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (SAM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
@@ -251,7 +237,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
 	    bcnt = 4;
             if (!SUCCESS(iss = camadd (&ctlwF0, &read_sam[loop], &bcnt, &emask, &pkg_p)))
             {
-                errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camadd error %s\n",cammsg(iss));
                 rtn = (SAM_CAM_ADD_FAIL|iss);
                 goto release_campkg;
             }
@@ -259,7 +245,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camgo error %s\n",cammsg(iss));
             rtn = (SAM_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -275,7 +261,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else if(!isModuleExsit(pSAMModule->b, pSAMModule->c, pSAMModule->n))
         rtn = SAM_MODULE_NOT_EXIST;
@@ -393,7 +379,6 @@ int SAMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE 
 {
     SAM_MODULE * pSAMModule = NULL;
     int         funcflag = 0, loop;
-    UINT32	errCode;
 
     SAM_REQUEST * pSAMRequest = NULL;
 

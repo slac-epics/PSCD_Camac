@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.2 2009/03/08 08:01:34 pengs Exp $
+ *   $Id: devSAM.c,v 1.3 2009/05/12 01:54:27 pengs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,7 +112,7 @@ static long read_ai(struct aiRecord *pai)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pai->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -186,7 +186,7 @@ static long write_bo(struct boRecord *pbo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] receive error code [0x%08x]!\n", pbo->name, pRequest->errCode);
+            errlogPrintf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

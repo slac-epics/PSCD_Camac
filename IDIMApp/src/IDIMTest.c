@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: IDIMTest.c,v 1.1 2009/04/06 02:55:30 pengs Exp $
+ *   $Id: IDIMTest.c,v 1.2 2009/04/08 22:06:38 pengs Exp $
  *   File:		IDIMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -68,8 +68,6 @@ UINT32 IDIM_Test()
     /* check if module exists */
     if(isModuleExsit(0, 5, 16))
     {
-        unsigned int loop;
-
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
@@ -82,20 +80,13 @@ UINT32 IDIM_Test()
         STAS_DAT read_idim[2];
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (IDIM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         nops = 2;
  
         /** Allocate package for IDIM reset */
 
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
-            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalol error %s\n",cammsg(iss));
             rtn = (IDIM_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -105,21 +96,21 @@ UINT32 IDIM_Test()
 	bcnt = 4;
         if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_idim[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (IDIM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_idim[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (IDIM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camgo error %s\n",cammsg(iss));
             rtn = (IDIM_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -130,7 +121,7 @@ UINT32 IDIM_Test()
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         rtn = IDIM_MODULE_NOT_EXIST;
