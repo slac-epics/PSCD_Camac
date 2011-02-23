@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDOM.c,v 1.3 2009/11/02 04:40:03 pengs Exp $
+ *   $Id: drvIDOM.c,v 1.4 2009/11/11 01:02:31 pengs Exp $
  *   File:		drvIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -17,8 +17,6 @@
 
 #include "drvPSCDLib.h"
 #include "devIDOM.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 
 extern struct PSCD_CARD pscd_card;
 
@@ -125,8 +123,8 @@ UINT32 IDOM_RstClr(IDOM_REQUEST  *pIDOMRequest)
 	    bcnt = 0;
             if (!SUCCESS(iss = camio (&idomctlw, NULL, &bcnt, &(rstclr_idom.stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d write.\n",
-				(unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                errlogPrintf ("camio error %s for IDOM F%dA%d write.\n",
+				cammsg(iss), pIDOMRequest->f, pIDOMRequest->a);
                 status = (IDOM_RSTCLR_CAMIO_FAIL|iss);
             }
 	}
@@ -176,8 +174,8 @@ UINT32 IDOM_WriteData(IDOM_REQUEST  *pIDOMRequest)
             *((UINT16 *)(&(write_idom.data))) = pIDOMRequest->val;
             if (!SUCCESS(iss = camio (&idomctlw, &(write_idom.data), &bcnt, &(write_idom.stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d write.\n",
-				(unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                errlogPrintf ("camio error %s for IDOM F%dA%d write.\n",
+				cammsg(iss), pIDOMRequest->f, pIDOMRequest->a);
                 status = (IDOM_WRT_CAMIO_FAIL|iss);
             }
 	}
@@ -228,7 +226,7 @@ UINT32 IDOM_ReadData(IDOM_REQUEST * pIDOMRequest)
 
             if (!SUCCESS(iss = camio (&idomctlw, &read_idom[0].data, &bcnt, &read_idom[0].stat, &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for IDOM F%dA%d\n", (unsigned int) iss, pIDOMRequest->f, pIDOMRequest->a);
+                errlogPrintf ("camio error %s for IDOM F%dA%d\n", cammsg(iss), pIDOMRequest->f, pIDOMRequest->a);
                 status = (IDOM_READ_CAMIO_FAIL|iss);
             }
 	    else
