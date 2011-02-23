@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: STBTest.c,v 1.6 2010/06/13 02:55:46 pengs Exp $
+ *   $Id: STBTest.c,v 1.7 2010/08/25 22:43:43 rcs Exp $
  *   File:		STBTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -88,12 +88,6 @@ UINT32 STB_Test(int crate, int slot, int rst, int PPYY, int channel, int mode)
         UINT32 ctlwF0A0 = 0x00000000 | ((crate & 0xF)<<12) | ((slot & 0x1F) << 7) | CCTLW__P24 | CCTLW__QM1;
 
         STAS_DAT test_stb;
-
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            return (iss);
-        }
 
 	if(rst)
 	{
