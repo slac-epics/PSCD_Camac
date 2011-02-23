@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.3 2009/05/12 08:32:16 pengs Exp $
+ *   $Id: drvDAC.c,v 1.4 2009/09/04 03:36:26 pengs Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devDAC.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 
 extern struct PSCD_CARD pscd_card;
 
@@ -118,7 +116,7 @@ UINT32 DAC_WriteData(DAC_REQUEST  *pDACRequest)
             *((UINT16 *)(&(op_dac.data))) = pDACRequest->val;
             if (!SUCCESS(iss = camio (&dacctlw, &(op_dac.data), &bcnt, &(op_dac.stat), &emask)))
             {
-                errlogPrintf ("camio error 0x%08X for DAC F16 write.\n", (unsigned int) iss);
+                errlogPrintf ("camio error %s for DAC F16 write.\n", cammsg(iss));
                 status = (DAC_WRT_CAMIO_FAIL|iss);
             }
 	}
@@ -163,7 +161,7 @@ UINT32 DAC_ReadData(DAC_REQUEST  *pDACRequest)
             bcnt = 2;
             if (!SUCCESS(iss = camio (&dacctlw, &op_dac.data, &bcnt, &op_dac.stat, &emask)))
             {
-                 errlogPrintf ("camio error 0x%08X for DAC F0 read\n", (unsigned int) iss);
+                 errlogPrintf ("camio error %s for DAC F0 read\n", cammsg(iss));
                  status = (DAC_RDDAT_CAMIO_FAIL|iss);
             }
             else
@@ -214,7 +212,7 @@ UINT32 DAC_ReadID(DAC_REQUEST  *pDACRequest)
             bcnt = 2;
             if (!SUCCESS(iss = camio (&dacctlw, &op_dac.data, &bcnt, &op_dac.stat, &emask)))
             {
-                 errlogPrintf ("camio error 0x%08X for DAC F0 read\n", (unsigned int) iss);
+                 errlogPrintf ("camio error %s for DAC F0 read\n", cammsg(iss));
                  status = (DAC_RDDAT_CAMIO_FAIL|iss);
             }
 
