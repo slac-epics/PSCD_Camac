@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDOM.h,v 1.2 2009/09/04 03:35:32 pengs Exp $
+ *   $Id: devIDOM.h,v 1.3 2009/11/02 04:40:03 pengs Exp $
  *   File:		devIDOM.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -57,6 +57,9 @@
 
 #include "genType.h"
 #include "drvPSCDLib.h"
+
+#include "slc_macros.h"
+#include "cam_proto.h"
 
 #ifdef __cplusplus
 extern "C" {
