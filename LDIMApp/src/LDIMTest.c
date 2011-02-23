@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: LDIMTest.c,v 1.1 2009/09/04 00:37:41 pengs Exp $
+ *   $Id: LDIMTest.c,v 1.2 2009/09/04 00:47:22 pengs Exp $
  *   File:		LDIMTest.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -13,8 +13,6 @@
 \***************************************************************************/
 #include "drvPSCDLib.h"
 #include "devLDIM.h"
-#include "slc_macros.h"
-#include "cam_proto.h"
 #include <registryFunction.h>
 
 #if 0
@@ -82,20 +80,13 @@ UINT32 LDIM_Test()
         STAS_DAT read_ldim[2];
         UINT16 nops = 0;
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (LDIM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         nops = 2;
  
         /** Allocate package for LDIM reset */
 
         if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
         {
-            errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camalol error %s\n",cammsg(iss));
             rtn = (LDIM_CAM_ALLOC_FAIL|iss);
             goto egress;
         }
@@ -105,21 +96,21 @@ UINT32 LDIM_Test()
 	bcnt = 4;
         if (!SUCCESS(iss = camadd (&ctlwF0A0, &read_ldim[0], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (LDIM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_ldim[1], &bcnt, &emask, &pkg_p)))
         {
-            errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camadd error %s\n",cammsg(iss));
             rtn = (LDIM_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camgo error %s\n",cammsg(iss));
             rtn = (LDIM_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -130,7 +121,7 @@ UINT32 LDIM_Test()
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
-            errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+            errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
         rtn = LDIM_MODULE_NOT_EXIST;

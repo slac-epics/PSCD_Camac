@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvLDIM.c,v 1.1 2009/09/04 00:37:41 pengs Exp $
+ *   $Id: drvLDIM.c,v 1.2 2009/09/04 00:47:22 pengs Exp $
  *   File:		drvLDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,13 +112,6 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
         UINT32 ldimctlw = 0x0;
         STAS_DAT read_ldim[2];	/* We put 2 here for future optimization to combine two 16-bit read */
 
-        if (!SUCCESS(iss = cam_ini (&pscd_card)))	/* no need, should be already done in PSCD driver */
-        {
-            errlogPrintf("cam_ini error 0x%08X\n",(unsigned int) iss);
-            rtn = (LDIM_CAM_INIT_FAIL|iss);
-            goto egress;
-        }
-
         /* F0 Aa to read LDIM */
         ldimctlw = (pLDIMModule->n << 7) | (pLDIMModule->c << 12) | (pLDIMRequest->f << 16) | (pLDIMRequest->a);
         if(LDIM_DRV_DEBUG) printf("LDIM Operation control word is 0x%08x\n", ldimctlw);
@@ -127,7 +120,7 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 #if 1
         if (!SUCCESS(iss = camio (&ldimctlw, &read_ldim[0].data, &bcnt, &read_ldim[0].stat, &emask)))
         {
-            errlogPrintf ("camio error 0x%08X for LDIM F%dA%d\n", (unsigned int) iss, pLDIMRequest->f, pLDIMRequest->a);
+            errlogPrintf ("camio error %s for LDIM F%dA%d\n", cammsg(iss), pLDIMRequest->f, pLDIMRequest->a);
             rtn = (LDIM_READ_CAMIO_FAIL|iss);
             goto egress;
         }
@@ -138,21 +131,21 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 
             if (!SUCCESS(iss = camalol (&nops, &pkg_p)))
             {
-                errlogPrintf("camalol error 0x%08X\n",(unsigned int) iss);
+                errlogPrintf("camalol error %s\n",cammsg(iss));
                 rtn = (LDIM_CAM_ALLOC_FAIL|iss);
                 goto egress;
             }
 
 	    if (!SUCCESS(iss = camadd (&ldimctlw, &read_ldim[0], &bcnt, &emask, &pkg_p)))
 	    {
-	        errlogPrintf("camadd error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camadd error %s\n",cammsg(iss));
 	        rtn = (LDIM_CAM_ADD_FAIL|iss);
 	        goto release_campkg;
 	    }
 
 	    if (!SUCCESS(iss = camgo (&pkg_p)))
 	    {
-	        errlogPrintf("camgo error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camgo error %s\n",cammsg(iss));
 	        rtn = (LDIM_CAM_GO_FAIL|iss);
 	        goto release_campkg;
 	    }
@@ -160,7 +153,7 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 release_campkg:
 
             if (!SUCCESS(iss = camdel (&pkg_p)))
-	        errlogPrintf("camdel error 0x%08X\n",(unsigned int) iss);
+	        errlogPrintf("camdel error %s\n",cammsg(iss));
 	}
 #endif
         pLDIMRequest->val = (read_ldim[0].data)&0xFFFF;
