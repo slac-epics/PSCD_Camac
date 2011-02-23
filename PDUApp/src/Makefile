@@ -22,7 +22,7 @@ DBD += PDUII.dbd
 DBD += PDUDIAG.dbd
 
 #For debugging
-USR_CFLAGS += -O0
+#USR_CFLAGS += -O0
 
 # specify all source files to be compiled and added to the library
 # Test version of 360Hz fiducial
