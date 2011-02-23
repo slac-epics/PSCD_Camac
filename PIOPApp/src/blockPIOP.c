@@ -19,15 +19,15 @@
 */
 vmsstat_t blockPIOPInit (CAMBLOCKS_TS *camblocks_ps, unsigned short crate, unsigned short slot)
 {
-   vmsstat_t iss = KLYS_OKOK; /* Assume no error */
+   vmsstat_t iss = CAM_OKOK; /* Assume no error */
    unsigned short emaskf3c0 = 0xF3C0;  /* emask */
    unsigned short bcntcblk = CBLK_LENB, /* control block byte count */
                   bcntfblk = FBLK_LENB, /* FTP block byte count */
                   bcntsblk = SBLK_LENB, /* Status block byte count */
                   nops = 2,    /* Operations in each package */
                   zero = 0;    /* A 0 by reference */
-   unsigned long ploc;         /* PIOP crate/slot location */
-   unsigned long ctlw;         /* Control word */ 
+   unsigned int ploc;          /* PIOP crate/slot location */
+   unsigned int ctlw;          /* Control word */ 
    /*-------------------------------------*/
 
    ploc  = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc);
@@ -148,7 +148,7 @@ vmsstat_t blockPIOPSblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
 	camblocks_ps->last_counter = cam_sblk_ps->counter;  /* PIOP alive. Save last counter */
       else
       {
-	iss = KLYS_PIOP_DEAD;
+        iss = CAM_NGNG;
         camblocks_ps->last_counter = 0;
       } 
    }

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.11 2011/02/07 15:21:35 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.12 2011/02/10 17:15:15 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -70,14 +70,14 @@ static long PIOP_EPICS_Init()
    if (!SUCCESS(iss = camalo (&nops, &Msgw_pkg_p)))
    {
       errlogSevPrintf(errlogFatal,
-         "PIOP_EPICS_Init failed to alloc msg word Camac package with status %x\n", 
-          (unsigned int) iss);
+         "PIOP_EPICS_Init failed to alloc msg word Camac package. %s.\n", 
+          cammsg(iss));
    }
    if (!SUCCESS(iss = camaloh (&nops, &Phase_pkg_p)))
    {
       errlogSevPrintf(errlogFatal,
-         "PIOP_EPICS_init failed to init phase word Camac package with status %x\n", 
-          (unsigned int) iss);
+         "PIOP_EPICS_init failed to init phase word Camac package. %s.\n", 
+          cammsg(iss));
    }
    scanIoInit (&PhaseIoPvt);   /* All phase reads are in one Camac pkg */
    /*
@@ -127,9 +127,10 @@ void PIOPDriverInit (dbCommon *pRec, struct camacio *cam_ps, enum EPICS_RECTYPE 
    PIOP_PVT *pvt_p;
    /*---------------------------------------------------*/ 
    pvt_p = callocMustSucceed (1, sizeof(PIOP_PVT), "calloc driver pvt");
-   pvt_p->status = KLYS_OKOK;   /* Init status to good */
-   pvt_p->crate = cam_ps->c;
-   pvt_p->slot =  cam_ps->n;
+   pvt_p->status = CAM_OKOK;   /* Init status to good */
+   pvt_p->crate  = cam_ps->c;
+   pvt_p->slot   = cam_ps->n;
+   pvt_p->rec_p  = pRec;
    pRec->dpvt = (void *)pvt_p;
    return;
 }
@@ -178,8 +179,8 @@ void threadPIOP (void * msgQId)
          if (!SUCCESS (iss = blockPIOPInit (camblocks_ps, pvt_p->crate, pvt_p->slot)))
          {
             errlogSevPrintf(errlogFatal,
-                  "PIOP failed to init Camac packages thread %s status %x. Suspending...\n", 
-                   epicsThreadGetNameSelf(), (unsigned int) iss);
+                  "PIOP failed to init Camac packages thread %s status %s. Suspending...\n", 
+                   epicsThreadGetNameSelf(), cammsg(iss));
             epicsThreadSuspendSelf();
 	 }
          first_init = 1;
@@ -230,7 +231,7 @@ void threadPIOP (void * msgQId)
          }           
          case FTP:
          {
-	    iss = KLYS_OKOK;
+	    iss = CAM_OKOK;
 	    ftp_wave_ps = (FTP_WAVE_TS*) pvt_p->val_p;
             ftp_cblk_ps = &(ftp_wave_ps->ftp_cblk_s);
             ftp_info_ps = &(ftp_wave_ps->ftp_info_s);
@@ -312,7 +313,7 @@ void threadPIOP (void * msgQId)
 *****************************************************************/
 void threadSBI (void * msgQId)
 {
-   vmsstat_t iss = KLYS_OKOK;
+   vmsstat_t iss = CAM_OKOK;
    epicsMessageQueueId lmsgQ = msgQId;
    THREADMSG_TS msg_s;
    int msgQstat;
@@ -362,11 +363,11 @@ void threadSBI (void * msgQId)
          if (SUCCESS(iss))
 	    iss = camalo(&nops, &stspkg_p);
 
-         unsigned long ploc = (pvt_p->crate << CCTLW__C_shc) | (pvt_p->slot << CCTLW__M_shc);
+         unsigned int ploc = (pvt_p->crate << CCTLW__C_shc) | (pvt_p->slot << CCTLW__M_shc);
 	 /*
 	 ** First the status only package
 	 */
-         unsigned long ctlw = ploc | CCTLW__A1;
+         unsigned int ctlw = ploc | CCTLW__A1;
          if (SUCCESS(iss))
             iss = camadd(&ctlw, &read_status_only_s, &twobytes, &zero, &stspkg_p);
 	 /*
@@ -432,7 +433,11 @@ void threadSBI (void * msgQId)
             if (SUCCESS(iss = camgo (&delaypkg_p)))
  	    {
 	       if ( (write_delay_s.data & 0x0000FFFF) != (read_delay_s.data & 0x0000FFFF) )
-	          iss = KLYS_SBIDELAY;
+	       {
+                  errlogPrintf("Record [%s] readback error for DELAY. Actual/desired %x %x\n", 
+                               pvt_p->rec_p->name, read_delay_s.data, write_delay_s.data);
+	          iss = CAM_NGNG;
+	       }
             }
             pvt_p->status = iss;
             dbScanLock(reccom_p);
