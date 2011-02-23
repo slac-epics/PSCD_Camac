@@ -101,7 +101,7 @@
        /****************************************************************/
  
  /**procedure**/
- vmsstat_t camadd(const unsigned long *cctlw_p, const void *stad_p, 
+ vmsstat_t camadd(const unsigned int *cctlw_p, const void *stad_p, 
                   const unsigned short *bcnt_p, const unsigned short *emask_p,
                   campkgp_t *camblk_pp)
  {

@@ -45,7 +45,7 @@
  
                           /*  Structure of a single MBCD packet.      */
  typedef struct
- {   unsigned long  cctlw;        /* MBCD control word.               */
+ {   unsigned int  cctlw;         /* MBCD control word.               */
      void          *stad_p;       /* pointer to status/data.          */
      unsigned short wc_max,       /* Max wordcount.                   */
                    notused;       /* So consistent with old docs      */
