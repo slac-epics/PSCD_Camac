@@ -53,7 +53,6 @@
 #include "cam_proto.h"     /* (Self), camalo, camalo_reset, camadd,   */
                            /*  camgo.                                 */
 #include "camdef.h"        /* CAM_NOHEAP                              */
-#include "micrdef.h"       /* MICR_EPMUTEXCREA.                       */
 #include "errlog.h"        /* errlogSevPrintf                         */
  
 #define CAMIO_DAT_DEFBC 128
@@ -99,7 +98,7 @@
        /****************************************************************/
  
  /**procedure**/
- vmsstat_t camio(const unsigned long *cctlw_p, void *datau_p,
+ vmsstat_t camio(const unsigned int *cctlw_p, void *datau_p,
                  const unsigned short *bcnt_p, void *statu_p, const unsigned short *emask_p)
  {  
      void          *stad_free_p = NULL;
@@ -113,7 +112,7 @@
  
      if ((oss = epicsMutexLock(camio_sem_tok)) != 0)
      {
-         iss = MICR_UNK_IRMXERR;
+         iss = CAM_NGNG;
          errlogSevPrintf (errlogFatal, "CAMIO - Unable to lock Mutex with EPICS code %x\n", oss);
          goto egress;
      }         
@@ -190,7 +189,6 @@ egress:
 	 /*                         buffering                        */
          /* Ret:  CAM_OKOK if successfull; else CAM_NOHEAP if no     */
          /*       memory or possible bad status return from camalo   */
-         /*       or MICR_EPMUTEXCREA if mutex cant be created.      */
          /*                                                          */
          /************************************************************/
  
