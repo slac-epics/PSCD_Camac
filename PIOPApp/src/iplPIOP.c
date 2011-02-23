@@ -56,7 +56,7 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   unsigned short dum;  /* Throw away 2 bytes after length */
   union { char len[2]; int2u rlen; } rlen_u; /* In case we byte swap length */
   int bytes_read;        /* Total bytes read */
-  vmsstat_t iss = KLYS_OKOK;  /* Assume no error */
+  vmsstat_t iss = CAM_OKOK;  /* Assume no error */
   char *envpath_p;  /* Path of file from env var */
   char *fullpath_p; /* Full path including env var PIOP_PATH */
 #ifndef _X86_
@@ -69,8 +69,9 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   if ( (envpath_p = getenv("PIOP_PATH")) == NULL)
   {
     errlogSevPrintf (errlogMajor, 
-                     "iplPIOPRead - Missing environment variable PIOP_PATH; no PIOP image\n");
-    iss = KLYS_IPLNOIMG;
+                     "iplPIOPRead - Record %s Missing environment variable PIOP_PATH; no PIOP image\n",
+                     ppvt_p->rec_p->name);
+    iss = CAM_NGNG;
     goto egress;
   }
   /*
@@ -79,8 +80,9 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   if ((fullpath_p = calloc (1, strlen(envpath_p) + strlen(img_name_p) + 1)) == NULL)
   {
     errlogSevPrintf (errlogMajor, 
-		     "iplPIOPRead - Cannot calloc image full pathname string\n");
-    iss = KLYS_IPLFNF;
+		     "iplPIOPRead - Record %s Cannot calloc image full pathname string\n",
+                      ppvt_p->rec_p->name);
+    iss = CAM_NGNG;
     goto egress;
   }
   memcpy (fullpath_p, envpath_p, strlen(envpath_p));
@@ -88,17 +90,18 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
   if ((piop_f = fopen (fullpath_p, "r")) == NULL)
   {
     errlogSevPrintf (errlogMajor, 
-                    "iplPIOPRead - Error opening PIOP image file %s with error %s\n",
-                    fullpath_p, strerror(errno));
-    iss = KLYS_IPLFNF;
+                    "iplPIOPRead - Record %s Error opening PIOP image file %s with error %s\n",
+                     ppvt_p->rec_p->name, fullpath_p, strerror(errno));
+    iss = CAM_NGNG;
     free (fullpath_p);
     goto egress;
   }
   free (fullpath_p);
   if ((ImagePIOP_p = calloc (1, IMG_MAX_SIZE)) == NULL)
   {
-    errlogSevPrintf (errlogMajor, "iplPIOPRead - Cannot calloc for PIOP image.\n");
-    iss = KLYS_IPLNOIMG;
+    errlogSevPrintf (errlogMajor, "iplPIOPRead - Record %s Cannot calloc for PIOP image.\n",
+                     ppvt_p->rec_p->name);
+    iss = CAM_NGNG;
     goto egress_close;
   }
   /*
@@ -126,19 +129,20 @@ static vmsstat_t iplPIOPRead(PIOP_PVT *ppvt_p, char *img_name_p)
     */
     if ( (idx + rlen_u.rlen) > IMG_MAX_SIZE)
     {
-      errlogSevPrintf (errlogMajor, "iplPIOPRead - Max PIOP image size exceeded %d\n", idx);
+      errlogSevPrintf (errlogMajor, "iplPIOPRead - Record %s Max PIOP image size exceeded %d\n",
+                       ppvt_p->rec_p->name, idx);
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
-      iss = KLYS_IPLNOEND;
+      iss = CAM_NGNG;
       goto egress_close;
     }
     if ((bytes_read = fread (&ImagePIOP_p[idx], 1, rlen_u.rlen, piop_f)) != rlen_u.rlen)
     {
-      errlogSevPrintf (errlogMajor, "iplPIOPRead - Cannot read %d bytes reading PIOP image\n", 
-                       rlen_u.rlen);
+      errlogSevPrintf (errlogMajor, "iplPIOPRead - Record %s Cannot read %d bytes reading PIOP image\n", 
+                        ppvt_p->rec_p->name, rlen_u.rlen);
       free (ImagePIOP_p);
       ImagePIOP_p = NULL;
-      iss = KLYS_IPLFBAD;
+      iss = CAM_NGNG;
       goto egress_close;
     }
 #ifndef _X86_
@@ -175,10 +179,10 @@ egress:
 ***********************/
 static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
 {
-  unsigned long ploc;           /* PIOP crate/slot location */
-  unsigned long                 /* Camac control words */
+  unsigned int ploc;            /* PIOP crate/slot location */
+  unsigned int                  /* Camac control words */
            ctlw1, ctlw2, ctlwa, ctlwb;
-  vmsstat_t iss = KLYS_OKOK;    /* Assume good status */
+  vmsstat_t iss = CAM_OKOK;    /* Assume good status */
   int      i;                   /* looper */
   unsigned int    ctlstat4;  /* Status from ctl op - 0 byte count */
   unsigned int   *statdat4_p;   /* Current stat/data as int4 */
@@ -233,7 +237,7 @@ static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
   if ( (ctlstat4 << 16 != 0) || (ctlstat4 >> 16 != 0x0052) )
   {
      errlogPrintf ("iplPIOPDownload - Bad status from PIOP reset %08x\n", ctlstat4);
-     iss = KLYS_NORESET;
+     iss = CAM_NGNG;
      goto egress;
   }
   epicsThreadSleep(1.0);      /* Let PIOP finish reset */
@@ -276,9 +280,9 @@ static vmsstat_t iplPIOPDownload(PIOP_PVT *pvt_p, short crate, short slot)
      if ( ((ctlstat4 & 0xBFFF)  != 0)    || (((ctlstat4 >> 16) & 0x7F) != 0x0053) ||
           ((*statdat4_p & 0xBFFF) != 0)  || (((*statdat4_p >> 16) & 0x7F)  != 0x0053) )
      {
-        errlogPrintf ("iplPIOPDownload - Block %x bad status from PIOP download %8.8x %8.8x\n",
-                      block, ctlstat4, *statdat4_p);
-        iss = KLYS_NOIPL;
+        errlogPrintf ("iplPIOPDownload - Record %s Block %x bad status from PIOP download %8.8x %8.8x\n",
+                       pvt_p->rec_p->name, block, ctlstat4, *statdat4_p);
+        iss = CAM_NGNG;
         goto egress;
      }
      /*
