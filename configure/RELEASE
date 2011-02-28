@@ -26,7 +26,7 @@ EPICS_MODULES=$(EPICS_SITE_TOP)/modules
 # ==============================================================
 # Define the version of EPICS BASE that you will use
 # =============================================================
-BASE_MODULE_VERSION=base-R3-14-8-2-lcls6
+BASE_MODULE_VERSION=$(EPICS_BASE_VER)
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 # If you don't want to install into $(TOP) then
@@ -37,9 +37,9 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-SEQ_MODULE_VERSION=seq-R2-0-11-lcls3
-EVENT_MODULE_VERSION=event-R3-2-1
-MISCUTILS_MODULE_VERSION=miscUtils-R2-2-0
+SEQ_MODULE_VERSION=seq-R2-0-11-lcls4
+EVENT_MODULE_VERSION=event-R3-2-2
+MISCUTILS_MODULE_VERSION=miscUtils-R2-2-1
 
 #If using the sequencer, point SNCSEQ at its top directory:
 SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
