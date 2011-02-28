@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-6-12
+Date: 23-Feb-2011, K. Luchini
+Chg PDUII_360Task.c to log message when F19 Fidicuial is missed.
+Must set PDUII_360T_DEBUG==-2 for message to be issued.
 
 PSCD_Camac-R1-6-11
 Date: 23-Feb-2011, R. Sass

@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.16 2011/02/22 19:37:01 luchini Exp $
+ **   $Id: PDUII_360Task.c,v 1.17 2011/02/23 08:04:24 rcs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -14,6 +14,10 @@
 
 /* TODO, check X and Q, cctlwmasks.h:#define MBCD_STAT__Q     0x000010000 */
 /* TODO, keep tracking number of errors */
+
+#include <time.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "drvPSCDLib.h"
 #include "devPDUII.h"
@@ -75,6 +79,9 @@ static int PDUIIFidu360Task(void * parg)
 {
     unsigned int fiduCnt = 0;
     vmsstat_t iss;
+    struct timespec    then,now;
+    int64_t              nsecs;
+
 
     /* Create event and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
@@ -356,6 +363,14 @@ static int PDUIIFidu360Task(void * parg)
                         for(loop=0; loop<N_CHNLS_PER_MODU*256; loop++)
                             pPDUIIModule->pttCache[loop] &= ~(PTT_ENTRY_RELOADING);
                 }
+
+                /******** CHECK FOR MISSING FIDICUAL *************/
+                then = now;
+                clock_gettime( CLOCK_REALTIME, &now );
+                nsecs = ( now.tv_sec  - then.tv_sec  ) * 1000000000LL
+                          + ( now.tv_nsec - then.tv_nsec );
+                if((PDUII_360T_DEBUG == -2) && ( nsecs > 5000000 ))
+                   errlogPrintf("PDUIIFidu360Task: Missing F19 %"PRIi64"ns\n", nsecs);
             }
 
 release_campkg:
