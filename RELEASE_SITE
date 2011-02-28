@@ -12,5 +12,5 @@ EPICS_SITE_TOP=/usr/local/lcls/epics
 BASE_SITE_TOP=/usr/local/lcls/epics/base
 MODULES_SITE_TOP=/usr/local/lcls/epics/modules/
 IOC_SITE_TOP=/usr/local/lcls/epics/iocTop
-EPICS_BASE_VER=base-R3-14-8-2-lcls6-p1
+EPICS_BASE_VER=base-R3-14-8-2-lcls6_p1
 #==============================================================================

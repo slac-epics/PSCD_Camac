@@ -19,7 +19,7 @@
 #
 PSCD_Camac-R1-6-13
 Date: 28-Feb-2011, S. Hoobler
-Modify RELEASE_SITE to use base-R3-14-8-2-lcls6-p1
+Modify RELEASE_SITE to use base-R3-14-8-2-lcls6_p1
 Modify configure/RELEASE to use:
   SEQ_MODULE_VERSION=seq-R2-0-11-lcls4
   EVENT_MODULE_VERSION=event-R3-2-2
