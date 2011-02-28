@@ -37,7 +37,7 @@ TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-SEQ_MODULE_VERSION=seq-R2-0-11-lcls4
+SEQ_MODULE_VERSION=seq-R2-0-11-lcls5
 EVENT_MODULE_VERSION=event-R3-2-2
 MISCUTILS_MODULE_VERSION=miscUtils-R2-2-1
 
