@@ -1,5 +1,7 @@
  # Include external dbds if required
 
+variable(FIDPHASE_DEBUG)
+
 device(stringout, CAMAC_IO,devSoPIOP,"PIOP")
 device(waveform,  CAMAC_IO,devWfPIOP,"PIOP")
 device(mbbi,      CAMAC_IO,devMbiSBI,"SBI")
