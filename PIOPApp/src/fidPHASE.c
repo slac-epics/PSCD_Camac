@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: fidPHASE.c,v 1.1 2011/02/07 15:24:59 rcs Exp $
+ **   $Id: fidPHASE.c,v 1.2 2011/02/23 07:22:41 rcs Exp $
  **   File:              fidPHASE.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -36,6 +36,9 @@
 static int fidPHASETask(void * parg);     /* The 360Hz task that does the work */ 
 static epicsEventId fidPHASEEvent = NULL; /* Set by Evr callback to wake up task */
 static epicsEventId fidIsrEvent = NULL;   /* Set by timer Isr to wake up task */
+
+int FIDPHASE_DEBUG = 0;
+epicsExportAddress(int, FIDPHASE_DEBUG);
 
 /*
 ** Move these inside loop when debug complete. ??
@@ -169,8 +172,8 @@ static int fidPHASETask(void * parg)
 	}
         else if(eventstat == epicsEventWaitTimeout)
         {
-            errlogSevPrintf(errlogMajor,
-                      "Wait event timeout in fidPHASETask. Sleep 2 seconds & keep going.\n");
+            if (FIDPHASE_DEBUG) 
+                errlogPrintf("Wait EVR timeout in fidPHASETask. Sleep 2 seconds & continue.\n");
             epicsThreadSleep(2.0);
         }
 	else   /* Some unknown error */
