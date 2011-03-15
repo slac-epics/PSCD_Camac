@@ -42,7 +42,8 @@
  /* Procedures camaloh and camalol are identical to camalo except that they */
  /* imply high and low priority on subsequent executions of the package     */
  /* by camgo. Procedure camio uses camalo not camaloh.                      */
- /* Procedure cam_ini must be called once before any of the others     */
+ /* Procedure cam_ini must be called once before any of the others          */
+ /* Procedure camrst is like camalo_reset except no memory is deleted       */
  
  vmsstat_t camadd(const unsigned int *cctlw_p, const void *stad_p, 
                   const unsigned short *bcnt_p, const unsigned short *emask_p,
@@ -55,7 +56,10 @@
  vmsstat_t camalol(const unsigned short *nops_p, campkgp_t *camblk_pp);
  
  vmsstat_t camalo_reset(campkgp_t *camblk_pp);
+
+ vmsstat_t camrst(campkgp_t *camblk_pp);
  
+
  vmsstat_t camdel(campkgp_t *camblk_pp);
  
  vmsstat_t camgo(const campkgp_t *camblk_pp);
