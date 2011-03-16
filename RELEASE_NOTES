@@ -17,6 +17,18 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-7-0
+Date: 15-Mar-2011, R. Sass
+Changed Camac routines to allow for reuse of a package without releasing
+DP memory for each packet.
+  camalo sets DP mem ptr = NULL in each packet.
+  camadd checks DP mem ptr and only allocates if NULL
+  camalo_reset sets DP mem ptr = NULL after releasing 
+  camrst new routine that just resets iop pointer.
+  Changed PDUII_360Task.c to do camalo, dummy camadds and camrst outside 
+  of main loop. End of each loop does a camrst instead of camdel.
+Put EVR timeout message around a debug flag in fidPHASETask.
+
 PSCD_Camac-R1-6-13
 Date: 28-Feb-2011, S. Hoobler
 Modify RELEASE_SITE to use base-R3-14-8-2-lcls6_p1
