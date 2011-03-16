@@ -113,7 +113,7 @@
      vmsstat_t      iss = CAM_OKOK;
      extern volatile PSCD_CARD pscd_card;        /* PSCD card registers etc. */
  
-               /*----------------------------------------------*/
+     /*----------------------------------------------*/
  
      /* Validate the package pointer and some parameters. */
  
@@ -174,28 +174,55 @@
              goto egress;
          }
          bcp4 = (wcnt << 1) + 4 + 2;  /* Allow for stat/data and endian swap */
-         if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
-              RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
-         {
-             CAMBLK_p->hdr.key = KEY_BAD_NH;
-             iss = CAM_NOHEAP;
-             errlogSevPrintf (errlogFatal, 
-               "CAMADD - Unable to allocate dual-port memory with code %d\n",rss);
-             goto egress;
+         if (savep_p[iop].hrdw_p == NULL)
+	 {
+             if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
+                  RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
+             {
+                 CAMBLK_p->hdr.key = KEY_BAD_NH;
+                 iss = CAM_NOHEAP;
+                 errlogSevPrintf (errlogFatal, 
+                     "CAMADD - Unable to allocate dual-port memory with code %d\n",rss);
+                 goto egress;
+             }
+	 }
+         else        /* Memory already allocated. Check if > 64 bytes (1 chunk). */
+	 {
+	     if (bcp4 > 64)
+	     {
+                  CAMBLK_p->hdr.key = KEY_BAD_NH;
+                  iss = CAM_OFFSEGEND;
+                  errlogSevPrintf (errlogMajor, 
+                      "CAMADD - Reallocation not allowed for > 64 bytes. Requested %d bytes.\n",
+                       bcp4);
+                  goto egress;
+	     }
          }
+ 
      }
      else        /* Is P8 pack option */
      {
          CAMBLK_p->hdr.bitsummary |= CCTLW__P8;
          wcnt = *bcnt_p;
          bcp4 = (wcnt << 1) + 4 + 2;  /* Status + endian swap */
-         if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
-              RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
-         {
+         if (savep_p[iop].hrdw_p == NULL)
+	 {
+             if ((rss = rtems_region_get_segment(pscd_card.memPartId, bcp4, 
+                  RTEMS_NO_WAIT, 0, &savep_p[iop].hrdw_p)) != RTEMS_SUCCESSFUL)
+             {
+                 CAMBLK_p->hdr.key = KEY_BAD_NH;
+                 iss = CAM_NOHEAP;
+                 errlogSevPrintf (errlogFatal, 
+                      "CAMADD - Unable to allocate P8 dual-port memory\n");
+                 goto egress;
+             }
+	 }
+         else
+	 {
              CAMBLK_p->hdr.key = KEY_BAD_NH;
-             iss = CAM_NOHEAP;
-             errlogSevPrintf (errlogFatal, 
-               "CAMADD - Unable to allocate P8 dual-port memory\n");
+             iss = CAM_OFFSEGEND;
+             errlogSevPrintf (errlogMajor,
+                     "CAMADD - Reallocation not allowed for P8 mode.\n");
              goto egress;
          }
      }
