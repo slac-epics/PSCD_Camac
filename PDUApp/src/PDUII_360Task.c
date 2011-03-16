@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.17 2011/02/23 08:04:24 rcs Exp $
+ **   $Id: PDUII_360Task.c,v 1.18 2011/02/28 18:40:25 luchini Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -81,7 +81,10 @@ static int PDUIIFidu360Task(void * parg)
     vmsstat_t iss;
     struct timespec    then,now;
     int64_t              nsecs;
-
+  
+    void *F19pkg_p;
+    UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
+    /*---------------------------------------------*/
 
     /* Create event and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
@@ -90,6 +93,31 @@ static int PDUIIFidu360Task(void * parg)
 
     /* Register EVRFidu360 */
     evrTimeRegister((FIDUCIALFUNCTION)EVRFidu360, NULL);
+
+    /*
+    ** Allocate/add/reset dummy package for max possible ops so all the memory is allocated.
+    ** The camadds will never be executed as we call camrst after building the package which 
+    ** resets the IOPs to 0 so camgo will not execute it..
+    */
+    if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
+    {
+        errlogSevPrintf(errlogFatal, "PDUII_360Task camaloh error %s. Suspending...\n",cammsg(iss));
+        epicsThreadSuspendSelf();
+    }
+    UINT32 ictlw = 0;
+    UINT32 istatdat[2];
+    UINT16 iemask= 0;
+    UINT16 ibcnt = 4;
+    int j;
+    for (j=0; j<nops; j++)
+    {
+        if (!SUCCESS(iss = camadd (&ictlw, &istatdat, &ibcnt, &iemask, &F19pkg_p)))
+        {
+            errlogSevPrintf(errlogFatal,"PDUII_360Task initial camadd error %s. Suspending...\n",cammsg(iss));
+            epicsThreadSuspendSelf();
+        }
+    }
+    camrst(&F19pkg_p);  /* Reset package */   
 
     while(TRUE)
     {
@@ -121,9 +149,6 @@ static int PDUIIFidu360Task(void * parg)
             unsigned long beamCode1 = 0;
             int infoNext2OK = 0;
             unsigned long beamCode2 = 0;
-
-            void *F19pkg_p;
-            UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
 
             UINT16 emask= 0xE000;
             UINT16 bcnt = 2;
@@ -165,14 +190,6 @@ static int PDUIIFidu360Task(void * parg)
             }
 
             if(!infoNext1OK && !infoNext2OK) continue; /* no info, do nothing, EVR driver should report error */
-            else
-            {/* Get at least good info for one pulse */
-                if(!SUCCESS(iss = camaloh (&nops, &F19pkg_p)))
-                {/* Allocate max possible slots */
-                    if(PDUII_360T_DEBUG >= 1) errlogPrintf("camaloh error %s\n",cammsg(iss));
-                    continue;
-                }
-            }
 
             /* Now start to go thru the linked list of modules */
             for( pPDUIIModule = (PDUII_MODULE *)ellFirst(&PDUIIModuleList); pPDUIIModule; pPDUIIModule = (PDUII_MODULE *)ellNext((ELLNODE *)pPDUIIModule) )
@@ -206,7 +223,7 @@ static int PDUIIFidu360Task(void * parg)
                             if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
-                                goto release_campkg;
+                                goto reset_campkg;
                             }
                             totalPkts++;
                             numPktsCurBranch++;
@@ -228,7 +245,7 @@ static int PDUIIFidu360Task(void * parg)
                             if (!SUCCESS(iss = camadd (&(ctlword[totalPkts]), &(stat_data[totalPkts]), &bcnt, &emask, &F19pkg_p)))
                             {
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
-                                goto release_campkg;
+                                goto reset_campkg;
                             }
                             totalPkts++;
                             numPktsCurBranch++;
@@ -316,7 +333,7 @@ static int PDUIIFidu360Task(void * parg)
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
                                 if(PDUII_360T_DEBUG >= 1) errlogPrintf("camadd error %s\n",cammsg(iss));
-                                goto release_campkg;
+                                goto reset_campkg;
                             }
                             totalPkts++;
                             numPktsCurBranch++;
@@ -328,7 +345,7 @@ static int PDUIIFidu360Task(void * parg)
                             {
                                 epicsMutexUnlock(pPDUIIModule->lockModule);
                                 errlogPrintf("camadd error %s\n",cammsg(iss));
-                                goto release_campkg;
+                                goto reset_campkg;
                             }
                             totalPkts++;
                             numPktsCurBranch++;
@@ -373,8 +390,8 @@ static int PDUIIFidu360Task(void * parg)
                    errlogPrintf("PDUIIFidu360Task: Missing F19 %"PRIi64"ns\n", nsecs);
             }
 
-release_campkg:
-            camdel(&F19pkg_p);
+reset_campkg:
+            camrst(&F19pkg_p);
             /* scanIoRequest(ioscan); */
         }
     }
