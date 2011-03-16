@@ -92,9 +92,9 @@
              /* Release all memory allocated by camadd. */
  
              savep_p = (mbcd_savep_ts *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
-             for (j = 0;  j < CAMBLK_p->hdr.iop;  ++j)
+             for (j = 0;  j < CAMBLK_p->hdr.nops;  ++j)
              {
-                 if (savep_p[j].user_p != NULL)
+                 if (savep_p[j].hrdw_p != NULL)
                  {
                      if ((rss = rtems_region_return_segment (pscd_card.memPartId, 
                                                    savep_p[j].hrdw_p)) != RTEMS_SUCCESSFUL)
@@ -103,6 +103,7 @@
                          errlogSevPrintf (errlogFatal, 
                           "CAMALOR - Unable to free dual-port memory with code %d\n", rss);
 	             }
+                     savep_p[j].hrdw_p = NULL;  /* Set DP memory released regardless */
                  }
              }
              CAMBLK_p->hdr.bitsummary = 0;
