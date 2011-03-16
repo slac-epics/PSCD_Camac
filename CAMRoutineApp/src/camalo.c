@@ -39,14 +39,14 @@
             Re-write.
  
 ==============================================================================*/
-#include <stdio.h>              /* NULL                                    */ 
-#include "rtems.h"              /* rtems_region_get_segment.               */
+#include <stdio.h>             /* NULL                                    */ 
+#include "rtems.h"             /* rtems_region_get_segment.               */
 #include "slc_macros.h"        /* vmsstat_t, SUCCESS.                     */
 #include "camblkstruc.h"       /* mbcd_pkt_ts, mbcd_pkghdr_ts,            */
-                                /* mbcd_pkg_ts, mbcd_savep_ts.             */
+                               /* mbcd_pkg_ts, mbcd_savep_ts.             */
 #include "cam_proto.h"         /* (Self)                                  */
 #include "camdef.h"            /* CAM_NOPS_MAX.                           */ 
-#include "errlog.h"             /* errlogSevPrintf                         */
+#include "errlog.h"            /* errlogSevPrintf                         */
 #include "drvPSCDLib.h"        /* Registers etc. for PSCD access */
  
  
@@ -82,15 +82,19 @@
      #define CAMBLK_p (*camblk_pp)
      rtems_status_code rss;
      vmsstat_t      iss = CAM_OKOK;
+     mbcd_savep_ts *savep_p;
+     int            j;
      extern volatile PSCD_CARD pscd_card;        /* PSCD card registers etc. */
  
                /*----------------------------------------------*/
  
      if (nops > 0 && nops <= 100)   /* Some random number? */
      {
-         /* Allocate memory.  Store key by which package              */
-         /* can later be validated, store max # of packets, and store */
-         /* pointer to first packet for MBCD.  Return package pointer to caller. */
+         /* 
+	 ** Allocate memory.  Store key by which package can later be validated, 
+	 ** store max # of packets, store pointer to first packet for PSCD, 
+	 ** zero mbcd and user packets and return package pointer to caller.
+         */
 
          if ((rss = rtems_region_get_segment(pscd_card.memPartId, camblk_bc, 
               RTEMS_NO_WAIT, 0, (void **) camblk_pp)) == RTEMS_SUCCESSFUL)
@@ -101,13 +105,18 @@
              CAMBLK_p->hdr.tbytes = 0;
              CAMBLK_p->hdr.bitsummary = 0;
              CAMBLK_p->hdr.spare = 0;
-             CAMBLK_p->hdr.pkg_p = CAMBLK_p->mbcd_pkt;   
-      }
+             CAMBLK_p->hdr.pkg_p = CAMBLK_p->mbcd_pkt;
+             /*
+	     ** Zero hardware (PSCD DP memory) pointer
+	     */
+             for (savep_p = (mbcd_savep_ts *) &CAMBLK_p->mbcd_pkt[nops], j = 0;  j < nops;  ++j)
+		savep_p[j].hrdw_p = NULL;
+         }
          else
 	 {
-           *camblk_pp = NULL;
-           iss = CAM_NOHEAP;
-           errlogSevPrintf (errlogFatal, 
+             *camblk_pp = NULL;
+             iss = CAM_NOHEAP;
+             errlogSevPrintf (errlogFatal, 
                            "CAMALO - Unable to allocate dual-port memory with code %d\n",rss);
 	 }
      }
