@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-7-1
+Date: 17-Mar-2011, K. Luchini
+Changed PDUDIAG.db pv <name>:CHANNEL to <name>:CHAN_SELECT
+Changed PDUDIAG.db pv <name>:CRATE   to <name>:CRATE_SELECT
+
 PSCD_Camac-R1-7-0
 Date: 15-Mar-2011, R. Sass
 Changed Camac routines to allow for reuse of a package without releasing
