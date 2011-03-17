@@ -6,7 +6,7 @@ record(waveform,"$(NAME):DATA") {
   field(NELM,"5000")
 }
 
-record(longout,"$(NAME):CRATE") {
+record(longout,"$(NAME):CRATE_SELECT") {
   field(DESC, "Crate for PDU")
   field(SCAN, "Passive")
   field(DTYP, "PDUDIAG")
@@ -18,7 +18,7 @@ record(longout,"$(NAME):CRATE") {
   field(OUT,  "#B0 C0 N0 A0 F0@CRATE")
 }
 
-record(longout,"$(NAME):CHANNEL") {
+record(longout,"$(NAME):CHAN_SELECT") {
   field(DESC, "Channel for PDU")
   field(SCAN, "Passive")
   field(DTYP, "PDUDIAG")
