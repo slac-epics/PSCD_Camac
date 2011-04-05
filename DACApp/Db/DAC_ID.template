@@ -1,4 +1,4 @@
-record(longin, "$(MODULENAME):ModuleID") {
+record(longin, "$(MODULENAME):ID") {
   field(DESC, "DAC ID")
   field(SCAN, "$(SCAN)")
   field(DTYP, "DAC")
