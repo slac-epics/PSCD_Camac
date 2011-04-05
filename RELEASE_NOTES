@@ -17,6 +17,12 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-7-2
+Date: 05-Apr-2011, K. Luchini
+Changed DAC_ID.template pv <name>:ModuleID to <name>:ID
+Changed DAC.template pv <name>:Rdbk to <name>RBCK
+                        <name>      to <name>SETPT
+
 PSCD_Camac-R1-7-1
 Date: 17-Mar-2011, K. Luchini
 Changed PDUDIAG.db pv <name>:CHANNEL to <name>:CHAN_SELECT
