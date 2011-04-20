@@ -151,8 +151,9 @@ long phasePIOPinit (struct subRecord *subr_p)
 
  We assume the following inputs to the SUB record:
  a   = raw RT phase from ai record
- b   = gold offset
- c-h = 6 polynomial coefficients
+ b-g = 6 polynomial coefficients
+ h   = phase from status block calc
+ i   = ppad from status block calc
  *************************************************************/
 
 #define PHASE_CONSTANT (360.0/32768.0)  /* convert from counts to degrees */
@@ -164,14 +165,13 @@ long phasePIOPinit (struct subRecord *subr_p)
 long phasePIOPproc (struct subRecord *subr_p)
 {
     unsigned int rawphase = subr_p->a;  /* Get raw phase from input */ 
-    float goldmstr        = subr_p->b;  /* Gold offset */
     float polycoeff[6]    = 
-       {subr_p->c, subr_p->d, subr_p->e, subr_p->f, subr_p->g, subr_p->h};
+       {subr_p->b, subr_p->c, subr_p->d, subr_p->e, subr_p->f, subr_p->g};
+    float sphase     = subr_p->h;  /* Status block phase */
+    float sppad      = subr_p->i;  /* Status block ppad  */
     float temp_phase;           /* intermediate phase result */
     float praw;                 /* float/mod Raw phase from Ai input */
-    float lppad, ldppad;        /* locally calculated & derivative */
-    float sppad, sdppad;        /* KLYSTATUS ppad & derivative */
-    float sphase;               /* Phase as calculated by KLYSTATUS.F86 */
+    float lppad, ldppad;        /* locally calculated ppad & derivative */
     float temp2_phase;          /* intermediate phase result */
     int4u wobbled;              /* wobble bits to check */
     /*--------------------------------------------*/
@@ -182,7 +182,7 @@ long phasePIOPproc (struct subRecord *subr_p)
     temp_phase=PHASE_CONSTANT * rawphase;
     praw = phasePIOPmod (temp_phase, PHASE_360);
     wobbled = (rawphase & WOBBLE_BIT);
-    if (wobbled != 0)
+    if (wobbled)
         temp_phase = praw + PHASE_180;
     else
         temp_phase = praw;
@@ -194,19 +194,11 @@ long phasePIOPproc (struct subRecord *subr_p)
     temp2_phase = temp_phase - PHASE_90;
     temp_phase = PHASE_90 + phasePIOPmod(temp2_phase,PHASE_360);
     phasePIOPpoly(temp_phase, polycoeff, 6, &lppad, &ldppad);
-    if (wobbled != 0)
-    {
+    if (wobbled)
         lppad = lppad - PHASE_180;
-    }
     lppad = phasePIOPmod(lppad, PHASE_360);
     /*
-    ** Now duplicate the logic in KLYSTATUS.F86 that calcs PPAD and PHAS using
-    ** the gold offset.
-    */
-    phasePIOPpoly(praw, polycoeff, 6, &sppad, &sdppad);
-    sphase = phasePIOPmod (sppad - goldmstr, PHASE_360);
-    /*
-    ** Finish the calc as in KLYS_PHASE_CONVERT.F86
+    **  Apply the offset (gold & mstr) phas-ppad from status block calc.
     */
     temp_phase = lppad + sphase - sppad;
     subr_p->val = phasePIOPmod(temp_phase, PHASE_360);
