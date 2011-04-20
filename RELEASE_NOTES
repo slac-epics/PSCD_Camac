@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-8-0
+Date: 20-Apr-2011, Bob Sass & Mike Zelazny
+Fixes for real time klystron phase conversion
+
 PSCD_Camac-R1-7-2
 Date: 05-Apr-2011, K. Luchini
 Changed DAC_ID.template pv <name>:ModuleID to <name>:ID

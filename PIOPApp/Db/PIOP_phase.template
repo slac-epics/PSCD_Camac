@@ -14,8 +14,9 @@ record(ai, "$(DEV):PHAS_FAST_RAW") {
 # polynomial coefficients and gold phase offset
 #
 #  INPA   = Raw phase
-#  INPB   = Gold offset
-#  INPC-H = Polynomial coefficients
+#  INPB-G = Polynomial coefficients
+#  INPH   = slow PHAS
+#  INPI   = slow PPAD
 #
 record(sub, "$(DEV):PHAS_FAST_CONVERT") {
   field(DESC, "Convert raw phase")
@@ -30,6 +31,7 @@ record(sub, "$(DEV):PHAS_FAST_CONVERT") {
   field(INPF, "$(INPF)")
   field(INPG, "$(INPG)")
   field(INPH, "$(INPH)")
+  field(INPI, "$(INPI)")
   field(FLNK, "$(DEV):PHAS_FAST")
 }
 
