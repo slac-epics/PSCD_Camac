@@ -4,7 +4,6 @@ record(waveform,"$(NAME):DATA") {
   field(DTYP,"PDUDIAG")
   field(FTVL,"ULONG")
   field(NELM,"5000")
-  field(PINI,"YES")
 }
 
 record(longout,"$(NAME):CRATE_SELECT") {
@@ -17,7 +16,6 @@ record(longout,"$(NAME):CRATE_SELECT") {
   field(HOPR, "$(DRVH)")
   field(OMSL, "supervisory")
   field(OUT,  "#B0 C0 N0 A0 F0@CRATE")
-  field(PINI,"YES")
 }
 
 record(longout,"$(NAME):CHAN_SELECT") {
@@ -30,7 +28,6 @@ record(longout,"$(NAME):CHAN_SELECT") {
   field(LOPR, "0")
   field(OMSL, "supervisory")
   field(OUT,  "#B0 C0 N0 A0 F0@CHANL")
-  field(PINI,"YES")
 }
 
 
