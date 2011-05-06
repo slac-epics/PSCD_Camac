@@ -19,8 +19,7 @@
 #
 PSCD_Camac-R1-8-1
 Date: 29-Apr-2011, Sonya Hoobler
-PDUApp/Db/PDUDIAG.db
-  Process PDU diag PVs on reboot
+No changes
 
 PSCD_Camac-R1-8-0
 Date: 20-Apr-2011, Bob Sass & Mike Zelazny
