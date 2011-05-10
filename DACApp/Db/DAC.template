@@ -10,8 +10,10 @@ record(ao, "$(CHNLNAME)SETPT") {
   field(DRVH, "$(DRVH)")
   field(DRVL, "$(DRVL)")
   field(EGU,  "$(EGU)")
-  field(PINI, "YES")
+  field(PINI, "$(PINI)")
   field(LINR, "LINEAR")
+  field(OMSL, "$(OMSL)")
+  field(DOL,  "$(DOL)")
   field(FLNK,  "$(CHNLNAME)RBCK")
 }
 
