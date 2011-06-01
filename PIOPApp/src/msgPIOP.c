@@ -4,9 +4,7 @@
 ** error buffer and:
 **
 ** Translates the PIOP msg word into the VMS Msg Symbol and
-** the single character ERROR_BYTE mneumonic
-**
-**=====================================================================
+** the single character ERROR_BYTE 
 */
 
 #include <devPIOP.h>
@@ -18,7 +16,7 @@
 /*
 ** Last legal 0-based message number
 */
-#define LAST_MSG 46
+#define LAST_MSG 47
 
 /*******************************************************
 ** N.B. -- The ORDER of the following data is HARD WIRED
@@ -80,7 +78,8 @@ static MSG_S msg_as[LAST_MSG+1] =
   {"PPYY Timeout in PIOP.",1},                   /* PIOP_NOPPYY_TRAP */ 
   {"Low trigger rate detected in PIOP.",1},      /* PIOP_LOWRATE_TRAP */ 
   {"Modulator TOC Fault.",1},                    /* PIOP_TOC_FAULT */ 
-  {"PIOP Undefined Message.",0}                  /* PIOP_place_336 */ 
+  {"PIOP Undefined Message.",0},                 /* PIOP_place_336 */ 
+  {"PIOP Illegal Message Index.",0}              /* Illegal msg index */ 
 };
 
 long msgPIOPinit (struct subRecord *subr_p)
@@ -102,25 +101,28 @@ long msgPIOPproc (struct subRecord *subr_p)
    unsigned short msgnum;
    unsigned short msgdat = 0;
    /*--------------------------------------------*/
-   if (subr_p->a == subr_p->val)
-      goto egress;              /* Don't log if same as last time */
-
-   subr_p->val = piopword;     /* Save for next time */
    if (piopword == 0x8181)     /* Ignore nonsense message */
       goto egress;
-
    /*
-   ** Decode message and optional argument
+   ** Decode message and optional argument and check for
+   ** out of range.
    */
    msgnum = (piopword &  0x7F00) >> 8;
-   if (msgnum > LAST_MSG)
+   if (msgnum > LAST_MSG-1)
    {
-      msgnum = 1;  /* Set to undefined message */
+      msgnum = piopword = LAST_MSG;  /* Set to illegal message index */
    }   
    else if ((piopword & 0x8000) != 0)
    {
       msgdat = piopword & 0x00ff;
    }
+   /* 
+   ** Don't log if same as last time else save new msg
+   ** for next time.
+   */
+   if (piopword == subr_p->val)
+      goto egress;
+   subr_p->val = piopword;     /* Save for next time */
    /*
    ** Log the new error/status.
    */
