@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R1-8-2
+Date: 01-Jun-2011, Robert C. Sass
+Change msgPIOP.c to emit a separate message when the index sent by the PIOP is out of range. Ignore any subsequent different out of range indexes.
+
 PSCD_Camac-R1-8-1
 Date: 29-Apr-2011, Sonya Hoobler
 No changes
