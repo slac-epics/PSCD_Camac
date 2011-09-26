@@ -1,0 +1,49 @@
+#==============================================================
+#
+#  Abs:  EPICS Crate Verifier Module Database definition file
+#
+#  Name: CV.dbd
+#
+#  Facility:  LCLS Linac Upgrade
+#
+#  Auth: 15-Jul-2009, K. Luchini     (LUCHINI)
+#  Rev:  dd-mmm-yyyy, First Lastname (USERNAME)
+#
+#--------------------------------------------------------------
+#  Mod:
+#       dd-mmm-yyyy, First Lastname (USERNAME
+#         comment 
+#
+#==============================================================
+#
+# Device Support found in devCV.c
+device( ai         , CAMAC_IO, devAiCV          , "Crate Verifier" )
+device( bo         , CAMAC_IO, devBoCV          , "Crate Verifier" )
+device( longin     , CAMAC_IO, devLonginCV      , "Crate Verifier" )
+device( mbbiDirect , CAMAC_IO, devMbbiDirectCV  , "Crate Verifier" )
+device( waveform   , CAMAC_IO, devWfCV          , "Crate Verifier" )
+
+# Driver Support found  in drvCV.c
+driver( drvCV )
+function(CV_Start)
+function(CV_AsynThreadStop)
+function(CV_DeviceInit)
+function(isCrateOnline)
+
+# Diagnostic Functions in CVTest.c
+function(CV_WtData)
+function(CV_RdData)
+function(CV_RdId)
+function(CV_RdVoltage)
+function(CV_RW)
+function(CV_RW2)
+function(CV_RWDataGet)
+function(CV_SendMsg)
+function(CV_RdDataMsg)
+function(CV_RdIdMsg)
+function(CV_RdVoltageMsg)
+function(CV_WtDataMsg)
+function(CV_RdCrateStatusMsg)
+function(blockWordSwap)
+
+# End of file
