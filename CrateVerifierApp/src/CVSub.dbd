@@ -1,0 +1,29 @@
+#==============================================================
+#
+#  Abs:  Crate Verifier Module Subroutine Record Db definition file
+#
+#  Name: CVSub.dbd
+#
+#  Side: Subroutine found found in CVSub.c
+# 
+#  Facility:  LCLS Linac Upgrade
+#
+#  Auth: 15-Jul-2009, K. Luchini     (LUCHINI)
+#  Rev:  dd-mmm-yyyy, First Lastname (USERNAME)
+#
+#--------------------------------------------------------------
+#  Mod:
+#       dd-mmm-yyyy, First Lastname (USERNAME
+#         comment 
+#
+#==============================================================
+#
+function(CV_Init)
+function(CV_Bus_Data_Init)
+function(CV_RWline_Init)
+function(CV_Stat)
+function(CV_Limits)
+function(CV_Bus_Data)
+function(CV_RWline)
+
+# End of file
