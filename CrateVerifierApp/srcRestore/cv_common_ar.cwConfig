@@ -1,0 +1,40 @@
+#
+# $(LOCA) Crate Verifier Archive PVs
+#                                                     
+# PV Name	   	  (S)can/(M)onitor	Scan Rate
+CAMC:$(LOCA):$(C):V24		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6		S	 	$(RATE)
+CAMC:$(LOCA):$(C):TEMP			S	 	$(RATE)
+CAMC:$(LOCA):$(C):V24MINUS		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6MINUS		S	 	$(RATE)
+CAMC:$(LOCA):$(C):VGND			S	 	$(RATE)	
+
+CAMC:$(LOCA):$(C):V24.HIHI		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6.HIHI		S	 	$(RATE)
+CAMC:$(LOCA):$(C):TEMP.HIHI			S	 	$(RATE)
+CAMC:$(LOCA):$(C):V24MINUS.HIHI		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6MINUS.HIHI		S	 	$(RATE)
+CAMC:$(LOCA):$(C):VGND.HIHI			S	 	$(RATE)	
+
+CAMC:$(LOCA):$(C):V24.LOLO		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6.LOLO		S	 	$(RATE)
+CAMC:$(LOCA):$(C):TEMP.LOLO			S	 	$(RATE)
+CAMC:$(LOCA):$(C):V24MINUS.LOLO		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6MINUS.LOLO		S	 	$(RATE)
+CAMC:$(LOCA):$(C):VGND.LOLO			S	 	$(RATE)	
+
+CAMC:$(LOCA):$(C):V24.HIGH		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6.HIGH		S	 	$(RATE)
+CAMC:$(LOCA):$(C):TEMP.HIGH			S	 	$(RATE)
+CAMC:$(LOCA):$(C):V24MINUS.HIGH		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6MINUS.HIGH		S	 	$(RATE)
+CAMC:$(LOCA):$(C):VGND.HIGH			S	 	$(RATE)	
+
+CAMC:$(LOCA):$(C):V24.LOW		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6.LOW		S	 	$(RATE)
+CAMC:$(LOCA):$(C):TEMP.LOW			S	 	$(RATE)
+CAMC:$(LOCA):$(C):V24MINUS.LOW		S	 	$(RATE)
+CAMC:$(LOCA):$(C):V6MINUS.LOW		S	 	$(RATE)
+CAMC:$(LOCA):$(C):VGND.LOW			S	 	$(RATE)	
+
+# End of sector

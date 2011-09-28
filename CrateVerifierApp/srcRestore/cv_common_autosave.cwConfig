@@ -1,0 +1,37 @@
+#
+# Crate Verifier  - Autosave file
+#
+# Module out-of-sevice pv
+#MODU:$(LOCA):$(C)01:ACCESS /LOG
+
+# Upper alarm limits
+CAMC:$(LOCA):$(C):V24.HIHI        
+CAMC:$(LOCA):$(C):V6.HIHI         
+CAMC:$(LOCA):$(C):TEMP.HIHI       
+CAMC:$(LOCA):$(C):V24MINUS.HIHI   
+CAMC:$(LOCA):$(C):V6MINUS.HIHI    
+CAMC:$(LOCA):$(C):VGND.HIHI       
+
+CAMC:$(LOCA):$(C):V24.LOLO        
+CAMC:$(LOCA):$(C):V6.LOLO         
+CAMC:$(LOCA):$(C):TEMP.LOLO       
+CAMC:$(LOCA):$(C):V24MINUS.LOLO   
+CAMC:$(LOCA):$(C):V6MINUS.LOLO    
+CAMC:$(LOCA):$(C):VGND.LOLO       
+
+# Upper warning limits
+CAMC:$(LOCA):$(C):V24.HIGH        
+CAMC:$(LOCA):$(C):V6.HIGH         
+CAMC:$(LOCA):$(C):TEMP.HIGH       
+CAMC:$(LOCA):$(C):V24MINUS.HIGH   
+CAMC:$(LOCA):$(C):V6MINUS.HIGH    
+CAMC:$(LOCA):$(C):VGND.HIGH       
+
+CAMC:$(LOCA):$(C):V24.LOW        
+CAMC:$(LOCA):$(C):V6.LOW         
+CAMC:$(LOCA):$(C):TEMP.LOW       
+CAMC:$(LOCA):$(C):V24MINUS.LOW   
+CAMC:$(LOCA):$(C):V6MINUS.LOW    
+CAMC:$(LOCA):$(C):VGND.LOW       
+
+# End of file
