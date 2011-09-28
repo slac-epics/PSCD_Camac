@@ -10,12 +10,17 @@
 #==============================================================================
 EPICS_SITE_TOP=/usr/local/lcls/epics
 BASE_SITE_TOP=/usr/local/lcls/epics/base
-MODULES_SITE_TOP=/usr/local/lcls/epics/modules/
+MODULES_SITE_TOP=/usr/local/lcls/epics/modules
+EXTENSIONS_SITE_TOP=/usr/local/lcls/epics/extensions
+
+# Versions
 EPICS_BASE_VER=base-R3-14-8-2-lcls6_p1
+EPICS_EXTENSIONS_VER=extensions-R3-14-8-2
 
 # Development
 #EPICS_SITE_TOP=/afs/slac/g/lcls/epics
 #BASE_SITE_TOP=/afs/slac/g/lcls/epics/base
-#MODULES_SITE_TOP=/afs/slac/g/lcls/epics/modules/
+#MODULES_SITE_TOP=/afs/slac/g/lcls/epics/modules
+#EXTENSIONS_SITE_TOP=/afs/slac/g/lcls/epics/extensions
 
 #==============================================================================
