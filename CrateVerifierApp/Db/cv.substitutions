@@ -1,0 +1,76 @@
+#==============================================================================
+#
+# Abs:  Crate Verifier Db Substitutions file
+#
+# Name: cv.substitutions
+#
+# Side: Must follow the LCLS naming conventions.
+#       The CAMAC Branch is ignored by the CAMAC 
+#       IO functions. The Branch is set prior to iocBoot
+#       in the call to pscdCreate()
+#
+# Facility: CAMAC Controls
+#
+# Auth: 07-Jul-2009, K. Luchini       (LUCHINI)
+# Rev : dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#-----------------------------------------------------------------------------
+# Mod:
+#       dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#          comment
+#
+#=============================================================================
+#
+# Module id and data registers
+# Note:  only 1 crate verifier exists per crate
+# and it is always installed in slot 1 so that
+# all bus lines can be tested
+file cv_camac_module.template
+{
+#                                    Branch  Crate   Slot 
+   pattern { DEV                   , B     , C     , N  }
+           { MODU:$(MICR):$(CR)01  , 0     , $(CR) , 1  }
+}
+
+# CAMAC Crate Analog Voltages
+file cv_camac_crat_volts.db
+{
+#                                    Branch  Crate   Slot 
+   pattern { DEV                   , B     , C     , N  }
+           { CAMC:$(MICR):$(CR)    , 0     , $(CR) , 1  }
+}
+
+# CAMAC Crate online status summary
+file cv_camac_crat_online_status.template
+{
+#                                                           Branch  Crate  Slot 
+   pattern { DEV                   , MODU                 , B     , C     , N  }
+           { CAMC:$(MICR):$(CR)    , MODU:$(MICR):$(CR)01 , 0     , $(CR) , 1  }  
+}
+
+# CAMAC crate bus status summary
+file cv_camac_crat_bus_status.template
+{
+#                                    Branch  Crate  Slot    
+   pattern { DEV                   , B    ,  C     , N  } 
+           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 1  }
+}
+
+file cv_camac_crat_bus_cmdline.template
+{
+#                                    Branch  Crate  Slot  
+   pattern { DEV                   , B    ,  C     , N  }
+           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 1  }
+}
+
+# R1-R24 Lines and W1-24 Lines (P24)
+file cv_camac_crat_bus_rwline.template
+{
+#                                    Branch  Crate  Slot  
+   pattern { DEV                   , B    ,  C     , N  } 
+           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 1  }
+}
+
+# End of file
+
+
+ 
