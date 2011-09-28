@@ -1,0 +1,36 @@
+#==============================================================================
+#
+# Abs:  CAMAC Crate Analog Voltages 
+#
+# Name: cv_camac_crat_volts.substitutions
+#
+# Side: Must follow the LCLS naming conventions.
+#
+# Facility: CAMAC Controls
+#
+# Auth: 17-Jul-2009, K. Luchini       (LUCHINI)
+# Rev : dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#-----------------------------------------------------------------------------
+# Mod:
+#       dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#          comment
+#
+#=============================================================================
+#
+# CAMAC Crate Analog Voltages]#
+file cv_camac_crat_volts_ai.template
+{
+#            PV Name           Description  Branch Crate   Slot Subadr Units  
+   pattern { RECNAME         , DESC         , BR  , CR   ,  S   , A  , EGU   , PREC, HIHI , LOLO , HIGH , LOW  , HOPR  , LOPR , MDEL  }
+           { $(DEV):V24      , "+24 Volts"  ,$(B) , $(C) , $(N) , 0  , Volts ,  3 ,  25   , 23   , 25   , 23   , 24    , 0    , 0.001 }
+           { $(DEV):V6       , "+6 Volts"   ,$(B) , $(C) , $(N) , 2  , Volts ,  3 ,  6.3  , 5.7  , 6.3  , 5.7  , 6     , 0    , 0.001 }
+           { $(DEV):VGND     , "Gnd Volts"  ,$(B) , $(C) , $(N) , 3  , Volts ,  3 ,  0.1  ,-0.1  , 0.1  ,-0.1  , 1.5   , 0    , 0.001 }
+           { $(DEV):V6MINUS  , "-6 Volts"   ,$(B) , $(C) , $(N) , 4  , Volts ,  3 , -5.7  ,-6.3  ,-5.7  ,-6.3  , 0     , -6   , 0.001 }
+           { $(DEV):V24MINUS , "-24 Volts"  ,$(B) , $(C) , $(N) , 6  , Volts ,  3 , -23   ,-25   ,-23   ,-25   , 0     , -24  , 0.001 }
+           { $(DEV):TEMP     , "Temerature" ,$(B) , $(C) , $(N) , 7  , degC  ,  2 ,  50   , 0    , 50   , 0    , 150   , 0    , 0.001 }
+}
+
+# End of file
+
+
+ 

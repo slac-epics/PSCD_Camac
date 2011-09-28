@@ -1,0 +1,74 @@
+record(mbbo, "MODU:$(LOCA):$(C)$(M):MODEL") {
+  field(DESC, "Module Model Name")
+  field(DTYP, "Raw Soft Channel")
+  field(PINI, "YES")
+  field(VAL, "$(MODEL)")
+  field(NOBT, "4")
+  field(ZRST, "Unused")
+  field(ONST, "SAM-123-603")
+  field(TWST, "IDIM")
+  field(THST, "IDOM")
+  field(FRST, "PPOM")
+  field(FVST, "PIOP")
+  field(SXST, "Crate-Verifier")
+  field(SVST, "DAC")
+  field(EIST, "STB")
+  field(NIST, "PDU-II")
+  field(UNSV, "INVALID")
+  field(OUT,  "MODU:$(LOCA):$(C)$(M):NCHAN_CALC.A PP")
+}
+
+record(calcout,"MODU:$(LOCA):$(C)$(M):NSLOT_CALC") {
+  field(DESC, "Module width")
+  field(CALC, "A<9?1:2")
+  field(INPA, "MODU:$(LOCA):$(C)$(M):MODEL.RVAL")
+  field(OUT,  "MODU:$(LOCA):$(C)$(M):NSLOT.A PP")
+}
+
+record(longout, "MODU:$(LOCA):$(C)$(M):NSLOT") {
+  field(DESC, "Module Width")
+  field(EGU,  "Module Width")
+  field(DRVH, "2")
+  field(HOPR, "2")
+  field(OMSL, "closed_loop")
+  field(DOL,  "MODU:$(LOCA):$(C)$(M):NSLOT_CALC")
+}
+
+record(calcout,"MODU:$(LOCA):$(C)$(M):NCHAN_CALC") {
+  field(DESC, "No. of channels")
+  field(CALC, "((A>=1)&&(A<=4))?32:A>6?16:0")
+  field(INPA, "MODU:$(LOCA):$(C)$(M):MODEL.RVAL")
+  field(OUT,  "MODU:$(LOCA):$(C)$(M):NCHAN PP")
+}
+
+record(longout, "MODU:$(LOCA):$(C)$(M):NCHAN") {
+  field(DESC, "No. of Channels")
+  field(EGU,  "Channels")
+  field(DRVH, "32")
+  field(HOPR, "32")
+  field(OMSL, "closed_loop")
+  field(DOL,  "MODU:$(LOCA):$(C)$(M):NCHAN_CALC")  
+}
+
+# Currently, these are found in IOCManager
+record(longout, "MODU:$(LOCA):$(C)$(M):CRATE") {
+  field(DESC, "Crate No.")
+  field(EGU,  "Crate No.")
+  field(DRVH, "15")
+  field(HOPR, "15")
+  field(DOL,  "$(C)")  
+  field(PINI, "YES")
+}
+
+record(longout, "MODU:$(LOCA):$(C)$(M):SLOT") {
+  field(DESC, "Slot No.")
+  field(EGU,  "Slot No.")
+  field(DRVH, "25")
+  field(HOPR, "25")
+  field(LOPR, "0")
+  field(DRVL, "0")
+  field(DOL,  "$(M)")  
+  field(PINI, "YES")
+}
+
+

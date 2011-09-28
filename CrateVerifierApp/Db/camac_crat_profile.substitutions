@@ -1,0 +1,54 @@
+#==============================================================================
+#
+# Abs:  Camac Crate Profile  Db Substitutions file
+#
+# Name: camac_crat_profile.substitutions
+# Macros: 
+# 
+#       LOCA    Location of CAMAC hardware, for example LI25
+#       NCRAT   Number of CAMAC crates in sector, for example 4
+#       C       Crate number (no leading 0), for example 1
+#       M       2-Digit Slot number (00-24)
+#       MODEL   Module type:
+#                       0 for Unused module or empty slot
+#                       1 for SAM
+#                       2 for IDIM
+#                       3 for IDOM
+#                       4 for PPOM
+#                       5 for PIOP
+#                       6 for Crate Verifier
+#                       7 for DAC
+#                       8 for STB
+#                       9 for PDU-II
+#
+# Side: Must follow the LCLS naming conventions.
+#
+# Facility: CAMAC Controls
+#
+# Auth: 07-Jul-2009, K. Luchini       (LUCHINI)
+# Rev : dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#-----------------------------------------------------------------------------
+# Mod:
+#       dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#          comment
+#
+#=============================================================================
+#
+file camac_crat.template
+{
+#                      Branch  Crate 
+  pattern { LOCA     , B      , C      ,  LOC        }
+          { $(MICR)  , $(BR)  , $(CR)  , $(LOCATION) }
+}
+
+file camac_module.template
+{
+#                     Crate     Slot   
+   pattern { LOCA    , C      , M    ,   MODEL }
+           { $(MICR) , $(CR)  , 01   ,   6     }
+}
+
+# End of file
+
+
+ 
