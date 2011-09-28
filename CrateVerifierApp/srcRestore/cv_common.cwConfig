@@ -1,0 +1,45 @@
+#
+# Crate Verifier  - ChannelWatcher file
+#
+# Module out-of-sevice pv
+#MODU:$(LOCA):$(C)01:ACCESS /LOG
+
+# CAMAC Crate Voltages and Temperatur
+CAMC:$(LOCA):$(C):V24.SEVR       /LOG /NOWRITE
+CAMC:$(LOCA):$(C):V6.SEVR        /LOG /NOWRITE
+CAMC:$(LOCA):$(C):TEMP.SEVR      /LOG /NOWRITE
+CAMC:$(LOCA):$(C):V24MINUS.SEVR  /LOG /NOWRITE
+CAMC:$(LOCA):$(C):V6MINUS.SEVR   /LOG /NOWRITE
+CAMC:$(LOCA):$(C):VGND.SEVR      /LOG /NOWRITE
+
+# Upper alarm limits
+CAMC:$(LOCA):$(C):V24.HIHI       /LOG 
+CAMC:$(LOCA):$(C):V6.HIHI        /LOG 
+CAMC:$(LOCA):$(C):TEMP.HIHI      /LOG 
+CAMC:$(LOCA):$(C):V24MINUS.HIHI  /LOG 
+CAMC:$(LOCA):$(C):V6MINUS.HIHI   /LOG 
+CAMC:$(LOCA):$(C):VGND.HIHI      /LOG 
+
+CAMC:$(LOCA):$(C):V24.LOLO       /LOG 
+CAMC:$(LOCA):$(C):V6.LOLO        /LOG 
+CAMC:$(LOCA):$(C):TEMP.LOLO      /LOG 
+CAMC:$(LOCA):$(C):V24MINUS.LOLO  /LOG 
+CAMC:$(LOCA):$(C):V6MINUS.LOLO   /LOG 
+CAMC:$(LOCA):$(C):VGND.LOLO      /LOG 
+
+# Upper warning limits
+CAMC:$(LOCA):$(C):V24.HIGH       /LOG 
+CAMC:$(LOCA):$(C):V6.HIGH        /LOG 
+CAMC:$(LOCA):$(C):TEMP.HIGH      /LOG 
+CAMC:$(LOCA):$(C):V24MINUS.HIGH  /LOG 
+CAMC:$(LOCA):$(C):V6MINUS.HIGH   /LOG 
+CAMC:$(LOCA):$(C):VGND.HIGH      /LOG 
+
+CAMC:$(LOCA):$(C):V24.LOW       /LOG 
+CAMC:$(LOCA):$(C):V6.LOW        /LOG 
+CAMC:$(LOCA):$(C):TEMP.LOW      /LOG 
+CAMC:$(LOCA):$(C):V24MINUS.LOW  /LOG 
+CAMC:$(LOCA):$(C):V6MINUS.LOW   /LOG 
+CAMC:$(LOCA):$(C):VGND.LOW      /LOG 
+
+# End of file
