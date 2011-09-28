@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+Tag:  PSCD_Camac-R2-0-0
+Date: 28-Sep-2011, K. Luchini (LUCHINI)
+Desc: Added Crate Verifier Application
+
 PSCD_Camac-R1-8-2
 Date: 01-Jun-2011, Robert C. Sass
 Change PIOPApp/src/msgPIOP.c to emit a separate message when the index sent by the PIOP is out of range. Ignore any subsequent different out of range indexes.
