@@ -10,17 +10,27 @@ record(mbbiDirect, "$(DEV):BUSSTAT") {
   field(SCAN, "I/O Intr")
   field(NOBT, "16")
   field(PINI, "YES")
-  field(FLNK, "$(DEV):BUSSTAT_FANOUT")
+  field(FLNK, "$(DEV):BUSSTAT_SEQ")
 }
 
-record(fanout, "$(DEV):BUSSTAT_FANOUT") {
-  field(DESC, "Crate $(C) Bus Status fanout")
-  field(LNK1, "$(DEV):BUSERR")
-  field(LNK2, "$(DEV):CMDSTAT")
-  field(LNK3, "$(DEV):XSTAT_CALC")
-  field(LNK4, "$(DEV):QSTAT_CALC")
-  field(LNK5, "$(DEV):RWTEST")
-  field(LNK6, "$(DEV):BUSINIT")
+record(seq, "$(DEV):BUSSTAT_SEQ") {
+  field(DESC, "Crate $(C) Bus Status seq")
+  field(DOL1, "1")
+  field(DOL2, "1")
+  field(DOL3, "1")
+  field(DOL4, "1")
+  field(DOL5, "1")
+  field(DOL6, "1")
+  field(DOL7, "1")
+  field(DOL8, "1")
+  field(LNK1, "$(DEV):BUSERR PP NMS")
+  field(LNK2, "$(DEV):CMDSTAT PP NMS")
+  field(LNK3, "$(DEV):MODUERR PP NMS")
+  field(LNK4, "$(DEV):CAM_TIMEOUT PP NMS")
+  field(LNK5, "$(DEV):XSTAT_CALC PP NMS")
+  field(LNK6, "$(DEV):QSTAT_CALC PP NMS")
+  field(LNK7, "$(DEV):RWSTAT PP NMS")
+  field(LNK8, "$(DEV):BUSINIT PP NMS")
 }
 
 record(bi, "$(DEV):BUSERR") {
@@ -43,6 +53,26 @@ record(bi, "$(DEV):CMDSTAT") {
   field(OSV,  "MAJOR")
 }
 
+record(bi, "$(DEV):MODUERR") {
+  field(DESC, "Crate $(C) Verier Err")
+  field(DTYP, "Raw Soft Channel")
+  field(INP,  "$(DEV):BUSSTAT.B2 NPP MS")
+  field(ZSV,  "NO_ALARM")
+  field(OSV,  "MAJOR")
+  field(ZNAM, "NO")
+  field(ONAM, "YES")
+}
+
+record(bi, "$(DEV):CAM_TIMEOUT") {
+  field(DESC, "Crate $(C) Timeout Err")
+  field(DTYP, "Raw Soft Channel")
+  field(INP,  "$(DEV):BUSSTAT.B3 NPP MS")
+  field(ZSV,  "NO_ALARM")
+  field(OSV,  "MAJOR")
+  field(ZNAM, "NO")
+  field(ONAM, "YES")
+}
+
 record(calc, "$(DEV):XSTAT_CALC") {
   field(DESC, "Get X-response bits")
   field(CALC, "(A<<4)&3")
@@ -57,8 +87,8 @@ record(calc, "$(DEV):QSTAT_CALC") {
   field(FLNK, "$(DEV):QSTAT")
 }
 
-record(calc, "$(DEV):RWTEST") {
-  field(DESC, "Get Y-response bits")
+record(calc, "$(DEV):RWSTAT") {
+  field(DESC, "Crate $(C) RW Line Status")
   field(CALC, "(A>>8)&15")
   field(INPA, "$(DEV):BUSSTAT NPP MS")
   field(FLNK, "$(DEV):RWSTATMSG")
@@ -117,7 +147,7 @@ record(mbbi, "$(DEV):QSTAT") {
 record(mbbi, "$(DEV):RWSTATMSG") {
   field(DESC, "Crate $(C) Verify status")
   field(DTYP, "Soft Channel")
-  field(INP,  "$(DEV):RWTEST NPP MS")
+  field(INP,  "$(DEV):RWSTAT NPP MS")
   field(NOBT, "4")
   field(ZRVL, "0")
   field(ONVL, "1")
@@ -128,7 +158,8 @@ record(mbbi, "$(DEV):RWSTATMSG") {
   field(SXVL, "6")
   field(SVVL, "7")
   field(EIVL, "8")
-  field(ZRST, "Successful")
+  field(NIVL, "9")
+  field(ZRST, "Not Performed")
   field(ONST, "Test 1 Failed")
   field(TWST, "Test 2 Failed")
   field(THST, "Test 3 Failed")
@@ -137,7 +168,8 @@ record(mbbi, "$(DEV):RWSTATMSG") {
   field(SXST, "Test 6 Failed")
   field(SVST, "Test 7 Failed")
   field(EIST, "Test 8 Failed")
-  field(ZRSV, "NO_ALARM")
+  field(NIST, "Successful")
+  field(ZRSV, "INVALID")
   field(ONSV, "MAJOR")
   field(TWSV, "MAJOR")
   field(THSV, "MAJOR")
@@ -146,7 +178,8 @@ record(mbbi, "$(DEV):RWSTATMSG") {
   field(SXSV, "MAJOR")
   field(SVSV, "MAJOR")
   field(EISV, "MAJOR")
-  field(UNSV, "INVALID")  
+  field(NISV, "NO_ALARM")
+  field(UNSV, "INVALID")
 }
-
+ 
 
