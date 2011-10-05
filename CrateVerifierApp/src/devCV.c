@@ -762,12 +762,14 @@ static long read_mbbiDirect(struct mbbiDirectRecord * rec_ps)
        nsev = MAJOR_ALARM;
        if (dpvt_ps->func_e==CAMAC_RD_CRATE_STATUS)
        {
-          if (!module_ps->crate_s.stat_u._s.online && module_ps->crate_s.stat_u._s.camTimeoutErr) 
-             nsta = TIMEOUT_ALARM;
+         if (!module_ps->crate_s.stat_u._s.online && module_ps->crate_s.stat_u._s.camTimeoutErr) 
+            nsta = TIMEOUT_ALARM;
        }
-       else if (!module_ps->crate_s.bus_stat_u._s.camTimeoutErr )
-          nsta = TIMEOUT_ALARM;
-
+       else if (dpvt_ps->func_e==CAMAC_RD_BUS_STATUS)
+       {
+         if (!module_ps->crate_s.bus_stat_u._s.camTimeoutErr )
+            nsta = TIMEOUT_ALARM;
+       }
        if ( recGblSetSevr(rec_ps,nsta,nsev) && 
             errVerbose                      && 
            (rec_ps->stat!=nsta ||rec_ps->sevr!=nsev) ) 
@@ -785,12 +787,14 @@ static long read_mbbiDirect(struct mbbiDirectRecord * rec_ps)
        rec_ps->time = mstat_ps->reqTime;
     else
        rec_ps->udf = FALSE;
-   
-   
+  
+
     if (dpvt_ps->func_e==CAMAC_RD_CRATE_STATUS)
       rec_ps->val = module_ps->crate_s.stat_u._i;
-    else
+    else if (dpvt_ps->func_e==CAMAC_RD_BUS_STATUS)
       rec_ps->val = module_ps->crate_s.bus_stat_u._i;
+    else
+      rec_ps->val =0;
 
     if (CV_DEV_DEBUG)  
           printf("Record [%s] receives val [0x%04X]! iss=0x%8.8lX\n", rec_ps->name, rec_ps->val,mstat_ps->errCode);
