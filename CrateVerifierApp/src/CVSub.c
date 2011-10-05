@@ -292,12 +292,10 @@ static long CV_Stat(longSubRecord *sub_ps)
   unsigned long      stat    = CRATE_STATSUMY_VPWROFF;
   unsigned long      crateOn = 0;
   cv_bus_status_tu   bus_stat_u;
-  cv_crate_status_tu crate_stat_u;
   
   crateOn = sub_ps->a & CRATE_STATUS_GOOD;
   if (crateOn)
   {
-      crate_stat_u._i = sub_ps->a & CRATE_STATUS_MASK;
       bus_stat_u._i   = sub_ps->b & BUS_STATUS_MASK;
 
       /* Check for an id register error */
@@ -337,13 +335,13 @@ static long CV_Stat(longSubRecord *sub_ps)
 	  stat = CRATE_STATSUMY_VOLTWARN;
       else if ( sub_ps->d==MINOR_ALARM )
 	  stat = CRATE_STATSUMY_TEMPWARN;
-      else if (crateOn==CRATE_STATUS_ONINIT)
-          stat = CRATE_STATSUMY_ONINIT;
-       else
-	  stat = CRATE_STATSUMY_VPWRON;
+      else if ( crateOn == CRATE_STATUS_ONINIT )
+	  stat = CRATE_STATSUMY_ONINIT;
+      else
+	  stat = CRATE_STATSUMY_VPWRON;   
   }
       
-  sub_ps->val = stat & CRATE_STATSUMY_MASK;;
+  sub_ps->val = stat;
 
   return(status);
 }
@@ -473,15 +471,15 @@ static long CV_Bus_Data(genSubRecord *sub_ps)
   if (!sub_ps->dpvt) return(status);
 
   /* epicsMutexMustLock(dpvt_ps->mlock); */
-  if (CV_SUB_DEBUG) printf("%s\n",sub_ps->name);
+  if (CV_SUB_DEBUG==2) printf("%s\n",sub_ps->name);
   for (i=0; (j<sub_ps->noa) && (i<MAX_ARGS) && (i<k); i++,j++,val_pp++)
   {
      data_p  = *val_pp;
      if (data_p)
        *data_p = dpvt_ps->data_a[j];
-     if (CV_SUB_DEBUG)  printf("\t(%.2ld)0x%lx",j,*data_p);
+     if (CV_SUB_DEBUG==2)  printf("\t(%.2ld)0x%lx",j,*data_p);
   }
-  if (CV_SUB_DEBUG) printf("\n");
+  if (CV_SUB_DEBUG==2) printf("\n");
  
   /* epicsMutexUnlock(dpvt_ps->mlock); */
   return(status);
