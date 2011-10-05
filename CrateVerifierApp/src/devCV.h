@@ -738,7 +738,7 @@ typedef struct campkg_dataway_s
   camac_xq_status_ts       Xstat_s;       /* X-response status             */
   camac_xq_status_ts       Qstat_s;       /* Q-response status             */
   epicsBoolean             cmdLineErr;    /* Command Line test status      */
-  unsigned char            rwLineErr;     /* Read-Write Line test status   */
+  unsigned short           rwLineErr;     /* Read-Write Line test status   */
   epicsBoolean             timeout;       /* CAMAC crate timeout           */
 } campkg_dataway_ts;
 
@@ -792,9 +792,6 @@ typedef struct camac_block_s
  * set to zero. The bus status is set by the dataway verification test
  * which takes place once a minute and on-demand (request from user).
  */
-#define VERIFY_TEST_OK     0
-#define VERIFY_TEST_MIN    1    
-#define VERIFY_TEST_MAX    8
 
 #define BUS_STATUS_MASK      0x1fff
 #define BUS_STATUS_BUS_ERR   0x0001
@@ -808,9 +805,16 @@ typedef struct camac_block_s
 #define BUS_STATUS_NOQ_ERR   0x0080
 #define BUS_STATUS_RW_ERR    0x0f00
 #define BUS_STATUS_INIT_ERR  0x1000
+
 #define BUS_STATUS_RWERR_SHIFT 8
+#define BUS_RWLINE_BYPASSED    0
+#define BUS_RWLINE_PASSED      9
 
-
+#define CRATE_TIMEOUT( status )    ( ((status) & BUS_STATUS_CTO_ERR)?1:0 )
+#define RWLINE_BYPASSED( status )  ( ((status)&0x0f00)==0?1:0 )
+#define RWLINE_ERR( status )       ( ((((status)&0x0f00)>>8) != BUS_RWLINE_PASSED) ?1:0 )
+#define BUS_ERR( status )          ( ((status)&0x1000)||((status)&0xff)||RWLINE_ERR((status))? 1:0) 
+ 
 typedef struct 
 {
   unsigned int busErr            : 1;
@@ -994,7 +998,7 @@ typedef struct cv_module_s
      struct 
      {
           epicsMutexId          mlock;
-          unsigned char         test;                          /* test number (0-8)         */
+          unsigned short        test;                          /* test number (0-8)         */
           cv_rwLine_type_te     type_e;                        /* type of pattern           */
           unsigned long         err_a[RW_LINE_NUM];            /* read write line error     */
           unsigned long         data_a[RW_LINE_NUM];           /* read write line data      */
