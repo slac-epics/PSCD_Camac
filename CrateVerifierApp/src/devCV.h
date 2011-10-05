@@ -851,7 +851,7 @@ typedef union
 #define CRATE_STATSUMY_MASK      0xf
 #define CRATE_STATSUMY_VPWROFF   0  
 #define CRATE_STATSUMY_VPWRON    1
-#define CRATE_STATSUMY_ONINIT    2
+#define CRATE_STATSUMY_ONINIT    2   /* crate pwr on and init */
 #define CRATE_STATSUMY_VOLTERR   3
 #define CRATE_STATSUMY_TEMPERR   4
 #define CRATE_STATSUMY_BADID     5
@@ -895,7 +895,8 @@ typedef union
  *            PSUSTATBIT literally '00001000H'; (not used for linac upgrade)
  */
 #define CRATE_STATUS_ONLINE             0x0001  /* bit0 */
-#define CRATE_STATUS_ONINIT             0x0002  /* bit1 */
+#define CRATE_STATUS_VPWRON             0x0001  /* bit0  (duplicate) */
+#define CRATE_STATUS_INIT               0x0002  /* bit1 */
 #define CRATE_STATUS_CTO_ERR            0x0004  /* bit2 */
 #define CRATE_STATUS_VPWR_OFF           0x0008  /* bit3 - crate pwr off to on transition */
 #define CRATE_STATUS_WDATA_ERR          0x0020  /* bit5 */
@@ -903,6 +904,7 @@ typedef union
 #define CRATE_STATUS_CAM_ERR            0x0100  /* bit 8    */
 
 /* Combined bit status */
+#define CRATE_STATUS_ONINIT             0x0003  /* bit0-1 */
 #define CRATE_STATUS_GOOD               0x0003
 #define CRATE_STATUS_R1DATA_ERR         0x0040 /* rd1 data error  */
 #define CRATE_STATUS_R2DATA_ERR         0x0080 /* rd2 data error  */
