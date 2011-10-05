@@ -20,6 +20,7 @@ record(genSub, "$(DEV):CMDLINE_SUB") {
   field(DESC, "Distr Command line Data")
   field(INAM, "CV_Bus_Data_Init")
   field(SNAM, "CV_Bus_Data")
+#
 # Inputs:
 # A - Waveform of command line data
 # B - Number of elements in waveform
@@ -36,20 +37,21 @@ record(genSub, "$(DEV):CMDLINE_SUB") {
   field(FTD, "ULONG")
   field(FTE, "ULONG")
   field(NOA, "13")
+#
 # Outputs:
-  field(OUTA, "$(DEV):N   PP MS")
-  field(OUTB, "$(DEV):F1  PP MS")
-  field(OUTC, "$(DEV):F2  PP MS")
-  field(OUTD, "$(DEV):F4  PP MS")
-  field(OUTE, "$(DEV):F8  PP MS")
-  field(OUTF, "$(DEV):F16 PP MS")
-  field(OUTG, "$(DEV):A1  PP MS")
-  field(OUTH, "$(DEV):A2  PP MS")
-  field(OUTI, "$(DEV):A4  PP MS")
-  field(OUTJ, "$(DEV):A8  PP MS")
-  field(OUTK, "$(DEV):C   PP MS")
-  field(OUTL, "$(DEV):Z   PP MS")
-  field(OUTM, "$(DEV):I   PP MS")
+  field(OUTA, "$(DEV):N   PP NMS")
+  field(OUTB, "$(DEV):F1  PP NMS")
+  field(OUTC, "$(DEV):F2  PP NMS")
+  field(OUTD, "$(DEV):F4  PP NMS")
+  field(OUTE, "$(DEV):F8  PP NMS")
+  field(OUTF, "$(DEV):F16 PP NMS")
+  field(OUTG, "$(DEV):A1  PP NMS")
+  field(OUTH, "$(DEV):A2  PP NMS")
+  field(OUTI, "$(DEV):A4  PP NMS")
+  field(OUTJ, "$(DEV):A8  PP NMS")
+  field(OUTK, "$(DEV):C   PP NMS")
+  field(OUTL, "$(DEV):Z   PP NMS")
+  field(OUTM, "$(DEV):I   PP NMS")
   field(FTVA, "ULONG")
   field(FTVB, "ULONG")
   field(FTVC, "ULONG")
@@ -68,7 +70,7 @@ record(genSub, "$(DEV):CMDLINE_SUB") {
 record(longin, "$(DEV):N") {
   field(DESC, "N-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALA NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALA NPP NMS")
   field(HOPR, "0")
   field(HIHI, "1")
   field(LOLO, "-1")
@@ -79,7 +81,7 @@ record(longin, "$(DEV):N") {
 record(longin, "$(DEV):F1") {
   field(DESC, "F1-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALB NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALB NPP NMS")
   field(HOPR, "3")
   field(HIHI, "4")
   field(LOLO, "2")
@@ -90,7 +92,7 @@ record(longin, "$(DEV):F1") {
 record(longin, "$(DEV):F2") {
   field(DESC, "F2-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALC NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALC NPP NMS")
   field(HOPR, "5")
   field(HIHI, "6")
   field(LOLO, "4")
@@ -101,7 +103,7 @@ record(longin, "$(DEV):F2") {
 record(longin, "$(DEV):F4") {
   field(DESC, "F4-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALD NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALD NPP NMS")
   field(HOPR, "9")
   field(HIHI, "10")
   field(LOLO, "8")
@@ -112,7 +114,7 @@ record(longin, "$(DEV):F4") {
 record(longin, "$(DEV):F8") {
   field(DESC, "F8-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALE NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALE NPP NMS")
   field(HOPR, "17")
   field(HIHI, "18")
   field(LOLO, "16")
@@ -123,7 +125,7 @@ record(longin, "$(DEV):F8") {
 record(longin, "$(DEV):F16") {
   field(DESC, "F16 Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALF NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALF NPP NMS")
   field(HOPR, "33")
   field(HIHI, "34")
   field(LOLO, "32")
@@ -134,7 +136,7 @@ record(longin, "$(DEV):F16") {
 record(longin, "$(DEV):A1") {
   field(DESC, "A1-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALG NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALG NPP NMS")
   field(HOPR, "65")
   field(HIHI, "66")
   field(LOLO, "64")
@@ -145,7 +147,7 @@ record(longin, "$(DEV):A1") {
 record(longin, "$(DEV):A2") {
   field(DESC, "A2-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALH NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALH NPP NMS")
   field(HOPR, "129")
   field(HIHI, "130")
   field(LOLO, "128")
@@ -156,7 +158,7 @@ record(longin, "$(DEV):A2") {
 record(longin, "$(DEV):A4") {
   field(DESC, "A4-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALI NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALI NPP NMS")
   field(HOPR, "257")
   field(HIHI, "258")
   field(LOLO, "256")
@@ -167,7 +169,7 @@ record(longin, "$(DEV):A4") {
 record(longin, "$(DEV):A8") {
   field(DESC, "A8-Line Data")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALJ NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALJ NPP NMS")
   field(HOPR, "513")
   field(HIHI, "514")
   field(LOLO, "512")
@@ -178,7 +180,7 @@ record(longin, "$(DEV):A8") {
 record(longin, "$(DEV):C") {
   field(DESC, "C-Line")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALK NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALK NPP NMS")
   field(HOPR, "1652")
   field(HIHI, "1653")
   field(LOLO, "1651")
@@ -189,7 +191,7 @@ record(longin, "$(DEV):C") {
 record(longin, "$(DEV):Z") {
   field(DESC, "Z-Line")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALL NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALL NPP NMS")
   field(HOPR, "2612")
   field(HIHI, "2613")
   field(LOLO, "2611")
@@ -200,7 +202,7 @@ record(longin, "$(DEV):Z") {
 record(longin, "$(DEV):I") {
   field(DESC, "I-Line")
   field(DTYP, "Soft Channel")
-  field(INP, "$(DEV):CMDLINE_SUB.VALM NPP MS")
+  field(INP, "$(DEV):CMDLINE_SUB.VALM NPP NMS")
   field(HOPR, "4724")
   field(HIHI, "4725")
   field(LOLO, "4723")
