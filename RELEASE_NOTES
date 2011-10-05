@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+Tag:  PSCD_Camac-R2-0-1
+Date: 04-Oct-2011, K. Luchini (LUCHINI)
+Desc: Modify Crate Verifier cmdLine and rwLine functions
+
 Tag:  PSCD_Camac-R2-0-0
 Date: 28-Sep-2011, K. Luchini (LUCHINI)
 Desc: Added Crate Verifier Application
