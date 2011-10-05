@@ -2370,9 +2370,9 @@ static vmsstat_t   CV_CrateCmdLineInit( short                 branch,
         */
        for (npkts=2,i=1; (npkts<=nops-2) && SUCCESS(iss); i++,npkts+=2)
        {
-         ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc) | cmdLineFunc_a[i];
-         iss  = camadd(&ctlw,    &cam_ps->stat_a[i],      &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
-         iss  = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt,   &emask, &cam_ps->pkg_p[ipkg]);
+           ctlw = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc) | cmdLineFunc_a[i];
+           iss  = camadd(&ctlw,    &cam_ps->stat_a[i],      &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
+           iss  = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt,   &emask, &cam_ps->pkg_p[ipkg]);
        }/* End of FOR loop */
     }
    
@@ -2457,7 +2457,7 @@ static vmsstat_t   CV_CrateCmdLineInit2( short branch, short crate, short slot ,
     unsigned short     emask   = CAMAC_EMASK_NOX_NOQ;  /* Camac error mask                       */
     unsigned short     i       = 0;                    /* Index to write-read stat-data pkts     */
     unsigned short     ipkg    = 1;                    /* Camac package pointer index            */
-
+    unsigned short     inhibit_cmd = 11;               /* inhibit command index (want to skip)   */
 
     if ( cam_ps->pkg_p[ipkg]) 
        return(iss);
@@ -2475,23 +2475,26 @@ static vmsstat_t   CV_CrateCmdLineInit2( short branch, short crate, short slot ,
         */
        for (i=7; (i<CMD_LINE_NUM) && SUCCESS(iss); i++,npkts+=2)
        {
-         ctlw = (crate << CCTLW__C_shc) | cmdLineFunc_a[i];
+         if ( i!=inhibit_cmd ) 
+	 {
+            ctlw = (crate << CCTLW__C_shc) | cmdLineFunc_a[i];
 
-        /*
-	 * Are we testing bus lines C,I or Z? If not, then add the verifier module slot
-	 * to the control word so we can specify the R-Line before reading the verifier 
-	 * COMMAND register
-	 */
-         if ((cmdLineFunc_a[i] & CCTLW__M)==0)  
-            ctlw |= (slot << CCTLW__M_shc); 
-         iss = camadd(&ctlw, &cam_ps->stat_a[i], &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
-         iss = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt,   &emask, &cam_ps->pkg_p[ipkg]);
+          /*
+           * Are we testing bus lines C,I or Z? If not, then add the verifier module slot
+           * to the control word so we can specify the R-Line before reading the verifier 
+           * COMMAND register
+           */
+           if ((cmdLineFunc_a[i] & CCTLW__M)==0)  
+              ctlw |= (slot << CCTLW__M_shc); 
+           iss = camadd(&ctlw, &cam_ps->stat_a[i], &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
+           iss = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt,   &emask, &cam_ps->pkg_p[ipkg]);
+	 }
        }/* End of FOR loop */
       
        /* Clear the inhibit line (ie. I=0). Expect response X=0 and Q=0 */
        ctlw = (crate << CCTLW__C_shc) | F24A9 | M30;
        iss  = camadd(&ctlw, &cam_ps->inhibit_stat, &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);      
-
+ 
        /* Read the verifier COMMAND register, to setup for later */
        iss  = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt, &emask, &cam_ps->pkg_p[ipkg]);
     }
@@ -3869,6 +3872,7 @@ static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
     unsigned int                stat   = 0;          /* camac status, for checking X  */
     unsigned long               lineNo = 0;          /* cmd line number               */
     static const unsigned long  mask   = 0x1fff;     /* data mask                     */
+    static const unsigned short inhibit_cmd = 11;    /* inhibit command index         */
     campkg_dataway_ts          *cam_ps = NULL;       /* pointer to camac package info */
 
 
@@ -3881,13 +3885,13 @@ static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
     /* Get read data from command line test */
     for (i=0,lineNo=1; i<CMD_LINE_NUM; i++,lineNo<<=1)
     {
-       data = cam_ps->cmd_s.rd_statd_as[i].data & mask;
-
+        data = cam_ps->cmd_s.rd_statd_as[i].data & mask;
+     
        /* 
 	* Is the data correct? If not, then indicate a
         * command line error.
         */
-       if (data!=cmdLineOk_a[i] )
+       if (data!=cmdLineOk_a[i] && (i!=inhibit_cmd))
 	 cam_ps->cmdLineErr = epicsTrue;
 
        /* save the data */
