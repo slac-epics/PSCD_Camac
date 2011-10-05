@@ -290,11 +290,9 @@ static long CV_Stat(longSubRecord *sub_ps)
 {
   long               status  = OK;                   /* return status */
   unsigned long      stat    = CRATE_STATSUMY_VPWROFF;
-  unsigned long      mask    = CRATE_STATSUMY_MASK;
   unsigned long      crateOn = 0;
   cv_bus_status_tu   bus_stat_u;
   cv_crate_status_tu crate_stat_u;
-
   
   crateOn = sub_ps->a & CRATE_STATUS_GOOD;
   if (crateOn)
@@ -305,17 +303,29 @@ static long CV_Stat(longSubRecord *sub_ps)
       /* Check for an id register error */
       if ( sub_ps->e ) 
 	 stat = CRATE_STATSUMY_BADID;
-      
-      /* Data verification errors */
-      else if ( bus_stat_u._i & BUS_STATUS_INIT_ERR )
-  	  stat = CRATE_STATSUMY_INITERR;    
-      else if ( bus_stat_u._i & BUS_STATUS_CMD_ERR )
-          stat = CRATE_STATSUMY_CMDERR;
-      else if ( bus_stat_u._i & BUS_STATUS_RW_ERR )
-          stat = CRATE_STATSUMY_RWERR;
-      else if ( bus_stat_u._i & BUS_STATUS_BUS_ERR )
-          stat = CRATE_STATSUMY_BUSERR;
 
+      /* Data verification errors */
+      if ( BUS_ERR(bus_stat_u._i) )
+      {
+       
+         /* Dataway verification test errors */
+         if ( bus_stat_u._i & BUS_STATUS_INIT_ERR )
+  	    stat = CRATE_STATSUMY_INITERR;    
+         else if ( bus_stat_u._i & BUS_STATUS_CMD_ERR )
+            stat = CRATE_STATSUMY_CMDERR;
+         else if ( RWLINE_ERR(bus_stat_u._i) )
+            stat = CRATE_STATSUMY_RWERR;
+         else if ( bus_stat_u._i & BUS_STATUS_BUS_ERR )
+            stat = CRATE_STATSUMY_BUSERR;
+
+         /* Dataway verification test warnings */
+         else if ( (bus_stat_u._i & BUS_STATUS_X_ERR) || (bus_stat_u._i & BUS_STATUS_NOX_ERR) )
+            stat = CRATE_STATSUMY_XWARN;
+         else if ( (bus_stat_u._i & BUS_STATUS_Q_ERR) || (bus_stat_u._i & BUS_STATUS_NOQ_ERR) )
+            stat = CRATE_STATSUMY_QWARN;
+         else if ( bus_stat_u._i & BUS_STATUS_INIT_ERR )
+            stat = CRATE_STATSUMY_INITERR;
+      }
       /* Voltage and Temperature errors */
       else if ( sub_ps->c==MAJOR_ALARM )
 	  stat = CRATE_STATSUMY_VOLTERR;
@@ -327,21 +337,13 @@ static long CV_Stat(longSubRecord *sub_ps)
 	  stat = CRATE_STATSUMY_VOLTWARN;
       else if ( sub_ps->d==MINOR_ALARM )
 	  stat = CRATE_STATSUMY_TEMPWARN;
-
-      /* Dataway verification test warnings */
-      else if ( (bus_stat_u._i & BUS_STATUS_X_ERR) || (bus_stat_u._i & BUS_STATUS_NOX_ERR) )
-          stat = CRATE_STATSUMY_XWARN;
-      else if ( (bus_stat_u._i & BUS_STATUS_Q_ERR) || (bus_stat_u._i & BUS_STATUS_NOQ_ERR) )
-          stat = CRATE_STATSUMY_QWARN;
-      else if ( bus_stat_u._i & BUS_STATUS_INIT_ERR )
-          stat = CRATE_STATSUMY_INITERR;
-      else 
-          stat = crateOn;
+      else if (crateOn==CRATE_STATUS_ONINIT)
+          stat = CRATE_STATSUMY_ONINIT;
+       else
+	  stat = CRATE_STATSUMY_VPWRON;
   }
-  if (crateOn==CRATE_STATUS_ONINIT)
-      stat = CRATE_STATSUMY_VPWRON;
       
-  sub_ps->val = stat & mask;
+  sub_ps->val = stat & CRATE_STATSUMY_MASK;;
 
   return(status);
 }
@@ -503,7 +505,8 @@ static long CV_Bus_Data(genSubRecord *sub_ps)
         --------
         INPA = Read-Write line test data              <device>:RWLINE
         INPB = Read-Write line test expected data     <device>:RWLINE_PATTERN
-        INPC = Read-Write line number (0-24)   
+        INPC = Read-Write line number (0-24)
+        INPD = Bus status bitmask       
 
         Output:
         ---------
@@ -557,14 +560,16 @@ static long CV_RWline(longSubRecord *sub_ps)
      tst_data    = dpvt_ps->edata_a[line];
      epicsMutexUnlock(dpvt_ps->mlock);
 
-     if (sub_ps->val != tst_data )
+     if ( (sub_ps->val != tst_data)  || RWLINE_BYPASSED(sub_ps->d) || CRATE_TIMEOUT(sub_ps->d) )
      {
        sub_ps->hihi = sub_ps->val - 1;
        sub_ps->high = sub_ps->val - 1;
-       sub_ps->hhsv = MAJOR_ALARM;
-       sub_ps->hsv  = MAJOR_ALARM;
-       sub_ps->llsv = MAJOR_ALARM;
-       sub_ps->lsv  = MAJOR_ALARM;
+       if ( RWLINE_BYPASSED(sub_ps->d) || CRATE_TIMEOUT(sub_ps->d) )
+          nsev = INVALID_ALARM;
+       sub_ps->hhsv = nsev;
+       sub_ps->hsv  = nsev;
+       sub_ps->llsv = nsev;
+       sub_ps->lsv  = nsev;
      }
   }
   return(status);
