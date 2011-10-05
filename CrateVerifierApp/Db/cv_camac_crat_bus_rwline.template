@@ -66,13 +66,10 @@ record(longSub, "$(DEV):R1") {
   field(DESC, "R1-Line")
   field(INAM, "CV_RWline_Init")
   field(SNAM, "CV_RWline")
-  field(INPA, "$(DEV):RWLINE NPP MS")
+  field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "0")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -83,10 +80,7 @@ record(longSub, "$(DEV):R2") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "1")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -97,10 +91,7 @@ record(longSub, "$(DEV):R3") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "2")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -111,10 +102,7 @@ record(longSub, "$(DEV):R4") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "3")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -125,10 +113,7 @@ record(longSub, "$(DEV):R5") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "4")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -139,10 +124,7 @@ record(longSub, "$(DEV):R6") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "5") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -153,10 +135,7 @@ record(longSub, "$(DEV):R7") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "6") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -168,10 +147,7 @@ record(longSub, "$(DEV):R8") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "7") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -182,10 +158,7 @@ record(longSub, "$(DEV):R9") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "8") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -196,10 +169,7 @@ record(longSub, "$(DEV):R10") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "9") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -210,10 +180,7 @@ record(longSub, "$(DEV):R11") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "10")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -224,10 +191,7 @@ record(longSub, "$(DEV):R12") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "11")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -238,10 +202,7 @@ record(longSub, "$(DEV):R13") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "12")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -252,10 +213,7 @@ record(longSub, "$(DEV):R14") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "13")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -266,10 +224,7 @@ record(longSub, "$(DEV):R15") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "14")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -280,10 +235,7 @@ record(longSub, "$(DEV):R16") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "15")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -294,10 +246,7 @@ record(longSub, "$(DEV):R17") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "16")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -308,10 +257,7 @@ record(longSub, "$(DEV):R18") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "17")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -322,10 +268,7 @@ record(longSub, "$(DEV):R19") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "18") 
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -336,10 +279,7 @@ record(longSub, "$(DEV):R20") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "19")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -350,10 +290,7 @@ record(longSub, "$(DEV):R21") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "20")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -364,10 +301,7 @@ record(longSub, "$(DEV):R22") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "21")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -378,10 +312,7 @@ record(longSub, "$(DEV):R23") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "22")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
@@ -392,10 +323,7 @@ record(longSub, "$(DEV):R24") {
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C, "23")
-  field(HHSV,"MAJOR")
-  field(LLSV,"MAJOR")
-  field(HSV,"MAJOR")
-  field(LSV,"MAJOR")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(HOPR, "4294967295")
 }
 
