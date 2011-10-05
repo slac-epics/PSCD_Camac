@@ -56,7 +56,7 @@
 	*   CV_CrateClrInhibitInit - Initalize the Camac package to clear the Camac crate bus inhibit line (I-line)
 	*   CV_CrateSCCInit        - Initalize the Camac package to reset the Camac crate to addresssing mode
 	*   CV_CrateCmdLineInit    - Initalize the Camac package #1 to test the Camac crate command lines
-	*   CV_CrateCmdInit2       - Initalize the Camac package #2 to test the Camac crate command lines
+	*   CV_CrateCmdLineInit2   - Initalize the Camac package #2 to test the Camac crate command lines
 	*   CV_CrateRWLineInit     - Initalize the Camac package #1 to test the Camac crate read write lines (ie. test #1-4)
 	*   CV_CrateRWLineInit2    - Initalize the Camac package #2 to test the Camac crate read write lines (ie. test #5-8)
 
@@ -123,7 +123,7 @@ static vmsstat_t    CV_CratePulseCInit( short branch, short crate, short slot , 
 static vmsstat_t    CV_CrateClrInhibitInit( short branch, short crate, short slot , campkg_nodata_ts * const cam_ps );
 static vmsstat_t    CV_CrateSCCInit( short branch, short crate, short slot , campkg_4u_ts * const cam_ps );
 static vmsstat_t    CV_CrateCmdLineInit( short branch, short crate, short slot ,  campkg_cmd_ts * const cam_ps );
-static vmsstat_t    CV_CrateCmdInit2( short branch, short crate, short slot , campkg_cmd_ts * const cam_ps );
+static vmsstat_t    CV_CrateCmdLineInit2( short branch, short crate, short slot , campkg_cmd_ts * const cam_ps );
 static vmsstat_t    CV_CrateRWLineInit( short branch, short crate, short slot , campkg_dataway_ts * const cam_ps );
 static vmsstat_t    CV_CrateRWLineInit2( short branch, short crate, short slot , campkg_dataway_ts * const cam_ps );
 static void         CV_DatawayInitData( CV_MODULE * const module_ps );
@@ -145,6 +145,7 @@ void         CV_AsynThreadStop(void);
 
 /* Global variables */
 int     CV_DRV_DEBUG = 0;
+int     CV_DIAG_DISABLE = 1;
 extern  struct PSCD_CARD pscd_card;
 struct  drvet drvCV = {2, drvCV_Report, drvCV_Init};
 
@@ -427,6 +428,7 @@ static void  CV_AsynThread(void)
   static const float      nsec         = 10.0;                  /* delay in seconds            */ 
   float                   max_interval = 60.0;                  /* maximum time interval       */
   float                   total        = 0;                     /* interval, 0=5sec 1=60sec    */
+  epicsBoolean            first_pass   = epicsTrue;             /* first pass sending asyn msg */
   cv_thread_ts           *thread_ps    = &threads_as[CV_ASYN_THREAD];
  
 
@@ -458,6 +460,17 @@ static void  CV_AsynThread(void)
       for (total=0.0; total<max_interval; total+=nsec)
       {
          CV_SendMsgs( &asynMsgList_as[CV_10SEC] );
+         /* 
+	  * Process the asyn messages that cycle every 60 seconds
+	  * on the first pass through the loop. This way we don't
+	  * have to wait for a minute to pass before these records
+	  * get processed in the database.
+          */
+         if (first_pass)
+	 {
+            CV_SendMsgs( &asynMsgList_as[CV_60SEC] );
+	    first_pass = epicsFalse;
+         }
 
          /* wait for 5 seconds before sending next */
          epicsThreadSleep(nsec); 
@@ -703,6 +716,7 @@ static long drvCV_Report(int level)
       default:
 	    /* Command Line Test */
  	    dataway_ps = &module_ps->cam_s.dataway_s;
+            printf("\tCV Module[b%d c%d n%d]\n", module_ps->b, module_ps->c, module_ps->n);
 	    printf("\t\tCommand Line Test:  %s\n\t\t",
                   (dataway_ps->cmdLineErr)?"Failed":"Successful");
             for (i=0; i<CMD_LINE_NUM; i++)
@@ -712,7 +726,9 @@ static long drvCV_Report(int level)
 	    }
          
 	    /* Read-Write test  */
-            if (dataway_ps->rwLineErr)
+            if (!dataway_ps->rwLineErr)
+	      printf("\n\n\t\tRead Write Lines: Not Performed");
+            else if (dataway_ps->rwLineErr!=BUS_RWLINE_PASSED)
 	      printf("\n\n\t\tRead Write Lines: Failed    Test #%d\n\t\t",dataway_ps->rwLineErr);
 	    else
 	      printf("\n\n\t\tRead Write Lines: Successful\n\t\t");	     
@@ -2361,7 +2377,7 @@ static vmsstat_t   CV_CrateCmdLineInit( short                 branch,
     }
    
     if (SUCCESS(iss))
-       iss = CV_CrateCmdInit2( branch,crate,slot,cam_ps );
+       iss = CV_CrateCmdLineInit2( branch,crate,slot,cam_ps );
     return(iss);
 }
 
@@ -2371,7 +2387,7 @@ static vmsstat_t   CV_CrateCmdLineInit( short                 branch,
  
   Abs:  Initlized Camac package #2 to test Camac Bus Command Lines
  
-  Name: CV_CrateCmdInit2
+  Name: CV_CrateCmdLineInit2
  
   Args: branch                    Crate branch (not used)
           Type: value             Note: 0-3            
@@ -2398,13 +2414,13 @@ static vmsstat_t   CV_CrateCmdLineInit( short                 branch,
           Mech: By reference
 
 
-  Rem:  The purpose of this function is setup the Camac
-        packages to test the command lines on the Camac bus
-        in the followingorder:
+  Rem:  The purpose of this function is setup the second Camac
+        package to test the command lines on the Camac bus
+        in the following order:
 
         N,F1,F2,F4,F8,F16,A1,A2,A4,A8,C,Z,I      
  
-        Note that the Z,Z and I lines are set by the unaddress 
+        Note that the C,Z and I lines are set by the unaddress 
         commands:
 
            C: N(28) F26 A9
@@ -2428,7 +2444,7 @@ static vmsstat_t   CV_CrateCmdLineInit( short                 branch,
               camadd()
 
 =======================================================*/
-static vmsstat_t   CV_CrateCmdInit2( short branch, short crate, short slot , campkg_cmd_ts * const cam_ps )
+static vmsstat_t   CV_CrateCmdLineInit2( short branch, short crate, short slot , campkg_cmd_ts * const cam_ps )
 {
     CMD_LINE_FUNC;
     vmsstat_t          iss     = CRAT_OKOK;            /* return status                          */
@@ -2462,8 +2478,9 @@ static vmsstat_t   CV_CrateCmdInit2( short branch, short crate, short slot , cam
          ctlw = (crate << CCTLW__C_shc) | cmdLineFunc_a[i];
 
         /*
-	 * We we testing the bus linkes C,I or Z? If no, then add the module to the control word 
-	 * so we can specify the READ Line before reading the verifier COMMAND register
+	 * Are we testing bus lines C,I or Z? If not, then add the verifier module slot
+	 * to the control word so we can specify the R-Line before reading the verifier 
+	 * COMMAND register
 	 */
          if ((cmdLineFunc_a[i] & CCTLW__M)==0)  
             ctlw |= (slot << CCTLW__M_shc); 
@@ -2473,7 +2490,7 @@ static vmsstat_t   CV_CrateCmdInit2( short branch, short crate, short slot , cam
       
        /* Clear the inhibit line (ie. I=0). Expect response X=0 and Q=0 */
        ctlw = (crate << CCTLW__C_shc) | F24A9 | M30;
-       iss  = camadd(&ctlw, &cam_ps->inhibit_stat, &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
+       iss  = camadd(&ctlw, &cam_ps->inhibit_stat, &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);      
 
        /* Read the verifier COMMAND register, to setup for later */
        iss  = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt, &emask, &cam_ps->pkg_p[ipkg]);
@@ -2940,6 +2957,7 @@ static long  CV_ReadVoltage(CV_MODULE  * const module_ps )
           epicsMutexMustLock(module_ps->crate_s.mlock);  
           module_ps->crate_s.flag_e = CV_CRATEOFF;
           epicsMutexUnlock(module_ps->crate_s.mlock); 
+          memset(module_ps->crate_s.volts_a,0,sizeof(module_ps->crate_s.volts_a));
        }
     }
 
@@ -3028,6 +3046,7 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
           epicsMutexMustLock(module_ps->crate_s.mlock);
 	  module_ps->crate_s.flag_e = CV_CRATEOFF;
           epicsMutexUnlock(module_ps->crate_s.mlock);
+          module_ps->id = 0;
        }
     }
 
@@ -3073,7 +3092,7 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
     /* Does module exist? */  
     if (!module_ps->present) 
       goto egress;
-
+ 
     /*
      * Build the camack package to read the data register 
      * on the first pass...reuse the package on subsequent calls
@@ -3100,7 +3119,12 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
        iss = CV_CheckReadData( module_ps,iss );
     }
     else
+    {
+       epicsMutexMustLock(module_ps->crate_s.mlock);
        module_ps->crate_s.flag_e = CV_CRATEOFF;
+       epicsMutexUnlock(module_ps->crate_s.mlock);
+       module_ps->data = 0;
+    }
      
  egress:
 
@@ -3253,7 +3277,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
          bothReadsFailed = module_ps->crate_s.stat_u._i & mask;
          if ( module_ps->crate_s.first_watch )
             iss = CV_CrateInit(module_ps,epicsTrue);
-	 else if ( bothReadsFailed || !module_ps->crate_s.stat_u._s.init )
+	 else if ( bothReadsFailed || !module_ps->crate_s.stat_u._s.init )        
 	    iss = CV_CrateInit(module_ps,epicsFalse); 
        }
        
@@ -3436,8 +3460,7 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
                     /* 
 		     * Issue a message to the log if this error didn't occur because we 
 		     * have just booted or the crate power was cycled since the last chec,
-                     * and this is a new error condition.
-		     */
+                     * and this is a new error condition.		     */
                     if ( !module_ps->crate_s.first_watch           && 
                           module_ps->crate_s.prev_stat_u._s.online &&
 		        ( module_ps->crate_s.prev_stat_u._s.dataRdErr != module_ps->crate_s.stat_u._s.dataRdErr ))
@@ -3693,7 +3716,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        iss = camgo(&cam_ps->inhibit_s.pkg_p);
 
        /* Check for a bad crate address (id) or a crate offline. */
-       iss = camgo(&cam_ps->scc_s.pkg_p);
+       iss = camgo(&cam_ps->scc_s.pkg_p);    
        if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
        {
 	  cam_ps->timeout = epicsTrue;
@@ -3711,7 +3734,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        /* Perform Camac Bus Command Line Test */
        iss = CV_CrateCmdLine(module_ps);
        if (!SUCCESS(iss)) 
-           goto egress;
+           goto egress;  
 
        /* Read the module Id register. Here we are checking for Q=1 */
        CV_ClrMsgStatus( &module_ps->mstat_as[CAMAC_RD_ID] );
@@ -3786,9 +3809,12 @@ static vmsstat_t  CV_SetBusStatus( CV_MODULE * const module_ps )
     vmsstat_t           iss    = CRAT_VERIFY_PASSES;              /* return status             */
     campkg_dataway_ts  *cam_ps = &module_ps->cam_s.dataway_s;     /* ptr to dataway camac info */
     cv_bus_status_tu    stat_u;                                   /* bus status                */
+    unsigned short      test = cam_ps->rwLineErr;
 
     stat_u._i = 0;
-    if ( cam_ps->rwLineErr   || cam_ps->cmdLineErr  || 
+    stat_u._i = test << BUS_STATUS_RWERR_SHIFT;
+    if ( (cam_ps->rwLineErr!=BUS_RWLINE_PASSED) || 
+         cam_ps->cmdLineErr  || 
          cam_ps->Xstat_s.err || cam_ps->Qstat_s.err || 
          cam_ps->timeout     || !cam_ps->init )
     {
@@ -3798,7 +3824,6 @@ static vmsstat_t  CV_SetBusStatus( CV_MODULE * const module_ps )
 	else
 	{
           if (cam_ps->cmdLineErr) stat_u._i |= BUS_STATUS_CMD_ERR;
-          if (cam_ps->rwLineErr)  stat_u._i |= (cam_ps->rwLineErr<<BUS_STATUS_RWERR_SHIFT);
           if (cam_ps->Xstat_s.was_one)  stat_u._i |= BUS_STATUS_X_ERR;
           if (cam_ps->Xstat_s.was_zero) stat_u._i |= BUS_STATUS_NOX_ERR;
           if (cam_ps->Qstat_s.was_one)  stat_u._i |= BUS_STATUS_Q_ERR;
@@ -3940,9 +3965,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
     unsigned int       ctlw       = 0;               /* Camac control word                   */
     unsigned short     nobcnt     = 0;               /* Camac data byte count of zero        */
     unsigned short     emask  = CAMAC_EMASK_NOX_NOQ; /* Camac error mask, NOX and NOQ        */
-
-
-    unsigned char      test       = 1;               /* Test number                          */
+    unsigned short     test       = 1;               /* Test number                          */
     unsigned int       nelem      = RW_LINE_NUM;     /* number of elements in block transfer */
     unsigned int       nbits      = RW_LINE_NUM;     /* number of bits for read-write test   */
     cv_rwLine_type_te  type_e     = WALKING_ONE;     /* type of bit test                     */
@@ -3986,7 +4009,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
               (module_ps->rwLine_s.err_a[i_bit])?"Error":"");
        printf("\n");
     }
-    if (status) goto egress;
+    if (status || !SUCCESS(iss)) goto egress;
 
     /* 
      * Perform Read Write Line test #2 using walking zero bit and P24 
@@ -4026,8 +4049,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
               (module_ps->rwLine_s.err_a[i_bit])?"Error":"");
        printf("\n");
     }
-    if (status)
-       goto egress;
+    if (status || !SUCCESS(iss)) goto egress;
 
     /*
      * Perform Read Write Line test #3 simulated walking one bit and p24
@@ -4082,7 +4104,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
          printf("\n");
       }
     }
-    if (status) goto egress;
+    if (status || !SUCCESS(iss)) goto egress;
 
     /* 
      * Perform the Read Write Line test #5 using walking one bit without P24.
@@ -4126,7 +4148,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
                (module_ps->rwLine_s.err_a[i_bit])?"Error":"");
       printf("\n");
     }
-    if (status)  goto egress;
+    if (status || !SUCCESS(iss))  goto egress;
 
     /* 
      * Perform Read Write Line test #6 using walking zero bit without P24. 
@@ -4171,7 +4193,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
                (module_ps->rwLine_s.err_a[i_bit])?"Error":"");
       printf("\n");
     }
-    if (status) goto egress;
+    if (status || !SUCCESS(iss)) goto egress;
 
     /*
      * Perform Read Write Line test #7 with simulated walking one bit 
@@ -4232,33 +4254,35 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
       }
     }/* End of type_e FOR loop */
 
+    iss = iss2;
+
     /* If test completed successfully set the rwLine test to zero. */
-    if (!status) 
-      module_ps->rwLine_s.test = 0;
+    if ((status==OK) && SUCCESS(iss))  test++;
+    module_ps->rwLine_s.test = test;
 
 egress:
-   /* 0=success, 1-8 is failed test */
-   dataway_ps->rwLineErr = module_ps->rwLine_s.test;
+    
+    /* 0=test not performed, 9=success, 1-8 is failed test */
+    dataway_ps->rwLineErr = module_ps->rwLine_s.test;
 
-  /*
-   *  Clear the registers on the bus before 
-   * exiting for clean up if we had a problem.
-   */
-    if (dataway_ps->rwLineErr)
+   /*
+    *  Clear the registers on the bus before 
+    * exiting for clean up if we had a problem.
+    */
+    if (dataway_ps->rwLineErr!=BUS_RWLINE_PASSED)
     {
-      /* 
-       * Build Camac control word to pulse the C-line.
-       * this fuction clears the registers on the bus
-       * This is our way of cleaning up before we exit
-       * if an error has occurred.
-       */
-       ctlw = (module_ps->c << CCTLW__C_shc) | M28 | F26A9;
-       camio(&ctlw, 0 , &nobcnt, &stat, &emask );
-       iss = CRAT_VERIFY_FAIL;
+        /* 
+         * Build Camac control word to pulse the C-line.
+         * this fuction clears the registers on the bus
+         * This is our way of cleaning up before we exit
+         * if an error has occurred.
+         */
+         ctlw = (module_ps->c << CCTLW__C_shc) | M28 | F26A9;
+         camio(&ctlw, 0 , &nobcnt, &stat, &emask );
+         iss = CRAT_VERIFY_FAIL;
     }
-    else
-       iss = CRAT_VERIFY_PASSES;
-
+    else if (SUCCESS(iss))
+         iss = CRAT_VERIFY_PASSES;
     return( iss );
 }
 
