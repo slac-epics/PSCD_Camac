@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.3 2009/05/12 01:54:27 pengs Exp $
+ *   $Id: devSAM.c,v 1.4 2011/02/23 07:27:48 rcs Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -74,7 +74,9 @@ static long init_ai(struct aiRecord * pai)
 static long read_ai(struct aiRecord *pai)
 {
     SAM_REQUEST  *pRequest = (SAM_REQUEST *)(pai->dpvt);
-    int rtn = -1;
+    int             rtn  = -1;
+    unsigned short  nsta = READ_ALARM;
+    unsigned short  nsev = INVALID_ALARM;
 
     if(!pRequest) return(-1);
 
@@ -97,7 +99,8 @@ static long read_ai(struct aiRecord *pai)
         if(epicsMessageQueueTrySend(pRequest->pSAMModule->msgQId, (void *)&pRequest, sizeof(SAM_REQUEST *)) == -1)
         {
             recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Send Message to SAM Operation Thread Error [%s]", pai->name);
+            if (SAM_DRV_DEBUG)
+              errlogPrintf("Send Message to SAM Operation Thread Error [%s]", pai->name);
             rtn = -1;
         }
         else
@@ -111,9 +114,14 @@ static long read_ai(struct aiRecord *pai)
     {/* post-process */
         if( (!pRequest->opDone) || pRequest->errCode )
         {
-            recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
-            rtn = -1;
+           if ( recGblSetSevr(pai,nsta,nsev) && 
+                errVerbose                      && 
+               ((pai->stat!=nsta) || (pai->sevr!=nsev)) ) 
+	   {
+              recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
+              errlogPrintf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
+              rtn = -1;
+	   }
         }
         else
         {
