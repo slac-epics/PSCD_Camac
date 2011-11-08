@@ -55,7 +55,7 @@ record(mbbi, "$(DEV):ONLINE") {
 record(bi, "$(DEV):OFFON") {
   field(DESC, "Crate $(C) Pwr Off to On")
   field(DTYP, "Raw Soft Channel")
-  field(INP,  "$(DEV):STAT.B3 NPP NMS")
+  field(INP,  "$(DEV):STAT.B2 NPP NMS")
   field(ZNAM, "NO")
   field(ONAM, "YES")
   field(ZSV,  "NO_ALARM")
@@ -63,13 +63,13 @@ record(bi, "$(DEV):OFFON") {
 }
 
 record(bi, "$(DEV):TIMEOUT") {
-  field(DESC, "Crate $(C) CAMAC Timeout")
+  field(DESC, "CAMAC Crate $(C)  Timeout")
   field(DTYP, "Raw Soft Channel")
-  field(INP,  "$(DEV):STAT.B2 NPP NMS")
+  field(INP,  "$(DEV):STAT.B3 NPP NMS")
   field(ZNAM, "NO")
   field(ONAM, "YES")
   field(ZSV,  "NO_ALARM")
-  field(OSV,  "MAJOR")
+  field(OSV,  "INVALID")
 }
 
 record(bi, "$(DEV):WDATAERR") {
@@ -161,19 +161,19 @@ record(mbbo, "$(DEV):STATMSG") {
   field(ZRST, "Pwr Off")
   field(ONST, "Pwr On")
   field(TWST, "Online")
-  field(THST, "Volt Error")
-  field(FRST, "Temp Error")
+  field(THST, "Volt Err")
+  field(FRST, "Temp Err")
   field(FVST, "Bad Id")
-  field(SXST, "Inv Pattern")
+  field(SXST, "Bad Pattern")
   field(SVST, "No Module")
   field(EIST, "Volt Warn")
   field(NIST, "Temp Warn")
-  field(TEST, "Bus Error")
-  field(ELST, "Cmd Error")
-  field(TVST, "Rw Error")
-  field(TTST, "X Warn")
-  field(FTST, "Q Warn")
-  field(FFST, "Verify Init Err")
+  field(TEST, "Bus Err")
+  field(ELST, "Cmd-Line Err")
+  field(TVST, "RW-Line Err")
+  field(TTST, "XQ Err")
+  field(FTST, "Crate Timeout")
+  field(FFST, "Crate Init Err")
   field(ZRSV, "MAJOR")
   field(ONSV, "MINOR")
   field(TWSV, "NO_ALARM")
@@ -188,7 +188,7 @@ record(mbbo, "$(DEV):STATMSG") {
   field(ELSV, "MAJOR")
   field(TVSV, "MAJOR")
   field(TTSV, "MINOR")
-  field(FTSV, "MINOR")
+  field(FTSV, "INVALID")
   field(FFSV, "MAJOR")
   field(UNSV, "INVALID")
 }
