@@ -4,7 +4,6 @@
 #! DBDEND
 
 
-
 record(waveform, "$(DEV):CMDLINE") {
   field(DESC, "Crate $(C) Cmd Line")
   field(SCAN, "I/O Intr")
@@ -25,7 +24,8 @@ record(genSub, "$(DEV):CMDLINE_SUB") {
 # A - Waveform of command line data
 # B - Number of elements in waveform
 # C - Type of data (cmdline=0,rwline=1,rwline-p24=2)
-# D - Index into waveform Inputs:
+# D - Index into waveform Inputs
+# E - Number of items to extract from waveform
   field(INPA, "$(DEV):CMDLINE NPP NMS")
   field(INPB, "$(DEV):CMDLINE.NELM NPP NMS")
   field(INPC, "0")
@@ -50,8 +50,8 @@ record(genSub, "$(DEV):CMDLINE_SUB") {
   field(OUTI, "$(DEV):A4  PP NMS")
   field(OUTJ, "$(DEV):A8  PP NMS")
   field(OUTK, "$(DEV):C   PP NMS")
-  field(OUTL, "$(DEV):Z   PP NMS")
-  field(OUTM, "$(DEV):I   PP NMS")
+  field(OUTL, "$(DEV):I   PP NMS")
+  field(OUTM, "$(DEV):Z   PP NMS")
   field(FTVA, "ULONG")
   field(FTVB, "ULONG")
   field(FTVC, "ULONG")
@@ -188,8 +188,16 @@ record(longin, "$(DEV):C") {
   field(LLSV, "MAJOR")
 }
 
-record(longin, "$(DEV):Z") {
-  field(DESC, "Z-Line")
+# The inhibit line is not issued on the cmdline test
+# because it clears the bus. This is only done when
+# we want to initalize the crate when there is a
+# crate power off-on transition. If this were
+# to be issued in the command line test this
+# woudl be the 11th (0-12) element in the
+# cmdline waveform.
+#
+record(longin, "$(DEV):I") {
+  field(DESC, "I-Line")
   field(DTYP, "Soft Channel")
   field(INP, "$(DEV):CMDLINE_SUB.VALL NPP NMS")
   field(HOPR, "2612")
@@ -199,8 +207,8 @@ record(longin, "$(DEV):Z") {
   field(LLSV, "MAJOR")
 }
 
-record(longin, "$(DEV):I") {
-  field(DESC, "I-Line")
+record(longin, "$(DEV):Z") {
+  field(DESC, "Z-Line")
   field(DTYP, "Soft Channel")
   field(INP, "$(DEV):CMDLINE_SUB.VALM NPP NMS")
   field(HOPR, "4724")
@@ -211,14 +219,14 @@ record(longin, "$(DEV):I") {
 }
 
 #! Further lines contain data used by VisualDCT
-#! View(198,511,0.7)
-#! Record("$(DEV):CMDLINE",400,848,0,0,"$(DEV):CMDLINE")
+#! View(183,462,0.3)
+#! Record("$(DEV):CMDLINE",400,857,0,0,"$(DEV):CMDLINE")
 #! Field("$(DEV):CMDLINE.INP",16777215,1,"$(DEV):CMDLINE.INP")
 #! Field("$(DEV):CMDLINE.FLNK",16777215,1,"$(DEV):CMDLINE.FLNK")
 #! Link("$(DEV):CMDLINE.FLNK","$(DEV):CMDLINE_SUB")
 #! Field("$(DEV):CMDLINE.NELM",16777215,1,"$(DEV):CMDLINE.NELM")
 #! Field("$(DEV):CMDLINE.VAL",16777215,1,"$(DEV):CMDLINE.VAL")
-#! Record("$(DEV):CMDLINE_SUB",740,925,0,0,"$(DEV):CMDLINE_SUB")
+#! Record("$(DEV):CMDLINE_SUB",740,957,0,0,"$(DEV):CMDLINE_SUB")
 #! Field("$(DEV):CMDLINE_SUB.INPA",16777215,0,"$(DEV):CMDLINE_SUB.INPA")
 #! Link("$(DEV):CMDLINE_SUB.INPA","$(DEV):CMDLINE.VAL")
 #! Field("$(DEV):CMDLINE_SUB.INPB",16777215,0,"$(DEV):CMDLINE_SUB.INPB")
@@ -246,9 +254,9 @@ record(longin, "$(DEV):I") {
 #! Field("$(DEV):CMDLINE_SUB.OUTK",16777215,1,"$(DEV):CMDLINE_SUB.OUTK")
 #! Link("$(DEV):CMDLINE_SUB.OUTK","$(DEV):C.VAL")
 #! Field("$(DEV):CMDLINE_SUB.OUTL",16777215,1,"$(DEV):CMDLINE_SUB.OUTL")
-#! Link("$(DEV):CMDLINE_SUB.OUTL","$(DEV):Z.VAL")
+#! Link("$(DEV):CMDLINE_SUB.OUTL","$(DEV):I.VAL")
 #! Field("$(DEV):CMDLINE_SUB.OUTM",16777215,1,"$(DEV):CMDLINE_SUB.OUTM")
-#! Link("$(DEV):CMDLINE_SUB.OUTM","$(DEV):I.VAL")
+#! Link("$(DEV):CMDLINE_SUB.OUTM","$(DEV):Z.VAL")
 #! Field("$(DEV):CMDLINE_SUB.VALA",16777215,1,"$(DEV):CMDLINE_SUB.VALA")
 #! Field("$(DEV):CMDLINE_SUB.VALB",16777215,1,"$(DEV):CMDLINE_SUB.VALB")
 #! Field("$(DEV):CMDLINE_SUB.VALC",16777215,1,"$(DEV):CMDLINE_SUB.VALC")
@@ -262,55 +270,55 @@ record(longin, "$(DEV):I") {
 #! Field("$(DEV):CMDLINE_SUB.VALK",16777215,1,"$(DEV):CMDLINE_SUB.VALK")
 #! Field("$(DEV):CMDLINE_SUB.VALL",16777215,1,"$(DEV):CMDLINE_SUB.VALL")
 #! Field("$(DEV):CMDLINE_SUB.VALM",16777215,1,"$(DEV):CMDLINE_SUB.VALM")
-#! Record("$(DEV):N",1300,788,0,0,"$(DEV):N")
+#! Record("$(DEV):N",1840,697,0,0,"$(DEV):N")
 #! Field("$(DEV):N.VAL",16777215,0,"$(DEV):N.VAL")
 #! Field("$(DEV):N.INP",16777215,0,"$(DEV):N.INP")
 #! Link("$(DEV):N.INP","$(DEV):CMDLINE_SUB.VALA")
-#! Record("$(DEV):F1",1560,1228,0,0,"$(DEV):F1")
+#! Record("$(DEV):F1",1840,937,0,0,"$(DEV):F1")
 #! Field("$(DEV):F1.VAL",16777215,0,"$(DEV):F1.VAL")
 #! Field("$(DEV):F1.INP",16777215,0,"$(DEV):F1.INP")
 #! Link("$(DEV):F1.INP","$(DEV):CMDLINE_SUB.VALB")
-#! Record("$(DEV):F2",1540,1488,0,0,"$(DEV):F2")
+#! Record("$(DEV):F2",1840,1437,0,0,"$(DEV):F2")
 #! Field("$(DEV):F2.VAL",16777215,0,"$(DEV):F2.VAL")
 #! Field("$(DEV):F2.INP",16777215,0,"$(DEV):F2.INP")
 #! Link("$(DEV):F2.INP","$(DEV):CMDLINE_SUB.VALC")
-#! Record("$(DEV):F4",1540,1848,0,0,"$(DEV):F4")
+#! Record("$(DEV):F4",1860,1937,0,0,"$(DEV):F4")
 #! Field("$(DEV):F4.VAL",16777215,0,"$(DEV):F4.VAL")
 #! Field("$(DEV):F4.INP",16777215,0,"$(DEV):F4.INP")
 #! Link("$(DEV):F4.INP","$(DEV):CMDLINE_SUB.VALD")
-#! Record("$(DEV):F8",1540,2128,0,0,"$(DEV):F8")
+#! Record("$(DEV):F8",1860,2637,0,0,"$(DEV):F8")
 #! Field("$(DEV):F8.VAL",16777215,0,"$(DEV):F8.VAL")
 #! Field("$(DEV):F8.INP",16777215,0,"$(DEV):F8.INP")
 #! Link("$(DEV):F8.INP","$(DEV):CMDLINE_SUB.VALE")
-#! Record("$(DEV):F16",1540,2388,0,0,"$(DEV):F16")
+#! Record("$(DEV):F16",1860,2897,0,0,"$(DEV):F16")
 #! Field("$(DEV):F16.VAL",16777215,0,"$(DEV):F16.VAL")
 #! Field("$(DEV):F16.INP",16777215,0,"$(DEV):F16.INP")
 #! Link("$(DEV):F16.INP","$(DEV):CMDLINE_SUB.VALF")
-#! Record("$(DEV):A1",1860,1268,0,0,"$(DEV):A1")
+#! Record("$(DEV):A1",1840,1177,0,0,"$(DEV):A1")
 #! Field("$(DEV):A1.VAL",16777215,0,"$(DEV):A1.VAL")
 #! Field("$(DEV):A1.INP",16777215,0,"$(DEV):A1.INP")
 #! Link("$(DEV):A1.INP","$(DEV):CMDLINE_SUB.VALG")
-#! Record("$(DEV):A2",1860,1668,0,0,"$(DEV):A2")
+#! Record("$(DEV):A2",1860,1677,0,0,"$(DEV):A2")
 #! Field("$(DEV):A2.VAL",16777215,0,"$(DEV):A2.VAL")
 #! Field("$(DEV):A2.INP",16777215,0,"$(DEV):A2.INP")
 #! Link("$(DEV):A2.INP","$(DEV):CMDLINE_SUB.VALH")
-#! Record("$(DEV):A4",1860,1908,0,0,"$(DEV):A4")
+#! Record("$(DEV):A4",1860,2157,0,0,"$(DEV):A4")
 #! Field("$(DEV):A4.VAL",16777215,0,"$(DEV):A4.VAL")
 #! Field("$(DEV):A4.INP",16777215,0,"$(DEV):A4.INP")
 #! Link("$(DEV):A4.INP","$(DEV):CMDLINE_SUB.VALI")
-#! Record("$(DEV):A8",1860,2148,0,0,"$(DEV):A8")
+#! Record("$(DEV):A8",1860,2397,0,0,"$(DEV):A8")
 #! Field("$(DEV):A8.VAL",16777215,0,"$(DEV):A8.VAL")
 #! Field("$(DEV):A8.INP",16777215,0,"$(DEV):A8.INP")
 #! Link("$(DEV):A8.INP","$(DEV):CMDLINE_SUB.VALJ")
-#! Record("$(DEV):C",1300,68,0,0,"$(DEV):C")
+#! Record("$(DEV):C",1840,17,0,0,"$(DEV):C")
 #! Field("$(DEV):C.VAL",16777215,0,"$(DEV):C.VAL")
 #! Field("$(DEV):C.INP",16777215,0,"$(DEV):C.INP")
 #! Link("$(DEV):C.INP","$(DEV):CMDLINE_SUB.VALK")
-#! Record("$(DEV):Z",1300,548,0,0,"$(DEV):Z")
-#! Field("$(DEV):Z.VAL",16777215,0,"$(DEV):Z.VAL")
-#! Field("$(DEV):Z.INP",16777215,0,"$(DEV):Z.INP")
-#! Link("$(DEV):Z.INP","$(DEV):CMDLINE_SUB.VALL")
-#! Record("$(DEV):I",1300,308,0,0,"$(DEV):I")
+#! Record("$(DEV):I",1840,237,0,0,"$(DEV):I")
 #! Field("$(DEV):I.VAL",16777215,0,"$(DEV):I.VAL")
 #! Field("$(DEV):I.INP",16777215,0,"$(DEV):I.INP")
-#! Link("$(DEV):I.INP","$(DEV):CMDLINE_SUB.VALM")
+#! Link("$(DEV):I.INP","$(DEV):CMDLINE_SUB.VALL")
+#! Record("$(DEV):Z",1840,457,0,0,"$(DEV):Z")
+#! Field("$(DEV):Z.VAL",16777215,0,"$(DEV):Z.VAL")
+#! Field("$(DEV):Z.INP",16777215,0,"$(DEV):Z.INP")
+#! Link("$(DEV):Z.INP","$(DEV):CMDLINE_SUB.VALM")

@@ -60,6 +60,19 @@ record(fanout, "$(DEV):RWLINE_FANOUT5") {
   field(LNK2, "$(DEV):R22 PP NMS")
   field(LNK3, "$(DEV):R23 PP NMS")
   field(LNK4, "$(DEV):R24 PP NMS")
+  field(LNK5, "$(DEV):R0  PP NMS")
+}
+
+record(longSub, "$(DEV):R0") {
+  field(DESC, "First RW value")
+  field(INAM, "CV_RWline_Init")
+  field(SNAM, "CV_RWline")
+  field(INPA, "$(DEV):RWLINE NPP NMS")
+  field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
+  field(C,    "0")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(HOPR, "4294967295")
 }
 
 record(longSub, "$(DEV):R1") {
@@ -68,8 +81,9 @@ record(longSub, "$(DEV):R1") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "0")
+  field(C,    "1")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -79,8 +93,9 @@ record(longSub, "$(DEV):R2") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "1")
+  field(C,    "2")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -90,8 +105,9 @@ record(longSub, "$(DEV):R3") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "2")
+  field(C,    "3")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -101,8 +117,9 @@ record(longSub, "$(DEV):R4") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "3")
+  field(C,    "4")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -112,8 +129,9 @@ record(longSub, "$(DEV):R5") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "4")
+  field(C,    "5")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -123,8 +141,9 @@ record(longSub, "$(DEV):R6") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "5") 
+  field(C,    "6") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -134,8 +153,9 @@ record(longSub, "$(DEV):R7") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "6") 
+  field(C,    "7") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -146,8 +166,9 @@ record(longSub, "$(DEV):R8") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "7") 
+  field(C,    "8") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -157,8 +178,9 @@ record(longSub, "$(DEV):R9") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "8") 
+  field(C,    "9") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -168,8 +190,9 @@ record(longSub, "$(DEV):R10") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "9") 
+  field(C,    "10") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -179,8 +202,9 @@ record(longSub, "$(DEV):R11") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "10")
+  field(C,    "11")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -190,8 +214,9 @@ record(longSub, "$(DEV):R12") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "11")
+  field(C,    "12")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -201,8 +226,9 @@ record(longSub, "$(DEV):R13") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "12")
+  field(C,    "13")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -212,8 +238,9 @@ record(longSub, "$(DEV):R14") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "13")
+  field(C,    "14")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -223,8 +250,9 @@ record(longSub, "$(DEV):R15") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "14")
+  field(C,    "15")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -234,8 +262,9 @@ record(longSub, "$(DEV):R16") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "15")
+  field(C,    "16")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -245,8 +274,9 @@ record(longSub, "$(DEV):R17") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "16")
-  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(C,    "17")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -256,8 +286,9 @@ record(longSub, "$(DEV):R18") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "17")
-  field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(C,    "18")
+  field(INPD, "$(DEV):BUSSTAT NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -267,8 +298,9 @@ record(longSub, "$(DEV):R19") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "18") 
+  field(C,   "19") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -278,8 +310,9 @@ record(longSub, "$(DEV):R20") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "19")
+  field(C,    "20")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -289,8 +322,9 @@ record(longSub, "$(DEV):R21") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "20")
+  field(C,    "21")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -300,8 +334,9 @@ record(longSub, "$(DEV):R22") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "21")
+  field(C,    "22")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -311,8 +346,9 @@ record(longSub, "$(DEV):R23") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "22")
+  field(C,    "23")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -322,8 +358,9 @@ record(longSub, "$(DEV):R24") {
   field(SNAM, "CV_RWline")
   field(INPA, "$(DEV):RWLINE NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
-  field(C, "23")
+  field(C,    "24")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
   field(HOPR, "4294967295")
 }
 
@@ -354,7 +391,7 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB") {
   field(INPB, "$(DEV):RWLINE_PATTERN.NELM NPP NMS")
   field(INPC, "1")
   field(INPD, "0")
-  field(INPE, "16")
+  field(INPE, "17")
   field(FTA,  "ULONG")
   field(FTB,  "ULONG")
   field(FTC,  "ULONG")
@@ -363,22 +400,23 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB") {
   field(NOA,  "25")
 
 # Outputs:
-  field(OUTA, "$(DEV):R1_PATTERN   PP NMS")
-  field(OUTB, "$(DEV):R2_PATTERN   PP NMS")
-  field(OUTC, "$(DEV):R3_PATTERN   PP NMS")
-  field(OUTD, "$(DEV):R4_PATTERN   PP NMS")
-  field(OUTE, "$(DEV):R5_PATTERN   PP NMS")
-  field(OUTF, "$(DEV):R6_PATTERN   PP NMS")
-  field(OUTG, "$(DEV):R7_PATTERN   PP NMS")
-  field(OUTH, "$(DEV):R8_PATTERN   PP NMS")
-  field(OUTI, "$(DEV):R9_PATTERN   PP NMS")
-  field(OUTJ, "$(DEV):R10_PATTERN  PP NMS")
-  field(OUTK, "$(DEV):R11_PATTERN  PP NMS")
-  field(OUTL, "$(DEV):R12_PATTERN  PP NMS")
-  field(OUTM, "$(DEV):R13_PATTERN  PP NMS")
-  field(OUTN, "$(DEV):R14_PATTERN  PP NMS")
-  field(OUTO, "$(DEV):R15_PATTERN  PP NMS")
-  field(OUTP, "$(DEV):R16_PATTERN  PP NMS")
+  field(OUTA, "$(DEV):R0_PATTERN   PP NMS")
+  field(OUTB, "$(DEV):R1_PATTERN   PP NMS")
+  field(OUTC, "$(DEV):R2_PATTERN   PP NMS")
+  field(OUTD, "$(DEV):R3_PATTERN   PP NMS")
+  field(OUTE, "$(DEV):R4_PATTERN   PP NMS")
+  field(OUTF, "$(DEV):R5_PATTERN   PP NMS")
+  field(OUTG, "$(DEV):R6_PATTERN   PP NMS")
+  field(OUTH, "$(DEV):R7_PATTERN   PP NMS")
+  field(OUTI, "$(DEV):R8_PATTERN   PP NMS")
+  field(OUTJ, "$(DEV):R9_PATTERN   PP NMS")
+  field(OUTK, "$(DEV):R10_PATTERN  PP NMS")
+  field(OUTL, "$(DEV):R11_PATTERN  PP NMS")
+  field(OUTM, "$(DEV):R12_PATTERN  PP NMS")
+  field(OUTN, "$(DEV):R13_PATTERN  PP NMS")
+  field(OUTO, "$(DEV):R14_PATTERN  PP NMS")
+  field(OUTP, "$(DEV):R15_PATTERN  PP NMS")
+  field(OUTQ, "$(DEV):R16_PATTERN  PP NMS")
   field(FTVA, "ULONG")
   field(FTVB, "ULONG")
   field(FTVC, "ULONG")
@@ -395,6 +433,7 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB") {
   field(FTVN, "ULONG")
   field(FTVO, "ULONG")
   field(FTVP, "ULONG")
+  field(FTVQ, "ULONG")
   field(FLNK, "$(DEV):RWLINE_PATTERN_SUB2")
 }
 
@@ -408,6 +447,8 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB2") {
 # B - Number of elements in waveform
 # C - Type of data (cmdline=0,rwline (p16)=1, rwline (p24)=2)
 # D - Index into waveform
+# E - Number of items to extract from waveform
+#
   field(INPA, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN.NELM NPP NMS")
   field(INPC, "1")
@@ -439,84 +480,89 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB2") {
   field(FTVH, "ULONG")
 }
 
+record(longin, "$(DEV):R0_PATTERN") {
+  field(DESC, "Wrap around")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALA NPP NMS")
+}
+
 record(longin, "$(DEV):R1_PATTERN") {
   field(DESC, "R1-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALA NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALB NPP NMS")
 }
 
 record(longin, "$(DEV):R2_PATTERN") {
   field(DESC, "R2 Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALB NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALC NPP NMS")
 }
 
 record(longin, "$(DEV):R3_PATTERN") {
   field(DESC, "R3-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALC NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALD NPP NMS")
 }
 
 record(longin, "$(DEV):R4_PATTERN") {
   field(DESC, "R4-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALD NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALE NPP NMS")
 }
 
 record(longin, "$(DEV):R5_PATTERN") {
   field(DESC, "R5-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALE NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALF NPP NMS")
 }
 
 record(longin, "$(DEV):R6_PATTERN") {
   field(DESC, "R6-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALF NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALG NPP NMS")
 }
 
 record(longin, "$(DEV):R7_PATTERN") {
   field(DESC, "R7-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALG NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALH NPP NMS")
 }
 
 record(longin, "$(DEV):R8_PATTERN") {
   field(DESC, "R8 Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALH NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALI NPP NMS")
 }
 
 record(longin, "$(DEV):R9_PATTERN") {
   field(DESC, "R9-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALI NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALJ NPP NMS")
 }
 
 record(longin, "$(DEV):R10_PATTERN") {
   field(DESC, "R10-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALJ NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALK NPP NMS")
 }
 
 record(longin, "$(DEV):R11_PATTERN") {
   field(DESC, "R11-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALK NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALL NPP NMS")
 }
 
 record(longin, "$(DEV):R12_PATTERN") {
   field(DESC, "R12-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALL NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALM NPP NMS")
 }
 
 record(longin, "$(DEV):R13_PATTERN") {
   field(DESC, "R13-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALM NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALN NPP NMS")
 }
 
 record(longin, "$(DEV):R14_PATTERN") {
   field(DESC, "R14 Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALN NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALO NPP NMS")
 }
 
 record(longin, "$(DEV):R15_PATTERN") {
   field(DESC, "R15-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALO NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALP NPP NMS")
 }
 
 record(longin, "$(DEV):R16_PATTERN") {
   field(DESC, "R16-Line")
-  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALP NPP NMS")
+  field(INP, "$(DEV):RWLINE_PATTERN_SUB.VALQ NPP NMS")
 }
 
 record(longin, "$(DEV):R17_PATTERN") {
