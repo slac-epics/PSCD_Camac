@@ -21,9 +21,11 @@
 function(CV_Init)
 function(CV_Bus_Data_Init)
 function(CV_RWline_Init)
+function(CV_Cmdline_Init)
 function(CV_Stat)
 function(CV_Limits)
 function(CV_Bus_Data)
 function(CV_RWline)
+function(CV_Cmdline)
 
 # End of file
