@@ -129,6 +129,12 @@ extern "C" {
 #define CRAT_CREXCTVF_MSG       "Crate %2.d verifier test: reps, errors: %.hd\n"
 #define CRAT_CREXERV_MSG        "Verifier in crate %.2d gave %s; test expected %s\n"
 
+/* Camac Error messages */
+#define CAM_SOFT_T_MSG          "CAMAC software timeout. No MBCD response.: Crate %.2d  N%.2d   A%ld  F%ld  status=0x%8.8X\n"
+#define CAM_CRATE_TO_MSG        "CAMAC crate timeout: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
+#define CAM_NO_Q_MSG            "CAMAC no Q respns: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
+#define CAM_NO_X_MSG            "CAMAC no X respns: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
+
 /******************************************************************************************/
 /*********************                   Status Codes           ***************************/
 /******************************************************************************************/
@@ -273,15 +279,16 @@ typedef struct
 #define MATCH(data,pattern)   ((data)==(pattern)?1:0)
 
 /* Verifier Register Masks */
-#define CV_ID_MASK             0x00ff      /* Id register      */
-#define CV_ANLG_MASK           0x00ff      /* Analog registers */
-#define CV_DATA_MASK           0x000000ff  /* Data register    */
+#define CV_ID_MASK             0x00ff       /* Id register      */
+#define CV_ANLG_MASK           0x00ff       /* Analog registers */
+#define CV_DATA_MASK           0x000000ff   /* Data register    */
 
 /******************************************************************************************/
 /*********************                    CAMAC Bus             ***************************/
 /*********************               Command Line Test          ***************************/
 /******************************************************************************************/
 
+#define CMD_LINE_MASK 0x1fff
 #define CMD_LINE_NUM 13
 #define CMD_LINE_FUNC \
     const unsigned long  cmdLineFunc_a[CMD_LINE_NUM] = { 0,\
@@ -297,17 +304,50 @@ typedef struct
 /*********************               Read-Write Line Test       ***************************/
 /******************************************************************************************/
 
+typedef enum cv_rwLine_nlines_e
+{
+   CAMAC_P16,
+   CAMAC_P24
+} cv_rwLine_nlines_te;
+
+typedef enum cv_rwLine_access_e
+{
+  READ,
+  WRITE
+} cv_rwLine_access_te;
+
 typedef enum cv_rwLine_type_e
 {
   WALKING_ONE,
   WALKING_ZERO,
 } cv_rwLine_type_te;
 
+typedef struct cv_rwLine_test_s
+{
+  unsigned long        num;
+  cv_rwLine_type_te    type_e;
+  cv_rwLine_nlines_te  nlines_e;
+  cv_rwLine_access_te  access_e;
+}cv_rwLine_test_ts;
+
+
 #define RW_LINE_NUM_TYPE  2
 #define RW_LINE_NUM_TESTS 8
 #define RW_LINE_NUM2      17
 #define RW_LINE_NUM       25
 #define RW_LINE_MASK      0xffffff
+
+/* Test 3,4,7 & 8 are simulated */
+#define RW_LINE_TEST \
+    const cv_rwLine_test_ts rwLineTest_as[RW_LINE_NUM_TESTS] = {\
+                  {1,WALKING_ONE ,CAMAC_P24,READ},\
+		  {2,WALKING_ZERO,CAMAC_P24,READ},\
+		  {3,WALKING_ONE ,CAMAC_P24,WRITE},\
+                  {4,WALKING_ZERO,CAMAC_P24,WRITE},\
+                  {5,WALKING_ONE ,CAMAC_P16,READ},\
+                  {6,WALKING_ZERO,CAMAC_P16,READ},\
+                  {7,WALKING_ONE ,CAMAC_P16,WRITE},\
+		  {8,WALKING_ZERO,CAMAC_P16,WRITE}}
 
 /*
  * The read line data (R1-16 and R1-24) have the following expected data.
@@ -336,13 +376,21 @@ typedef enum cv_rwLine_type_e
 /*********************        Subroutine Record Structures      ***************************/
 /******************************************************************************************/
 
-/* Private device support structure for subroutine record CV_RWline_Init */
-typedef struct
+/* Private device support structure for subroutine record CV_RWline() */
+typedef struct cv_rwline_info_s
 {
-  unsigned long *data_a;
-  unsigned long *edata_a;
+  unsigned long *data_a;   /* camac data    */
+  unsigned long *edata_a;  /* expected data */
   epicsMutexId   mlock;
 }cv_rwline_info_ts;
+
+/* Private device support structure for subroutine record CV_Cmdline() */
+typedef struct cv_cmdline_info_s
+{
+  unsigned long *data_a;   /* camac data    */
+  epicsMutexId   mlock;
+}cv_cmdline_info_ts;
+
 
 typedef enum cv_bus_type_e
 {
@@ -482,7 +530,7 @@ typedef struct
 #define MAX_CAMAC_FUNC_ASYN 3
 #define MAX_CAMAC_FUNC     11
 #define CV_CAMAC_FUNC \
-    const cv_camac_func_ts  cv_camac_func_as[MAX_CAMAC_FUNC] = { \
+    const cv_camac_func_ts  cv_camac_func_as[MAX_CAMAC_FUNC] = {\
     {"VOLTS"      , EPICS_RECTYPE_AI   , CAMAC_RD_VOLTS        },\
     {"STAT"       , EPICS_RECTYPE_MBBI , CAMAC_RD_CRATE_STATUS },\
     {"BUS"        , EPICS_RECTYPE_MBBI , CAMAC_RD_BUS_STATUS   },\
@@ -503,10 +551,10 @@ typedef struct cv_asyn_types_s
 
 #define CV_NUM_ASYN_FUNC    4
 #define CV_ASYN_TYPES  \
-    const cv_asyn_types_ts asynMsgs_as[CV_NUM_ASYN_FUNC] = { {CAMAC_RD_DATA,CV_10SEC},\
+    const cv_asyn_types_ts asynMsgs_as[CV_NUM_ASYN_FUNC] = { {CAMAC_RD_CRATE_STATUS,CV_10SEC},\
+                                                             {CAMAC_RD_ID,CV_10SEC},\
                                                              {CAMAC_RD_VOLTS,CV_10SEC},\
-                                                             {CAMAC_RD_CRATE_STATUS, CV_10SEC},\
-                                                             {CAMAC_TST_DATAWAY,CV_60SEC}}
+                                                             {CAMAC_TST_DATAWAY,CV_60SEC} }
 
 /******************************************************************************************/
 /*********************       CAMAC Status/Data Structures       ***************************/
@@ -716,7 +764,7 @@ typedef struct campkg_rwlines_s
      * Note: teste 8 just uses test 7 package....setting the data 
      * with walking zero bit.    
      */
-    campkg_wlines_ts             test7_s;    /* simulated walking ones bit           */
+    campkg_wlines_ts              test7_s;    /* simulated walking ones bit           */
    
 }campkg_rwlines_ts;
 
@@ -728,11 +776,11 @@ typedef struct campkg_rwlines_s
 typedef struct campkg_dataway_s
 {
 
-  campkg_nodata_ts         pulseC_s;     /* clear registers on bus        */
-  campkg_nodata_ts         inhibit_s;    /* clear inhibit line I=0        */
-  campkg_4u_ts             scc_s;        /* set into addressing mode      */
-  campkg_cmd_ts            cmd_s;        /* command line package          */
-  campkg_rwlines_ts        rwlines_s;    /* Read Write lines test         */
+  campkg_nodata_ts         pulseC_s;      /* clear registers on bus        */
+  campkg_nodata_ts         inhibit_s;     /* clear inhibit line I=0        */
+  campkg_4u_ts             scc_s;         /* set into addressing mode      */
+  campkg_cmd_ts            cmd_s;         /* command line package          */
+  campkg_rwlines_ts        rwlines_s;     /* Read Write lines test         */
 
   epicsBoolean             init;          /* flag all packages initalized  */
   camac_xq_status_ts       Xstat_s;       /* X-response status             */
@@ -806,30 +854,41 @@ typedef struct camac_block_s
 #define BUS_STATUS_RW_ERR    0x0f00
 #define BUS_STATUS_INIT_ERR  0x1000
 
+
 #define BUS_STATUS_RWERR_SHIFT 8
 #define BUS_RWLINE_BYPASSED    0
 #define BUS_RWLINE_PASSED      9
 
-#define CRATE_TIMEOUT( status )    ( ((status) & BUS_STATUS_CTO_ERR)?1:0 )
-#define RWLINE_BYPASSED( status )  ( ((status)&0x0f00)==0?1:0 )
-#define RWLINE_ERR( status )       ( ((((status)&0x0f00)>>8) != BUS_RWLINE_PASSED) ?1:0 )
-#define BUS_ERR( status )          ( ((status)&0x1000)||((status)&0xff)||RWLINE_ERR((status))? 1:0) 
- 
+
+
+#define CRATE_TIMEOUT( status )    ( ((status) & BUS_STATUS_CTO_ERR) ? 1:0 )
+#define BUS_ERR( status )          ( (status)  & BUS_STATUS_BUS_ERR  ? 1:0 )
+#define CMDLINE_ERR(status)        ( (status)  & BUS_STATUS_CMD_ERR  ? 1:0 )
+#define RWLINE_BYPASSED( status )  ( ((status) & BUS_STATUS_RW_ERR)==BUS_RWLINE_BYPASSED ? 1:0 )
+#define RWLINE_SUCCESS( status )   ( (((status) & BUS_STATUS_RW_ERR)==0x900) ? 1:0 )
+#define RWLINE_TEST( status )      ( ((status) & BUS_STATUS_RW_ERR) >> BUS_STATUS_RWERR_SHIFT )
+
+#define RWLINE_ERR( test )         ( ((test)>BUS_RWLINE_BYPASSED) && ((test)<BUS_RWLINE_PASSED) ?1:0 )
+#define RWLINE_P24( test )         ( ((test)>4) && ((test)<9) ? 0:1 )
+#define WLINE_TEST( test )         ( (test)==3)||(test)==4)||(test)==7)||(test)==8)?1:0 )
+#define RLINE_TEST( test )         ( (test)==1)||(test)==2)||(test)==5)||(test)==6)?1:0 ) 1:0 )  
+
 typedef struct 
 {
-  unsigned int busErr            : 1;
-  unsigned int cmdLineErr        : 1;
-  unsigned int badModule         : 1;
-  unsigned int camTimeoutErr     : 1;
+  unsigned int busErr            : 1;  /* bus error           */
+  unsigned int cmdLineErr        : 1;  /* command line error  */
+  unsigned int badModule         : 1;  /* bad verifier module */
+  unsigned int camTimeoutErr     : 1;  /* camac crate timeout */
 
   unsigned int Xerr_was_one      : 1;
-  unsigned int Xerr_was_zero     : 1;
+  unsigned int Xerr_was_zero     : 1;  /* nox error */
   unsigned int Qerr_was_one      : 1;
-  unsigned int Qerr_was_zero     : 1;
+  unsigned int Qerr_was_zero     : 1;  /* noq error */
 
   unsigned int rwLineErr         : 4;  /* failed test number 0-8, success=0 */
+
   unsigned int initErr           : 1;  /* init failed */
-  unsigned int unused            : 3;  /* spare */
+  unsigned int unused            : 3;  /* spare       */
 } cv_bus_status_ts;
 
 typedef union
@@ -862,8 +921,8 @@ typedef union
 #define CRATE_STATSUMY_BUSERR   10
 #define CRATE_STATSUMY_CMDERR   11
 #define CRATE_STATSUMY_RWERR    12
-#define CRATE_STATSUMY_XWARN    13
-#define CRATE_STATSUMY_QWARN    14
+#define CRATE_STATSUMY_XQERR    13
+#define CRATE_STATSUMY_TIMEOUT  14
 #define CRATE_STATSUMY_INITERR  15
 
 /******************************************************************************************/
@@ -897,11 +956,11 @@ typedef union
 #define CRATE_STATUS_ONLINE             0x0001  /* bit0 */
 #define CRATE_STATUS_VPWRON             0x0001  /* bit0  (duplicate) */
 #define CRATE_STATUS_INIT               0x0002  /* bit1 */
-#define CRATE_STATUS_CTO_ERR            0x0004  /* bit2 */
-#define CRATE_STATUS_VPWR_OFF           0x0008  /* bit3 - crate pwr off to on transition */
+#define CRATE_STATUS_VPWROFF            0x0004  /* bit3 - crate pwr off to on transition */
+#define CRATE_STATUS_CTO_ERR            0x0008  /* bit2 */
 #define CRATE_STATUS_WDATA_ERR          0x0020  /* bit5 */
 #define CRATE_STATUS_RDATA_ERR          0x00C0  /* bit6 & 7 */
-#define CRATE_STATUS_CAM_ERR            0x0100  /* bit 8    */
+#define CRATE_STATUS_CAM_ERR            0x0100  /* bit8 */
 
 /* Combined bit status */
 #define CRATE_STATUS_ONINIT             0x0003  /* bit0-1 */
@@ -917,8 +976,8 @@ typedef struct
 {
   unsigned int online           : 1;  /* crate online                           */
   unsigned int init             : 1;  /* crate initialized                      */
-  unsigned int camTimeoutErr    : 1;  /* camac timeout error                    */
   unsigned int offOnTransition  : 1;  /* crate offline to online transition     */
+  unsigned int camTimeoutErr    : 1;  /* camac timeout error                    */
 
   unsigned int spare            : 1;  /*  (not used)                            */
   unsigned int dataWtErr        : 1;  /* crate failed data write                */
@@ -946,7 +1005,7 @@ typedef struct cv_crate_online_status_s
 {
        epicsBoolean             z_off;
        cv_crate_flag_te         flag_e;  
-       epicsBoolean             idErr;         
+       epicsBoolean             idErr;   
 
        unsigned short           first_watch;
        unsigned short           reinit;
@@ -1000,11 +1059,11 @@ typedef struct cv_module_s
      struct 
      {
           epicsMutexId          mlock;
-          unsigned short        test;                          /* test number (0-8)         */
-          cv_rwLine_type_te     type_e;                        /* type of pattern           */
-          unsigned long         err_a[RW_LINE_NUM];            /* read write line error     */
-          unsigned long         data_a[RW_LINE_NUM];           /* read write line data      */
-          unsigned long         expected_data_a[RW_LINE_NUM];  /* expected read write data  */
+          unsigned short        test;                           /* test number (0-8)         */
+          cv_rwLine_type_te     type_e;                         /* type of pattern           */
+          unsigned long         err_a[RW_LINE_NUM];             /* read write line error     */
+          unsigned long         data_a[RW_LINE_NUM];            /* read write line data      */
+          unsigned long         expected_data_a[RW_LINE_NUM];   /* expected read write data  */
      } rwLine_s;
 
      /* Status */
