@@ -299,7 +299,7 @@ static long read_ai(struct aiRecord * rec_ps)
     mstat_ps  = dpvt_ps->mstat_ps; 
     if( (!mstat_ps->opDone) || !SUCCESS(mstat_ps->errCode) )
     { 
-	if (!module_ps->crate_s.stat_u._s.online) 
+	if (module_ps->crate_s.stat_u._i & CRATE_STATUS_CTO_ERR) 
            nsta = TIMEOUT_ALARM;
         if ( recGblSetSevr(rec_ps,nsta,nsev) && 
              errVerbose                       && 
@@ -463,7 +463,7 @@ static long write_bo(struct boRecord * rec_ps)
         if (CV_DEV_DEBUG) printf("devCV(write_bo): Post-processing of VERIFY Request\n"); 
         if( (!mstat_ps->opDone) || !SUCCESS(mstat_ps->errCode) )
         {
-	    if (!module_ps->crate_s.stat_u._s.online) 
+	    if (module_ps->crate_s.stat_u._i & CRATE_STATUS_CTO_ERR) 
                nsta = TIMEOUT_ALARM;
             if ( recGblSetSevr(rec_ps,nsta,nsev) && 
                  errVerbose                      && 
@@ -603,7 +603,7 @@ static long read_longin(struct longinRecord * rec_ps)
 	 * If the Camac crate is offline then we have a
 	 * timeout alarm status. Otherwise, we have a major alarm.
 	 */
-	 if (!module_ps->crate_s.stat_u._s.online) 
+         if (module_ps->crate_s.stat_u._i & CRATE_STATUS_CTO_ERR)
             nsta = TIMEOUT_ALARM;
          if ( recGblSetSevr(rec_ps,nsta,nsev) && 
               errVerbose                      && 
@@ -757,19 +757,14 @@ static long read_mbbiDirect(struct mbbiDirectRecord * rec_ps)
      */
     module_ps = dpvt_ps->module_ps;
     mstat_ps  = dpvt_ps->mstat_ps;
+
     if ( (!mstat_ps->opDone) || !SUCCESS(mstat_ps->errCode) )
     { 
        nsev = MAJOR_ALARM;
-       if (dpvt_ps->func_e==CAMAC_RD_CRATE_STATUS)
-       {
-         if (!module_ps->crate_s.stat_u._s.online && module_ps->crate_s.stat_u._s.camTimeoutErr) 
+       if ((dpvt_ps->func_e==CAMAC_RD_CRATE_STATUS) && (module_ps->crate_s.stat_u._i & CRATE_STATUS_CTO_ERR))
             nsta = TIMEOUT_ALARM;
-       }
-       else if (dpvt_ps->func_e==CAMAC_RD_BUS_STATUS)
-       {
-         if (!module_ps->crate_s.bus_stat_u._s.camTimeoutErr )
+       else if ((dpvt_ps->func_e==CAMAC_RD_BUS_STATUS) && (module_ps->crate_s.bus_stat_u._i & BUS_STATUS_CTO_ERR))
             nsta = TIMEOUT_ALARM;
-       }
        if ( recGblSetSevr(rec_ps,nsta,nsev) && 
             errVerbose                      && 
            (rec_ps->stat!=nsta ||rec_ps->sevr!=nsev) ) 
@@ -926,7 +921,7 @@ static long read_wf(struct waveformRecord *rec_ps)
     mstat_ps  = dpvt_ps->mstat_ps;
     if( (!mstat_ps->opDone) || !SUCCESS(mstat_ps->errCode) )
     {
-       if (!module_ps->crate_s.stat_u._s.online) 
+      if ( module_ps->crate_s.stat_u._i & CRATE_STATUS_CTO_ERR )
            nsta = TIMEOUT_ALARM;
        if ( recGblSetSevr(rec_ps,nsta,nsev) && 
             errVerbose                      && 
