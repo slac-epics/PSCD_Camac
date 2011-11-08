@@ -72,6 +72,7 @@ record(longSub, "$(DEV):R0") {
   field(C,    "0")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -84,6 +85,7 @@ record(longSub, "$(DEV):R1") {
   field(C,    "1")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -96,6 +98,7 @@ record(longSub, "$(DEV):R2") {
   field(C,    "2")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -108,6 +111,7 @@ record(longSub, "$(DEV):R3") {
   field(C,    "3")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -120,6 +124,7 @@ record(longSub, "$(DEV):R4") {
   field(C,    "4")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -132,6 +137,7 @@ record(longSub, "$(DEV):R5") {
   field(C,    "5")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -144,6 +150,7 @@ record(longSub, "$(DEV):R6") {
   field(C,    "6") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -156,6 +163,7 @@ record(longSub, "$(DEV):R7") {
   field(C,    "7") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -169,6 +177,7 @@ record(longSub, "$(DEV):R8") {
   field(C,    "8") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -180,7 +189,8 @@ record(longSub, "$(DEV):R9") {
   field(INPB, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(C,    "9") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
-   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -193,6 +203,7 @@ record(longSub, "$(DEV):R10") {
   field(C,    "10") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -205,6 +216,7 @@ record(longSub, "$(DEV):R11") {
   field(C,    "11")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -217,6 +229,7 @@ record(longSub, "$(DEV):R12") {
   field(C,    "12")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -229,6 +242,7 @@ record(longSub, "$(DEV):R13") {
   field(C,    "13")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -241,6 +255,7 @@ record(longSub, "$(DEV):R14") {
   field(C,    "14")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -253,6 +268,7 @@ record(longSub, "$(DEV):R15") {
   field(C,    "15")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -265,6 +281,7 @@ record(longSub, "$(DEV):R16") {
   field(C,    "16")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -277,6 +294,7 @@ record(longSub, "$(DEV):R17") {
   field(C,    "17")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -289,6 +307,7 @@ record(longSub, "$(DEV):R18") {
   field(C,    "18")
   field(INPD, "$(DEV):BUSSTAT NPP NMS")
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -301,6 +320,7 @@ record(longSub, "$(DEV):R19") {
   field(C,   "19") 
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -313,6 +333,7 @@ record(longSub, "$(DEV):R20") {
   field(C,    "20")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -325,6 +346,7 @@ record(longSub, "$(DEV):R21") {
   field(C,    "21")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -337,6 +359,7 @@ record(longSub, "$(DEV):R22") {
   field(C,    "22")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -349,6 +372,7 @@ record(longSub, "$(DEV):R23") {
   field(C,    "23")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -361,6 +385,7 @@ record(longSub, "$(DEV):R24") {
   field(C,    "24")
   field(INPD, "$(DEV):BUSSTAT NPP NMS") 
   field(INPE, "$(DEV):RWLINE.NELM NPP NMS")
+  field(INPF, "$(C)")
   field(HOPR, "4294967295")
 }
 
@@ -452,7 +477,7 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB2") {
   field(INPA, "$(DEV):RWLINE_PATTERN NPP NMS")
   field(INPB, "$(DEV):RWLINE_PATTERN.NELM NPP NMS")
   field(INPC, "1")
-  field(INPD, "16")
+  field(INPD, "17")
   field(INPE, "8")
   field(FTA, "ULONG")
   field(FTB, "ULONG")
