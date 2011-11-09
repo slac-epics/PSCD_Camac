@@ -746,7 +746,7 @@ static long CV_RWline(longSubRecord *sub_ps)
      /* Walking zero's test */
      else
      {
-        if (psub->g ) printf("Walking 1's:\n");
+        if (sub_ps->g ) printf("Walking 1's:\n");
         if ( (sub_ps->val & ~mask) == ~mask )
 	{
            /* 
