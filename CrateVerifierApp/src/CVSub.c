@@ -666,7 +666,6 @@ static long CV_RWline(longSubRecord *sub_ps)
      if ( RWLINE_P24(testNo) ) nlines = 24;
      if (sub_ps->g) printf("nlines(%ld)\n",nlines);
      bus_stat_u._i = (unsigned short)sub_ps->d;
-     printf("RW Line Status:%d\n",RWLINE_SUCCESS(sub_ps->d));
 
      /* 
       * Determine  if there's an error in the rw-line data. To do this we want
@@ -747,7 +746,7 @@ static long CV_RWline(longSubRecord *sub_ps)
      /* Walking zero's test */
      else
      {
-        printf("Walking 1's:\n");
+        if (psub->g ) printf("Walking 1's:\n");
         if ( (sub_ps->val & ~mask) == ~mask )
 	{
            /* 
