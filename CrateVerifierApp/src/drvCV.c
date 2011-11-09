@@ -138,7 +138,7 @@ static void         CV_SetCrateStatus( CV_MODULE * const module_ps, unsigned sho
 
 
 /* Global functions */
-long         CV_Start( unsigned long ncrates );
+long         CV_Start( unsigned long crate_mask );
 CV_MODULE  * CV_AddModule( short b, short c, short n );
 void         CV_AsynThreadStop(void);
 
@@ -165,11 +165,11 @@ static  cv_thread_ts            threads_as[CV_NUM_THREADS] = {{NULL,0,0,NULL}, {
   Abs:  Initalization for all Crate Verifiers
   Name: CV_Start
  
-  Args:  ncrates                Number of crates 
-          Type: integer         Note: 0-15, where 0 indictes
-          Use:  unsigned long   none. The crate verifier 
-          Acc:  read-only       module is must be installed in 
-          Mech: By value        slot 1.
+  Args:  crate_mask             Bit mask of online crates 
+          Type: integer         Note: 0-15, where bit 0 indictes
+          Use:  unsigned long   is not used, bit1= crate1 , bit2=crate2
+          Acc:  read-only       bit3=crate3, etc.
+          Mech: By value        
  
   Rem: This function is called from CV_Start, prior
        to iocInit to setup the linked list of modules
@@ -212,22 +212,25 @@ static  cv_thread_ts            threads_as[CV_NUM_THREADS] = {{NULL,0,0,NULL}, {
   Ret:  None
  
 =======================================================*/
-long CV_Start( unsigned long ncrates )
+long CV_Start( unsigned long crate_mask  )
 {
-    long           status     = OK;              /* status return               */  
-    short          num        = 0;               /* number of crates            */
-    short          branch     = 0;               /* branch number (0,1) ignored */
-    short          crate      = 1;               /* crate number                */
-    short          slot       = 1;               /* slot number (always=1)      */
+    long                status     = OK;              /* status return     */
+    short               bitNo      = 2;               /* bit number (1-15) */
+    static const short  num        = MAX_CRATE_ADR;   /* no of crates      */
+    static const short  branch     = 0;     /* branch number (0,1) ignored */
+    short               crate      = 1;     /* crate number                */
+    static const short  slot       = 1;     /* slot number (always=1)      */
     int            maxMsgs    = MAX_QUEUED_MSGS;
     unsigned int   stackSize  = 20480;
     cv_thread_ts  *thread_ps  = &threads_as[CV_OP_THREAD];
-    CV_MODULE     *module_ps  = NULL;
 
-    /* Build module linked list */
-    num = min(ncrates,MAX_CRATE_ADR);
-    for ( ; crate<=num; crate++)
-      module_ps = CV_AddModule(branch,crate,slot);
+
+    /* Build module linked list for available crates */
+    for (crate=1; crate<num; bitNo<<=1,crate++)
+    {
+      if ( bitNo & crate_mask )     
+	CV_AddModule(branch,crate,slot);
+    }/* End of FOR loop */
 
     /*
      * Keep track of the number of modules at this point in case other
@@ -668,8 +671,8 @@ static long drvCV_Report(int level)
            printf("\tCV Module[b%d c%d n%d]:\ttid=%ld data=0x%4.4lX    Crate: Pwr %s  %s\tFirst Watch (%s)\n",
 	 	   module_ps->b,  module_ps->c, module_ps->n,
                    module_ps->id, module_ps->data,
-                   (module_ps->crate_s.stat_u._s.online)?"On ":"Off",                  
-                   (module_ps->crate_s.stat_u._s.init)?"Init Done":"Init Failed",   
+                   (module_ps->crate_s.stat_u._i & CRATE_STATUS_ONLINE)?"On ":"Off",                  
+                   (module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT)?"Init Done  ":"Init Failed",   
 		   (module_ps->crate_s.first_watch)?"Yes":"No");
            break;
 
@@ -678,8 +681,8 @@ static long drvCV_Report(int level)
            printf("\t\tid=%ld data=0x%4.4lX\n", module_ps->id, module_ps->data );
            printf("\t\tCrate: status=0x%4.4hx\tPwr %s\t%s\tInit Count=%d\n",
                  module_ps->crate_s.stat_u._i,
-                 (module_ps->crate_s.stat_u._s.online)?"On":"Off", 
-                 (module_ps->crate_s.stat_u._s.init)?"Init":"Not Init", 
+                 (module_ps->crate_s.stat_u._i & CRATE_STATUS_ONLINE)?"On":"Off", 
+                 (module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT)?"Init":"Not Init", 
                   module_ps->crate_s.nr_reinit );
            if (first)
            {
@@ -838,6 +841,7 @@ static void CV_ProcessMsg(  CV_REQUEST * const  msg_ps  )
     cv_message_status_ts  *mstat_ps     = NULL;
     IOSCANPVT              volts_evt_p  = NULL;
     IOSCANPVT              id_evt_p     = NULL;
+    IOSCANPVT              data_evt_p   = NULL;
 
 
     if (msg_ps==NULL)
@@ -864,6 +868,9 @@ static void CV_ProcessMsg(  CV_REQUEST * const  msg_ps  )
             /* Process records waiting on an io scan event.*/
             if (mstat_ps && mstat_ps->evt_p) 
                scanIoRequest( mstat_ps->evt_p );
+
+            data_evt_p = module_ps->mstat_as[CAMAC_RD_DATA].evt_p;
+            if (data_evt_p) scanIoRequest( data_evt_p );
             break;
 
        /* 
@@ -1401,7 +1408,7 @@ static vmsstat_t   CV_ReadIdInit( short branch, short crate, short slot, campkg_
 {
     vmsstat_t                    iss   = CRAT_OKOK;
     vmsstat_t                    iss2  = CRAT_OKOK;
-    static const unsigned short  emask = 0xF000;                /* response X=0,Q=1 0xE0E0 */
+    static const unsigned short  emask = 0xF000;                /* response X=0,Q=1 */
     unsigned int                 ctlw  = 0;
     unsigned short               bcnt  = sizeof(short);
     unsigned short               nops  = 1;
@@ -1678,9 +1685,6 @@ static vmsstat_t  CV_CrateInit( CV_MODULE * const module_ps,epicsBoolean pulseZ_
       /* Initialize crate after crate power on or boot */
       iss = CV_CrateInitInit(module_ps);
        
-      /* If this is our first pass, clear this flag */
-      if ( module_ps->crate_s.first_watch )
-         module_ps->crate_s.first_watch = 0;
    }
    return( iss );
 }
@@ -1731,7 +1735,7 @@ static vmsstat_t CV_CrateInitInit( CV_MODULE * const module_ps )
     unsigned short     nops   = 3;
     unsigned long      data   = 0;
     unsigned short     emask  = CAMAC_EMASK_NBAR;
-    unsigned short     mask   = CRATE_STATUS_ONINIT;
+    unsigned short     mask   = CRATE_STATUS_ONINIT | CRATE_STATUS_VPWROFF;
     unsigned short     crate_stat = 0;
     campkg_init_ts    *cam_ps = &module_ps->cam_s.init_s;
 
@@ -2290,14 +2294,14 @@ static vmsstat_t   CV_CrateSCCInit( short branch, short crate, short slot , camp
         packages to test the command lines on the Camac bus
         in the following order:
 
-        N,F1,F2,F4,F8,F16,A1,A2,A4,A8,C,Z,I      
+        N,F1,F2,F4,F8,F16,A1,A2,A4,A8,C,Z,I     
  
-        Note that the Z,Z and I lines are set by the unaddress 
+        Note that the Z and I lines are set by the unaddress 
         commands:
 
-           C: N(28) F26 A9
-           Z: N(28) F26 A8
-           I: N(30) F26 A9
+           C: N(28) F26 A9  (C=1, Q=0, X=0)
+           Z: N(28) F26 A8  (Z=1, I=0, Disable L)
+           I: N(30) F26 A9  (I=1, Q=0, X=0)
    
        Two Camac packages are setup, each package with seven packets.
        The first package issues the command line test for:   N,F1,F2,F4,F8,F16,A1
@@ -2471,7 +2475,7 @@ static vmsstat_t   CV_CrateCmdLineInit2( short branch, short crate, short slot ,
 
        /* 
 	* READ Command Lines using R-Line, followed by a read of the verifier COMMAND register
-        * for lines:  A2,A4,A8,C,I,Z 
+        * for lines:  A2,A4,A8,C,Z,I
         */
        for (i=7; (i<CMD_LINE_NUM) && SUCCESS(iss); i++,npkts+=2)
        {
@@ -2480,13 +2484,13 @@ static vmsstat_t   CV_CrateCmdLineInit2( short branch, short crate, short slot ,
             ctlw = (crate << CCTLW__C_shc) | cmdLineFunc_a[i];
 
           /*
-           * Are we testing bus lines C,I or Z? If not, then add the verifier module slot
+           * Are we testing bus lines C,Z or I? If not, then add the verifier module slot
            * to the control word so we can specify the R-Line before reading the verifier 
            * COMMAND register
            */
            if ((cmdLineFunc_a[i] & CCTLW__M)==0)  
               ctlw |= (slot << CCTLW__M_shc); 
-           iss = camadd(&ctlw, &cam_ps->stat_a[i], &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
+           iss = camadd(&ctlw,    &cam_ps->stat_a[i],      &nobcnt, &emask, &cam_ps->pkg_p[ipkg]);
            iss = camadd(&rd_ctlw, &cam_ps->rd_statd_as[i], &bcnt,   &emask, &cam_ps->pkg_p[ipkg]);
 	 }
        }/* End of FOR loop */
@@ -2905,7 +2909,6 @@ static vmsstat_t   CV_CrateRWLineInit2( short branch, short crate, short slot , 
             are used:
 
             CRAT_OKOK      - Successful operation
-            CRATE_OFFLINE  - Failued, crate offline
 	    CRAT_NOTVALID  - Failed operation, module not present
             Othewise, see error codes from the functions:
               camalo_reset()
@@ -2940,10 +2943,6 @@ static long  CV_ReadVoltage(CV_MODULE  * const module_ps )
     /* If a CAMAC package has been allocated...then issue the camac action. */
     if (SUCCESS(iss)) 
     {
-       epicsMutexMustLock(module_ps->crate_s.mlock);  
-       module_ps->crate_s.flag_e = CV_CRATEON;
-       epicsMutexUnlock(module_ps->crate_s.mlock); 
-
        /* Read crate voltages, ground voltage and temperature */
        iss = camgo(&cam_ps->pkg_p); 
        if ( SUCCESS(iss))
@@ -2956,12 +2955,7 @@ static long  CV_ReadVoltage(CV_MODULE  * const module_ps )
           module_ps->crate_s.volts_a[A7] *= vmult_as[A7].m2;
        }
        else
-       {
-          epicsMutexMustLock(module_ps->crate_s.mlock);  
-          module_ps->crate_s.flag_e = CV_CRATEOFF;
-          epicsMutexUnlock(module_ps->crate_s.mlock); 
           memset(module_ps->crate_s.volts_a,0,sizeof(module_ps->crate_s.volts_a));
-       }
     }
 
 egress:
@@ -3004,8 +2998,8 @@ egress:
             The SLC message codes from files cratdef.h and camdef.h
             are used:
 
-            CRAT_OKOK   - Successful operation
-	    CRAT_INVID  - Failed operation, due to invalid id
+            CRAT_OKOK      - Successful operation
+	    CRAT_NOTVALID  - Failed operation, module not present
             Othewise, see error codes from the functions:
               CV_CamacIdInit()
               camgo()
@@ -3015,45 +3009,62 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 {
     vmsstat_t      iss    = CRAT_NOTVALID;
     campkg_ts     *cam_ps = NULL;
+    static const unsigned long  subadr = CCTLW__A3;
+    static const unsigned long  func   = CCTLW__F4 >> CCTLW__F_shc;;
 
 
     /* Does module exist? */
     if (!module_ps->present) 
       goto egress;
 
-    /* Initialize camac package first time */
-    iss    = CRAT_OKOK;
     module_ps->crate_s.idErr = epicsFalse;
+
+    /* Initialize camac package first time through */
+    iss    = CRAT_OKOK;
     cam_ps = &module_ps->cam_s.rd_id_s;
     if (!cam_ps->pkg_p)
        iss = CV_ReadIdInit( module_ps->b, module_ps->c, module_ps->n, cam_ps );
 
     /* If a CAMAC package has been allocated...then issue the camac action. */
-    if (SUCCESS(iss)) 
+    if (SUCCESS(iss))
     {
        cam_ps->statd_s.stat = 0;
        cam_ps->statd_s.data = 0;
        iss = camgo(&cam_ps->pkg_p);
        if (SUCCESS(iss))
        {
-          epicsMutexMustLock(module_ps->crate_s.mlock);
-          module_ps->crate_s.flag_e = CV_CRATEON;
-          epicsMutexUnlock(module_ps->crate_s.mlock);
-
           module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
-          if (module_ps->c == module_ps->id)
-	     module_ps->crate_s.idErr = epicsTrue;
+          if ( module_ps->c != module_ps->id ) 
+	    module_ps->crate_s.idErr = epicsTrue;
        }
-       else
+       else 
        {
-          epicsMutexMustLock(module_ps->crate_s.mlock);
-	  module_ps->crate_s.flag_e = CV_CRATEOFF;
-          epicsMutexUnlock(module_ps->crate_s.mlock);
-          module_ps->id = 0;
+  	  module_ps->crate_s.idErr = epicsTrue;
+          module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
+        
+	  /* Check for a crate timeout */
+          if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
+	  {
+             module_ps->crate_s.stat_u._i |= CRATE_STATUS_CTO_ERR;
+             module_ps->id = 0;
+	  }
+
+	  /* Check for Q=1. If we have a noq, log an error message. */
+          else if ((cam_ps->statd_s.stat  & MBCD_STAT__Q)==0)
+          {
+             /* Set the NOQ error on in the bus status summary bitmask */
+	     iss = CAM_NO_Q;
+  	     module_ps->crate_s.bus_stat_u._i |= BUS_STATUS_NOQ_ERR;
+
+             /* Issue a message to the log if this error did not occur last time */
+	     if ( module_ps->mstat_as[CAMAC_RD_ID].lastErrCode!=iss )
+	       errlogSevPrintf(errlogMinor,CAM_NO_Q_MSG,module_ps->c,module_ps->n,subadr,func,cam_ps->statd_s.stat);
+	  }
        }
     }
 
  egress:
+
     /* Mark the message status complete. */
     CV_SetMsgStatus(iss,&module_ps->mstat_as[CAMAC_RD_ID] );
     return( (SUCCESS(iss))?OK:ERROR );
@@ -3088,8 +3099,8 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 =======================================================*/ 
 static long  CV_ReadData(CV_MODULE * const module_ps)
 {
-    vmsstat_t         iss    = CRAT_NOTVALID;
-    campkg_data_ts   *cam_ps = NULL;
+    vmsstat_t           iss    = CRAT_NOTVALID;
+    campkg_data_ts     *cam_ps = NULL;
 
 
     /* Does module exist? */  
@@ -3113,7 +3124,7 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
         */
        memset(cam_ps->statd_as,0,sizeof(cam_ps->statd_as));
        iss = camgo(&cam_ps->pkg_p);
-
+         
        /* 
 	* Check if the data register contains the expected
 	* pattern, which indicates that the crate power had not been
@@ -3122,12 +3133,7 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
        iss = CV_CheckReadData( module_ps,iss );
     }
     else
-    {
-       epicsMutexMustLock(module_ps->crate_s.mlock);
-       module_ps->crate_s.flag_e = CV_CRATEOFF;
-       epicsMutexUnlock(module_ps->crate_s.mlock);
        module_ps->data = 0;
-    }
      
  egress:
 
@@ -3227,7 +3233,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
     * saving only the last crate online and init status.
     */
     module_ps->crate_s.prev_stat_u._i = module_ps->crate_s.stat_u._i; 
-    module_ps->crate_s.stat_u._i      = 0;
+    module_ps->crate_s.stat_u._i  &= ~CRATE_STATUS_VPWROFF;  /* Keep the crate off-to-on transition flag */
 
     /*
      * Build the camack package to read the data register 
@@ -3280,7 +3286,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
          bothReadsFailed = module_ps->crate_s.stat_u._i & mask;
          if ( module_ps->crate_s.first_watch )
             iss = CV_CrateInit(module_ps,epicsTrue);
-	 else if ( bothReadsFailed || !module_ps->crate_s.stat_u._s.init )        
+	 else if ( bothReadsFailed || !(module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT) )        
 	    iss = CV_CrateInit(module_ps,epicsFalse); 
        }
        
@@ -3292,7 +3298,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
        else if ((module_ps->crate_s.flag_e==CV_CRATEOFF) && module_ps->crate_s.first_watch)
        {
           iss = CRAT_CANTINIT;
-          if (module_ps->crate_s.first_watch || module_ps->crate_s.prev_stat_u._s.online)
+          if ( module_ps->crate_s.first_watch )
              errlogSevPrintf(errlogMajor,CRAT_CANTINIT_MSG,module_ps->c); 
        }
       /*
@@ -3313,7 +3319,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
 	     * if the crate goes offline, so check that this
 	     * crate wasn't off on the last check.
 	     */
-            if (!module_ps->crate_s.prev_stat_u._s.dataWtErr)
+            if (!(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_WDATA_ERR))
 	      errlogSevPrintf(errlogMajor,
                               CRAT_OFFVER_MSG,
                               module_ps->c,
@@ -3326,7 +3332,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
 	    /* Looks like we chagned state from online to offline */
             iss = CRAT_CHNGSTAT;
             cam_ps = &module_ps->cam_s.wt_data_s;
-            if (!module_ps->crate_s.prev_stat_u._s.online)
+            if (!(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_ONLINE))
 	      errlogSevPrintf(errlogInfo,
                               CRAT_CHNGSTAT_MSG,
                               module_ps->c,
@@ -3336,14 +3342,18 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
        }
     }
    /* 
-    * Crate doesn't respond so it maybe powered off or the
-    * verifier module is bad.
+    * Crate doesn't respond so it maybe powered off, a cable is loose,
+    * the MBCD is bad or the verifier module is bad.
     */
     else 
-       iss = CRAT_OFFLINE;	              
+       iss = CRAT_OFFLINE;	 
 
+    /* If this is our first pass on boot, clear the first watch flag */
+    if ( module_ps->crate_s.first_watch )
+        module_ps->crate_s.first_watch = 0;
+            
  egress:
-    
+
     /* Mark the message status complete. */
     CV_SetMsgStatus(iss,&module_ps->mstat_as[CAMAC_RD_CRATE_STATUS]);
     return( (SUCCESS(iss))?OK:ERROR );
@@ -3395,9 +3405,9 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
   Ret:  vmsstat_t 
             CRAT_OKOK       - Successful operation
 	    CRAT_OFFON      - Successful operation, crate power has transitioned from off to on 
+            CRAT_OFFVER     - Failure, crate timeout or bad module, crate offline
             CRAT_VERDAT1    - Warning, only one read of data register produced expected pattern
             CRAT_CANTINIT   - Operation failed, unable to initalize crate, power off
-
             Othewise, see error codes from the functions:
               camgo()
 
@@ -3418,15 +3428,16 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
      * powered off, or the module is broken.
      */
      camstat1_u._i = statd_as[0].stat;   /* Get status read #1 return */
-     camstat2_u._i = statd_as[1].stat;   /* Get status read #2 return */ 
-     if (SUCCESS(iss) &&  !(camstat1_u._a[1] & camstat2_u._a[1] & CAMAC_MBCD_CTO)) 
+     camstat2_u._i = statd_as[1].stat;   /* Get status read #2 return */
+ 
+     if ( SUCCESS(iss) )
      {   
          /*
 	  * At least we don't have crate timeout on both reads.
 	  * Now check that the data is what we expect.
 	  */
           epicsMutexMustLock(module_ps->crate_s.mlock );
-          module_ps->crate_s.flag_e = CV_CRATEON;
+          module_ps->crate_s.flag_e     = CV_CRATEON;
           module_ps->crate_s.stat_u._i |= CRATE_STATUS_ONLINE;
           epicsMutexUnlock(module_ps->crate_s.mlock );
     
@@ -3444,29 +3455,25 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
 	  * Note: the crate init happens in CV_IsCrateOnline()
 	  */
           if ((data1==module_ps->pattern) && (data2==module_ps->pattern))
-	  {
                module_ps->data = data1;
-               epicsMutexMustLock(module_ps->crate_s.mlock );
-               module_ps->crate_s.stat_u._s.offOnTransition = 0;
-               epicsMutexUnlock(module_ps->crate_s.mlock );
-	  }
           else
 	  {
-               module_ps->crate_s.stat_u._s.init = 0;
+	       /* Clear the crate init flag - something is wrong */
+	       module_ps->crate_s.stat_u._i &= ~CRATE_STATUS_INIT;  
                if ((data1!=module_ps->pattern) && (data2!=module_ps->pattern))
 	       {
 		    module_ps->data = data1; /* save the date read from register */
                     epicsMutexMustLock(module_ps->crate_s.mlock );
-                    module_ps->crate_s.stat_u._s.offOnTransition = 1;
                     module_ps->crate_s.stat_u._i |= CRATE_STATUS_RDATA_ERR;
                     epicsMutexUnlock(module_ps->crate_s.mlock );
                     /* 
 		     * Issue a message to the log if this error didn't occur because we 
-		     * have just booted or the crate power was cycled since the last chec,
-                     * and this is a new error condition.		     */
-                    if ( !module_ps->crate_s.first_watch           && 
-                          module_ps->crate_s.prev_stat_u._s.online &&
-		        ( module_ps->crate_s.prev_stat_u._s.dataRdErr != module_ps->crate_s.stat_u._s.dataRdErr ))
+		     * have either just booted or the crate power was cycled since the last check,
+                     * and this is a new error condition.		    
+                     */
+                    if ( !module_ps->crate_s.first_watch                           && 
+                         (module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_ONLINE) &&
+			!(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_RDATA_ERR) )
 	            	errlogSevPrintf( errlogMajor,
                                          CRAT_VERDAT_MSG,
                                          module_ps->c,
@@ -3489,7 +3496,7 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
                     epicsMutexMustLock(module_ps->crate_s.mlock );
                     module_ps->crate_s.stat_u._i |= CRATE_STATUS_R1DATA_ERR;;
                     epicsMutexUnlock(module_ps->crate_s.mlock );
-                    if ( !(module_ps->crate_s.prev_stat_u._s.dataRdErr & CRATE_STATUS_R1DATA_ERR) )
+                    if ( !(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_R1DATA_ERR) )
                           errlogSevPrintf( errlogMajor,CRAT_VERDAT1_MSG,i,module_ps->c,module_ps->n,data1,camstat1_u._i );
 	       }
               /* 
@@ -3508,17 +3515,17 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
                     epicsMutexMustLock(module_ps->crate_s.mlock );
                     module_ps->crate_s.stat_u._i |= CRATE_STATUS_R2DATA_ERR;;
                     epicsMutexUnlock(module_ps->crate_s.mlock );
-                    if ( !(module_ps->crate_s.prev_stat_u._s.dataRdErr & CRATE_STATUS_R2DATA_ERR) )
+                    if ( !(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_R2DATA_ERR) )
                          errlogSevPrintf( errlogMajor,CRAT_VERDAT1_MSG,i,module_ps->c,module_ps->n,data1,camstat2_u._i );
 	       }
             
               /*
-	       * If the crate was online but the data registers were not initalized with the expected data, and
+	       * If the crate is online but the data registers are not initalized with the expected data, and
                * the crate was offline during the last check, then log a message 
                * indicating that the crate has been powered from off to on.
 	       * Please note, that we haven't initalized the crate yet. 
 	       */
-               if ( module_ps->crate_s.stat_u._s.offOnTransition && !module_ps->crate_s.first_watch )
+               if ( !(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_ONLINE) && !module_ps->crate_s.first_watch )
                   errlogSevPrintf(errlogInfo,CRAT_OFFON_MSG,module_ps->c,data1,camstat1_u._i );
 	  }
      }
@@ -3529,18 +3536,33 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
          * powered off, or the verifier module is bad. Log a message
          * if we are booting or if the crate was online during our last
          * check.
+         *
+	 * Check for a crate timeout and flag the crate status bitmas accordingly.
          */
          epicsMutexMustLock( module_ps->crate_s.mlock );
-         module_ps->crate_s.flag_e = CV_CRATEOFF;
-	 module_ps->crate_s.stat_u._i = 0;
-         if (camstat1_u._a[1] & camstat2_u._a[1] & CAMAC_MBCD_CTO)
-	   module_ps->crate_s.stat_u._i = CRATE_STATUS_CTO_ERR;
+         module_ps->crate_s.flag_e    = CV_CRATEOFF;
+
+
+         if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
+	   module_ps->crate_s.stat_u._i |= CRATE_STATUS_CTO_ERR;
+         else
+	   module_ps->crate_s.stat_u._i |= CRATE_STATUS_CAM_ERR;
          epicsMutexUnlock( module_ps->crate_s.mlock );
          
          /* Issue a message to the log if we're booting or the crate was previously online */
-         iss = CRAT_CANTINIT;
-         if (module_ps->crate_s.first_watch || module_ps->crate_s.prev_stat_u._s.online)
-           errlogSevPrintf(errlogMajor,CRAT_CANTINIT_MSG,module_ps->c);    
+         if ( module_ps->crate_s.first_watch )
+	 {
+           iss = CRAT_CANTINIT;
+           errlogSevPrintf(errlogMajor,CRAT_CANTINIT_MSG,module_ps->c); 
+	 }
+         /* 
+	  * The crate is not responding or the module is bad, and we
+	  * aren't booting up, and the crate was previously marked online,
+	  * so mark a crate timeout and issues and a message the a crate 
+	  * timeout has occurred.
+	  */
+         else if ( module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_ONLINE )
+           iss = CRAT_OFFVER;
      }
 
      return(iss);
@@ -3548,7 +3570,7 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
 
 /*====================================================
  
-  Abs:  Write pattter to data register
+  Abs:  Write patttern to data register
  
   Name: CV_WriteData
  
@@ -3640,8 +3662,8 @@ static long  CV_WriteData(CV_MODULE * const module_ps, unsigned long data )
           module_ps->crate_s.stat_u._i |= CRATE_STATUS_ONLINE;
        else if (flag_e!=CV_BADWREAD)
        {
-	 module_ps->crate_s.stat_u._s.camErr = epicsTrue;
-         module_ps->crate_s.stat_u._s.init   = epicsFalse;
+	 module_ps->crate_s.stat_u._i |=  CRATE_STATUS_CAM_ERR; /* set camac error */
+         module_ps->crate_s.stat_u._i &= ~CRATE_STATUS_INIT;    /* clear init      */
        }
        else 
 	  module_ps->crate_s.stat_u._i |= CRATE_STATUS_WDATA_ERR;
@@ -3742,8 +3764,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        /* Read the module Id register. Here we are checking for Q=1 */
        CV_ClrMsgStatus( &module_ps->mstat_as[CAMAC_RD_ID] );
        status = CV_ReadId(module_ps);
-       stat   = module_ps->cam_s.rd_id_s.statd_s.stat;
-       if ((stat & MBCD_STAT__Q)==0)
+       if ( !SUCCESS(iss) && (module_ps->mstat_as[CAMAC_RD_ID].errCode == CAM_NO_Q) )
        {
          cam_ps->Qstat_s.was_zero = 1;
          cam_ps->Qstat_s.err      = epicsTrue;
@@ -3816,9 +3837,9 @@ static vmsstat_t  CV_SetBusStatus( CV_MODULE * const module_ps )
 
     stat_u._i = 0;
     stat_u._i = test << BUS_STATUS_RWERR_SHIFT;
-    if ( (cam_ps->rwLineErr!=BUS_RWLINE_PASSED) || 
+    if ( RWLINE_ERR(test)    || 
          cam_ps->cmdLineErr  || 
-         cam_ps->Xstat_s.err || cam_ps->Qstat_s.err || 
+         cam_ps->Xstat_s.err ||  cam_ps->Qstat_s.err || 
          cam_ps->timeout     || !cam_ps->init )
     {
         iss = CRAT_VERIFY_FAIL;
@@ -3864,16 +3885,15 @@ static vmsstat_t  CV_SetBusStatus( CV_MODULE * const module_ps )
             
 =======================================================*/ 
 static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
-{
-    CMD_LINE_OK;
-    vmsstat_t                   iss    = CRAT_OKOK;  /* Return status                 */
-    unsigned short              i      = 0;          /* index counter                 */
-    unsigned long               data   = 0;          /* command line data             */
-    unsigned int                stat   = 0;          /* camac status, for checking X  */
-    unsigned long               lineNo = 0;          /* cmd line number               */
-    static const unsigned long  mask   = 0x1fff;     /* data mask                     */
-    static const unsigned short inhibit_cmd = 11;    /* inhibit command index         */
-    campkg_dataway_ts          *cam_ps = NULL;       /* pointer to camac package info */
+{    CMD_LINE_OK;
+    vmsstat_t                   iss    = CRAT_OKOK;     /* Return status                 */
+    unsigned short              i      = 0;             /* index counter                 */
+    unsigned long               data   = 0;             /* command line data             */
+    unsigned int                stat   = 0;             /* camac status, for checking X  */
+    unsigned long               lineNo = 0;             /* cmd line number               */
+    static const unsigned long  mask   = CMD_LINE_MASK; /* data mask                     */
+    static const unsigned short inhibit_cmd = 11;       /* inhibit command index         */
+    campkg_dataway_ts          *cam_ps = NULL;          /* pointer to camac package info */
 
 
     /* Perform command line test */
@@ -3968,7 +3988,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
     unsigned long      stat       = 0;               /* Camac package status                 */    
     unsigned int       ctlw       = 0;               /* Camac control word                   */
     unsigned short     nobcnt     = 0;               /* Camac data byte count of zero        */
-    unsigned short     emask  = CAMAC_EMASK_NOX_NOQ; /* Camac error mask, NOX and NOQ        */
+    unsigned short     emask      = CAMAC_EMASK_NOX_NOQ; /* Camac error mask, NOX and NOQ    */
     unsigned short     test       = 1;               /* Test number                          */
     unsigned int       nelem      = RW_LINE_NUM;     /* number of elements in block transfer */
     unsigned int       nbits      = RW_LINE_NUM;     /* number of bits for read-write test   */
@@ -4512,9 +4532,9 @@ static void  CV_SetCrateStatus( CV_MODULE * const module_ps, unsigned short stat
 {
     if (module_ps)
     {
-       /*   epicsMutexMustLock( module_ps->crate_s.mlock )   ; */
+       epicsMutexMustLock( module_ps->crate_s.mlock );
        module_ps->crate_s.stat_u._i = (module_ps->crate_s.stat_u._i & ~mask) | stat;
-       /*    epicsMutexUnlock( module_ps->crate_s.mlock );  */
+       epicsMutexUnlock( module_ps->crate_s.mlock ); 
     }
     return; 
 }
