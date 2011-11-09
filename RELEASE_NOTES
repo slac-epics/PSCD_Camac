@@ -17,10 +17,16 @@
 #
 #==============================================================
 #
-Tag:  PSCD_Camac-R2-0-1
-Date: 04-Oct-2011, K. Luchini (LUCHINI)
-Desc: Modify Crate Verifier cmdLine and rwLine functions
+PSCD_Camac-R2-0-2
+08-Nov-2011	K. Luchini (LUCHINI):
+		Modify Crate Verifier  drvCV.c devCV.c and bus status dbs
+                Meter error messages in VSAM device support by checking
+                previous status and severity
 
+PSCD_Camac-R2-0-1
+04-Oct-2011	K. Luchini (LUCHINI)
+		Modify Crate Verifier cmdLine and rwLine functions
+ 
 Tag:  PSCD_Camac-R2-0-0
 Date: 28-Sep-2011, K. Luchini (LUCHINI)
 Desc: Added Crate Verifier Application
