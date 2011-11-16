@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+PSCD_Camac-R2-0-3
+15-Nov-2011	K. Luchini (LUCHINI):
+                Modify cv_camac_module.template ID removing limits and severity
+                Modify devCV.c addiing ID limits and severity
+                Modify drvCV.c, don't issue Z during boot (temp), causes 
+                PIOP problem that requires IPL.
+
 PSCD_Camac-R2-0-2
 08-Nov-2011	K. Luchini (LUCHINI):
 		Modify Crate Verifier  drvCV.c devCV.c and bus status dbs
