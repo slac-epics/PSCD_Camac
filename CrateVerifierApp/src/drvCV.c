@@ -3217,7 +3217,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
     vmsstat_t                   iss     = CRAT_NOTVALID;
     vmsstat_t                   rd_iss  = CRAT_OKOK;
     vmsstat_t                   wt_iss  = CRAT_OKOK;
-    unsigned short              bothReadsFailed = 0;
+    unsigned short              readErr = 0;
     static const unsigned short mask  = CRATE_STATUS_RDATA_ERR;
     static const unsigned short i_wt    = 0;
     static const unsigned short i_rbk   = 1;
@@ -3244,7 +3244,7 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
     CV_ClrMsgStatus(&module_ps->mstat_as[CAMAC_RD_DATA]);
     status = CV_ReadData( module_ps );
 
-    /* 
+    /*
      * If the crate is physically powered on, meaning that we didn't
      * receive an MBCD_CTO (ie. crate timeout), then check to see if
      * the crate was recently power cycled.
@@ -3283,10 +3283,11 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
 	  * cycled on since the last check, in which case initalize
 	  * the crate but don't pulse the Z. 
 	  */
-         bothReadsFailed = module_ps->crate_s.stat_u._i & mask;
-         if ( module_ps->crate_s.first_watch )
+         readErr = module_ps->crate_s.stat_u._i & mask;
+	 if ( module_ps->crate_s.first_watch && readErr ) 
             iss = CV_CrateInit(module_ps,epicsTrue);
-	 else if ( bothReadsFailed || !(module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT) )        
+	 else if (!module_ps->crate_s.first_watch && 
+                  !(module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT)  )        
 	    iss = CV_CrateInit(module_ps,epicsFalse); 
        }
        
@@ -3458,8 +3459,12 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
                module_ps->data = data1;
           else
 	  {
-	       /* Clear the crate init flag - something is wrong */
+	       /* Clear the crate init flag - something is wrong and set the 
+		* crate power transition flag
+                */
+               epicsMutexMustLock(module_ps->crate_s.mlock );
 	       module_ps->crate_s.stat_u._i &= ~CRATE_STATUS_INIT;  
+               epicsMutexUnlock(module_ps->crate_s.mlock );
                if ((data1!=module_ps->pattern) && (data2!=module_ps->pattern))
 	       {
 		    module_ps->data = data1; /* save the date read from register */
@@ -3526,7 +3531,12 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
 	       * Please note, that we haven't initalized the crate yet. 
 	       */
                if ( !(module_ps->crate_s.prev_stat_u._i & CRATE_STATUS_ONLINE) && !module_ps->crate_s.first_watch )
+	       {
+                  epicsMutexMustLock(module_ps->crate_s.mlock );
+                  module_ps->crate_s.stat_u._i |= CRATE_STATUS_VPWROFF;
+                  epicsMutexUnlock(module_ps->crate_s.mlock );
                   errlogSevPrintf(errlogInfo,CRAT_OFFON_MSG,module_ps->c,data1,camstat1_u._i );
+	       }
 	  }
      }
      else
