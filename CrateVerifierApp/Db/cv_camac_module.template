@@ -11,14 +11,16 @@ record(longin, "$(DEV):ID") {
   field(SCAN, "I/O Intr")
   field(HOPR, "16")
   field(LOPR, "1")
-  field(HIHI, "$(HIHI)")
-  field(LOLO, "$(LOLO)")
-  field(HIGH, "$(HIHI)")
-  field(LOW,  "$(LOLO)")
-  field(HHSV, "MAJOR")
-  field(LLSV, "MAJOR")
-  field(LSV,  "MAJOR")
-  field(HSV,  "MAJOR")
+
+# Set in device support init
+#  field(HIHI, "$(HIHI)")
+#  field(LOLO, "$(LOLO)")
+#  field(HIGH, "$(HIHI)")
+#  field(LOW,  "$(LOLO)")
+#  field(HHSV, "MAJOR")
+#  field(LLSV, "MAJOR")
+#  field(LSV,  "MAJOR")
+#  field(HSV,  "MAJOR")
   field(PINI, "YES")
 }
 
