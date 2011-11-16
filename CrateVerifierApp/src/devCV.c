@@ -528,12 +528,32 @@ static long write_bo(struct boRecord * rec_ps)
 =============================================================*/
 static long init_longin(struct longinRecord * rec_ps)
 {
-    long        status     = OK;
+    long          status  = OK;
+    CV_REQUEST   *dpvt_ps = NULL;
 
     switch( rec_ps->inp.type )
     {
         case CAMAC_IO:
           status = CV_RequestInit((dbCommon *)rec_ps, &rec_ps->inp.value.camacio, EPICS_RECTYPE_LI);
+          if (!status)
+	  {
+            /* 
+	     * If this is the id, set the alarm and warning limits.
+	     * Note: the id MUST be set to the crate number
+	     */
+            dpvt_ps = (CV_REQUEST *)rec_ps->dpvt;
+            if ( dpvt_ps->func_e == CAMAC_RD_ID )
+	    {
+              rec_ps->hihi = rec_ps->inp.value.camacio.c + 1;
+              rec_ps->high = rec_ps->inp.value.camacio.c + 1;
+	      rec_ps->low  = rec_ps->inp.value.camacio.c - 1;
+	      rec_ps->lolo = rec_ps->inp.value.camacio.c - 1;
+              rec_ps->hhsv = MAJOR_ALARM;
+              rec_ps->hsv  = MAJOR_ALARM; 
+              rec_ps->llsv = MAJOR_ALARM;
+              rec_ps->lsv  = MAJOR_ALARM; 
+	    }
+	  }
           break;
 
         default:
