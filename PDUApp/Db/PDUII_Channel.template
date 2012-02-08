@@ -29,6 +29,7 @@ record(mbbo, "$(CHNLNAME):ModeSet") {
   field(TWST, "Modulo36")
   field(THST, "Reuse")
   field(PINI, "YES")
+  field(PRIO, "HIGH")
 }
 
 

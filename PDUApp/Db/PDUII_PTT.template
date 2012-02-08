@@ -17,6 +17,7 @@ record(longout,"$(PTTNAME):PTTSet") {
   field(DRVL, "0")
   field(LOPR, "0")
   field(PINI, "YES")
+  field(PRIO, "HIGH")
 }
 
 
