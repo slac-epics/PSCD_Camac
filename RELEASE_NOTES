@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R2-0-5:
+10-Apr-2012  E. Williams (ernesto):
+Build against EPICS R3-14-12
+
 PSCD_Camac-R2-0-4 
 07-Feb-2012     K. Luchini (LUCHINI):
                 Add PRIO "HIGH" to PDU dbs to help resolve
