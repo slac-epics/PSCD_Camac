@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.h,v 1.11 2011/02/22 19:36:24 luchini Exp $
+ *   $Id: devPDUII.h,v 1.12 2011/02/23 07:57:15 rcs Exp $
  *   File:		devPDUII.h
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -240,6 +240,13 @@ typedef struct STAS_DAT
     UINT32 stat;
     UINT32 data;
 } STAS_DAT;
+
+typedef struct STAS_SDAT
+{
+    UINT32 stat;
+    UINT16 sdata;
+} STAS_SDAT;
+
 
 int PDUII360TaskStart();
 int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE rtyp);
