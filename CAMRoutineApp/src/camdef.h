@@ -10,6 +10,7 @@
 #ifndef CAMDEF_HC
 #define CAMDEF_HC
 
+#define CAM_READ_MISMATCH                   ((unsigned long)0x08028653)
 #define CAM_NGNG                            ((unsigned long)0x08028142)
 #define CAM_BAD_CTLW                        ((unsigned long)0x0802813A)
 #define CAM_BAD_MODE                        ((unsigned long)0x08028132)
