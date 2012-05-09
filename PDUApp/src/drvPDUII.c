@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.13 2011/02/22 19:37:45 luchini Exp $
+ *   $Id: drvPDUII.c,v 1.14 2011/02/23 08:06:54 rcs Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -14,10 +14,14 @@
 #include "drvPSCDLib.h"
 #include "devPDUII.h"
 #include "cctlwmasks.h"
+#include "camdef.h"          /* for CAM_READ_MISMATCH */
 
 extern struct PSCD_CARD pscd_card;
 
 int PDUII_DRV_DEBUG = 0;
+static const UINT32 XM2QM1 = (CCTLW__XM2|CCTLW__QM1);  /* terminate X=0,Q=1 */
+
+
 
 /* We only support one PSCD per IOC */
 ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
@@ -216,21 +220,27 @@ UINT32 PDUII_Status(PDUII_MODULE *pPDUIIModule, UINT32 *pStatus)
     {/* b (Branch) is not used in SLAC system, but mean PSCD port */
         vmsstat_t iss;
 
-	STAS_DAT read_pduii = {0,0};
+	STAS_SDAT read_pduii = {0,0};
         UINT32 pduiictlw = 0x0;
-        UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
+        UINT16 bcnt = 2; 
+        UINT16 emask= 0xF2F2;   /* 0xE0E0; */
 
-        /* F2A2 to read status, ignore-overwrite whatever a,f in record */
+        /* F2A2 to read status, ignore-overwrite whatever a,f in record   */
+        /* Note that when the PDU (not PPDU) is                           */
+        /* busy and incapable of accepting or returning data, the PDU     */
+        /* usually (but not always) indicates this condition by returning */
+        /* Q = 0.  When this happens for the F2A2, the MBCD returns 0 as  */
+        /* the status register contents, but the PDU resets the status    */
+        /* register nonetheless                                           */
         pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (2 << 16) | 2;
 
-	bcnt = 4;
-        if (!SUCCESS(iss = camio (&pduiictlw, &(read_pduii.data), &bcnt, &(read_pduii.stat), &emask)))
+	bcnt = 2;
+        if (!SUCCESS(iss = camio(&pduiictlw, &(read_pduii.sdata), &bcnt, &(read_pduii.stat), &emask)))
         {
             errlogPrintf ("camio error %s for PDUII enable-disable sequencer\n", cammsg(iss));
             return (PDUII_STS_CAMIO_FAIL|iss);
         }
-        if(pStatus) *pStatus = read_pduii.data & 0xFF;
+        if(pStatus) *pStatus = read_pduii.sdata & 0xFF;
         return 0;
     }
     else
@@ -244,7 +254,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 {/* This function is not thread safe, but only used in one thread per module */
 
     UINT32 status = PDUII_REQUEST_NO_ERR;
-
+    dbCommon     * pRecord  = pPDUIIRequest->pRecord;
     PDUII_MODULE * pPDUIIModule = pPDUIIRequest->pPDUIIModule;
     if(!pPDUIIRequest || !pPDUIIModule) return -1;
 
@@ -254,14 +264,15 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
+        UINT16 emask = 0xF3F3;   /* 0xE0E0 */
 
         UINT32 ctlwF17A0 = 0x0;
-        UINT32 ctlwF1A0 = 0x0;
+        UINT32 ctlwF1A0  = 0x0;
 
-        STAS_DAT read_pduii[3];	/* need to set PTTP first, then double read mode */
-        UINT16 nops = 3;
-        UINT16 read1,read2;     /* double read of mode */
+        STAS_SDAT write_pduii = {0,0};
+        STAS_SDAT read_pduii[2] = {{0,0},{0,0}};   /* need to set PTTP first, then double read mode */
+        UINT16    nops = 3;
+        UINT16    read1, read2;    /* double read of mode */
 
         /** Allocate package for PDUII mode read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
@@ -272,10 +283,10 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	/* Write PTTP with channel number, location (PP/YY) field is 0 */
-        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
+        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
-        *((UINT16 *)(&(read_pduii[0].data))) = pPDUIIRequest->a << 8;
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        write_pduii.sdata = pPDUIIRequest->a << 8;
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii, &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -283,18 +294,20 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
         /*
-	** Read the mode. We do a double read and ignore the result if they don't match. The PDU
+	** Read the pp/yy mode. We do a double read and ignore the result if they don't match. The PDU
 	** has a bug which returns 0 ~1% of the time.
 	*/
-        ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0;
+        ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0 | XM2QM1;
         bcnt = 2;
-        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
             goto release_campkg;
         }
-        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+
+        /* Issue a second mode read */
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -309,14 +322,21 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
         }
         else
         {
-            read1 = ((*((UINT16 *)(&(read_pduii[1].data))) >> 12) & 0x7);
-            read2 = ((*((UINT16 *)(&(read_pduii[2].data))) >> 12) & 0x7);
-            if (read1 == read2)
+	    read1 = ((read_pduii[0].sdata >>12) & 0x7);
+	    read2 = ((read_pduii[1].sdata >>12) & 0x7);
+            if ( read1!=read2 )
 	    {
-	        pPDUIIRequest->val = *((UINT16 *)(&(read_pduii[1].data)));
-                pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = (((pPDUIIRequest->val)>>12) & 0x7);
+              errlogPrintf("drvPDUII failed mode read (rd1=0x%4.4hx rd2=0x%4.4hx) PDU n=%hd chan %hd %s\n",
+			     read1,
+                             read2,
+			     pPDUIIModule->n,
+                             pPDUIIRequest->a,
+                             pRecord->name);
 	    }
+	    pPDUIIRequest->val = read_pduii[1].sdata;            /* last mode read */
+            pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = read2;
         }
+
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
@@ -340,25 +360,30 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
 {/* This function is not thread safe, but only used in one thread per module */
 
     UINT32 status = PDUII_REQUEST_NO_ERR;
-
+    dbCommon     * pRecord = pPDUIIRequest->pRecord;
     PDUII_MODULE * pPDUIIModule = pPDUIIRequest->pPDUIIModule;
+
     if(!pPDUIIRequest || !pPDUIIModule) return -1;
 
     /* check if module exists */
     if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
     {
-        void *pkg_p;  /* A camac package */
+        void *pkg_p=NULL;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
+        UINT16 emask= 0xF3F3;   /* 0xE0E0; */
 
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF17A1 = 0x0;
+        UINT32 ctlwF1A0  = 0x0;
 
-        STAS_DAT write_pduii[2];	/* need to set PTTP first, then read mode */
-        UINT16 nops = 2;
+        STAS_SDAT write_pduii[2] = {{0,0},{0,0}};	/* need to set PTTP first, then read mode */
+        STAS_SDAT read_pduii[2]  = {{0,0},{0,0}};       /* read pduii data */
+        UINT16    read1,read2;
+        UINT16    nops = 4;
+    
 
-        /** Allocate package for PDUII mode read */
+        /* Allocate package for PDUII mode write and read back */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
         {
             errlogPrintf("camalo error %s\n",cammsg(iss));
@@ -367,9 +392,9 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	/* Write PTTP with channel number, location field is 0 */
-        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
+        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
-        *((UINT16 *)(&(write_pduii[0].data))) = pPDUIIRequest->a << 8;
+        write_pduii[0].sdata = pPDUIIRequest->a << 8;
         if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
@@ -377,10 +402,29 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        ctlwF17A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 1;
+        /* Set pp/yy mode for channel */
+        ctlwF17A1 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 1 | XM2QM1;
         bcnt = 2;
-        *((UINT16 *)(&(write_pduii[1].data))) = pPDUIIRequest->val & 0x7;
+        write_pduii[1].sdata = pPDUIIRequest->val & 0x7;
         if (!SUCCESS(iss = camadd (&ctlwF17A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error %s\n",cammsg(iss));
+            status = (PDUII_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        }
+
+        /*
+	** Double read of the mode to make sure the write has latched.
+	*/
+        ctlwF1A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (1 << 16) | 0 | XM2QM1;
+        bcnt = 2;
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error %s\n",cammsg(iss));
+            status = (PDUII_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        }
+        if (!SUCCESS(iss = camadd (&ctlwF1A0, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -395,10 +439,36 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         {/* Fail to set mode, leave as invalid */
             errlogPrintf("drvPDUII camgo error %s setting mode\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
+            goto release_campkg;  
         }
+
         else
-        {/* Succeed. Validate chnlMode */
-            pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = (pPDUIIRequest->val & 0x7);
+        {/* Verify that mode set succeed by making sure set point latched.*/
+	    /* Strip off the PTTP in R12-1 */
+	    read1 = ((read_pduii[0].sdata)>>12) & 0x7;
+	    read2 = ((read_pduii[1].sdata)>>12) & 0x7;
+
+            /* Succeed. Validate chnlMode. */
+            if ((read1 == write_pduii[1].sdata) || (read2 == write_pduii[1].sdata))
+	    {
+              /*  do nothing...this is set in function PDUII_ModeGet()
+              pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = ((pPDUIIRequest->val >>12)& 0x7); 
+              */
+	    }
+            else
+	    {/* Mode did not latch, write failed */
+              pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = read2;
+	      errlogPrintf("drvPDUII failed to set mode (wt=0x%4.4hx rd1=0x%4.4hx rd2=0x%4.4hx) in PDU n=%hd chan %hd %s\n",
+			    write_pduii[1].sdata,
+			    read1,
+		 	    read2,
+			    pPDUIIModule->n,
+                            pPDUIIRequest->a,
+                            pRecord->name);
+              iss = CAM_READ_MISMATCH;
+	      status = (PDUII_CAM_GO_FAIL|iss);
+              goto release_campkg;
+	    }
         }
 
 release_campkg: 
@@ -434,13 +504,16 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
+        UINT16 emask= 0xF3F3;  /* 0xE0E0; */
 
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF0A1 = 0x0;
 
-        STAS_DAT read_pduii[4];	/* need to set PTTP first, then double read PTT val */
+        STAS_SDAT write_pduii[2]={{0,0},{0,0}}; /* set PTTP first before read */
+        STAS_DAT read_pduii[2] = {{0,0},{0,0}};	/* then double read PTT val   */
         UINT16 nops = 4;
+
+       dbCommon     * pRecord  = pPDUIIRequest->pRecord;
 
         /** Allocate package for PTT read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
@@ -451,11 +524,11 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	/* Write PTTP with channel number, location field is 0 */
-        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
+        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
-        *((UINT16 *)(&(read_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
+        *((UINT16 *)(&(write_pduii[0].sdata))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[0], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -466,9 +539,9 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	** Read the PTT. We do a double read and ignore the result if they don't match. The PDU
 	** has a bug which returns 0 ~1% of the time.
 	*/
-        ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1;
+        ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1 | XM2QM1;
         bcnt = 4;
-        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -477,9 +550,9 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 
 
 	bcnt = 2;
-        *((UINT16 *)(&(read_pduii[2].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
+        *((UINT16 *)(&(write_pduii[1].sdata))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
-        if (!SUCCESS(iss = camadd (&ctlwF17A0, &read_pduii[2], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -488,7 +561,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 
         /************** Double read ****************/
         bcnt = 4;
-        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[3], &bcnt, &emask, &pkg_p)))
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
             status = (PDUII_CAM_ADD_FAIL|iss);
@@ -500,11 +573,20 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	    errlogPrintf("drvPDUII camgo error %s reading the PTT\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
         }
-        else if ( (read_pduii[1].data & 0xFFFF) == (read_pduii[3].data & 0xFFFF) )
+        else if ( (read_pduii[0].data & 0xFFFF) == (read_pduii[1].data & 0xFFFF) )
         {
-	    pPDUIIRequest->val = read_pduii[1].data & 0xFFFFF;
+	    pPDUIIRequest->val = read_pduii[0].data & 0xFFFFF;
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = pPDUIIRequest->val;
         }
+        else
+	{
+            errlogPrintf("drvPDUII failed pttp read (rd1=0x%8.8hx rd2=0x%8.8hx) PDU n=%hd chan %hd %s\n",
+			  read_pduii[0].data,
+                          read_pduii[1].data,
+			  pPDUIIModule->n,
+                          pPDUIIRequest->a,
+                          pRecord->name);
+	}
 release_campkg: 
 
         if (!SUCCESS(iss = camdel (&pkg_p)))
@@ -538,13 +620,18 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         void *pkg_p;  /* A camac package */
         vmsstat_t iss;
         UINT16 bcnt = 4;
-        UINT16 emask= 0xE0E0;
+        UINT16 emask= 0xF3F3;  /* 0xE0E0; */
 
         UINT32 ctlwF17A0 = 0x0;
         UINT32 ctlwF16A1 = 0x0;
+        UINT32 ctlwF0A1 = 0x0;
 
-        STAS_DAT write_pduii[2];	/* need to set PTTP first, then read mode */
-        UINT16 nops = 2;
+        STAS_DAT write_pduii[2] = {{0,0},{0,0}};	/* need to set PTTP */
+        STAS_DAT read_pduii = {0,0};             	/* then read mode   */
+        UINT32   read1 = 0;                             /* read data        */
+        UINT16 nops = 3;
+
+       dbCommon     * pRecord  = pPDUIIRequest->pRecord;
 
         /** Allocate package for PDUII mode read */
         if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
@@ -555,7 +642,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         }
 
 	/* Write PTTP with channel number, location field is 0 */
-        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0;
+        ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
         if(PDUII_DRV_DEBUG) printf("Set PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
@@ -566,7 +653,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
-        ctlwF16A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1;
+        ctlwF16A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (16 << 16) | 1 | XM2QM1;
         bcnt = 4;
         write_pduii[1].data = pPDUIIRequest->val & 0xFFFFF;
         if (!SUCCESS(iss = camadd (&ctlwF16A1, &write_pduii[1], &bcnt, &emask, &pkg_p)))
@@ -576,9 +663,22 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             goto release_campkg;
         }
 
+        /*
+        ** Verfiy that PTTP has latched.
+        ** Note: The PDU has a bug which returns 0 ~1% of the time.
+	*/
+        ctlwF0A1 = CCTLW__P24 | (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (0 << 16) | 1 | XM2QM1;
+        bcnt = 4;
+        if (!SUCCESS(iss = camadd (&ctlwF0A1, &read_pduii, &bcnt, &emask, &pkg_p)))
+        {
+            errlogPrintf("camadd error %s\n",cammsg(iss));
+            status = (PDUII_CAM_ADD_FAIL|iss);
+            goto release_campkg;
+        }
+
         /* Never modify 360T reloading channel here, and only one op thread per module, so no need to lock. */
-        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence */
-        /* So be conservetive, marking as UNKNOWN asap will be good enough */
+        /* And 360Hz task has higher priority, this will never break into 360Hz task sequence               */
+        /* So be conservetive, marking as UNKNOWN asap will be good enough                                  */
         pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = PTT_ENTRY_UNKNOWN|(pPDUIIRequest->val & 0xFFFFF);
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
@@ -589,6 +689,16 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         else
         {/* Succeed, validate it */
             pPDUIIModule->pttCache[(pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF)] = (pPDUIIRequest->val & 0xFFFFF);
+            read1 = read_pduii.data & 0xFFFFF;
+            if ( read1 != write_pduii[1].data )
+	    {
+	      errlogPrintf("drvPDUII failed to set ptt (wt=0x%8.8hx rd=0x%8.8hx) in PDU n=%hd chan %hd %s\n",
+			    write_pduii[1].data,
+			    read1,
+			    pPDUIIModule->n,
+                            pPDUIIRequest->a,
+                            pRecord->name);
+	    }
         }
 
 release_campkg: 
