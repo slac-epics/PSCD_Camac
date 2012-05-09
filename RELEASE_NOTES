@@ -17,9 +17,16 @@
 #
 #==============================================================
 #
+PSCD_Camac-R2-0-6:
+09-May-2012, K. Luchini (LUCHINI):
+                Modify PDU driver functions for mode set/read
+                and ptt set.
+                Restore config/RELEASE file for epics R3-13-8-2
+                used in PSCD_Camac-R2-0-4
+ 
 PSCD_Camac-R2-0-5:
 10-Apr-2012  E. Williams (ernesto):
-Build against EPICS R3-14-12
+                Build against EPICS R3-14-12
 
 PSCD_Camac-R2-0-4 
 07-Feb-2012     K. Luchini (LUCHINI):
