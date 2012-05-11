@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.14 2011/02/23 08:06:54 rcs Exp $
+ *   $Id: drvPDUII.c,v 1.15 2012/05/09 19:52:54 luchini Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -441,23 +441,15 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
             status = (PDUII_CAM_GO_FAIL|iss);
             goto release_campkg;  
         }
-
         else
-        {/* Verify that mode set succeed by making sure set point latched.*/
-	    /* Strip off the PTTP in R12-1 */
-	    read1 = ((read_pduii[0].sdata)>>12) & 0x7;
-	    read2 = ((read_pduii[1].sdata)>>12) & 0x7;
+        {   /* Set mode for 360Hz Task, used to set PP0 and PP1 PTTs */
+            pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = (pPDUIIRequest->val & 0x7);
 
-            /* Succeed. Validate chnlMode. */
-            if ((read1 == write_pduii[1].sdata) || (read2 == write_pduii[1].sdata))
-	    {
-              /*  do nothing...this is set in function PDUII_ModeGet()
-              pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = ((pPDUIIRequest->val >>12)& 0x7); 
-              */
-	    }
-            else
+            /* Verify that mode set succeed by making sure set point latched.*/
+	    read1 = ((read_pduii[0].sdata)>>12) & 0x7;	    /* Strip off the PTTP in R12-1 */
+	    read2 = ((read_pduii[1].sdata)>>12) & 0x7; 
+            if ((read1!= write_pduii[1].sdata) && (read2!= write_pduii[1].sdata))
 	    {/* Mode did not latch, write failed */
-              pPDUIIModule->chnlModeRbk[pPDUIIRequest->a] = read2;
 	      errlogPrintf("drvPDUII failed to set mode (wt=0x%4.4hx rd1=0x%4.4hx rd2=0x%4.4hx) in PDU n=%hd chan %hd %s\n",
 			    write_pduii[1].sdata,
 			    read1,
