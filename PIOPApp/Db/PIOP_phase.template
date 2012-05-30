@@ -37,9 +37,10 @@ record(sub, "$(DEV):PHAS_FAST_CONVERT") {
 
 record(ai, "$(DEV):PHAS_FAST") {
   field(DESC, "Phase")
-  field(SCAN,"Passive")
-  field(EGU, "$(EGU)")
+  field(SCAN, "Passive")
+  field(EGU,  "$(EGU)")
   field(INP,  "$(DEV):PHAS_FAST_CONVERT MS NPP")
+  field(TSE,  "-1")
 # FLNK to BSA
   field(FLNK, "$(DEV):EFPHAS_FAST.PROC")
 }
