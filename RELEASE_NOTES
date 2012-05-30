@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-0-0:
+30-May-2012, S. Hoobler (SONYA):
+                Changes to be compatible with R3-14-12
+                Update module versions on configure/RELEASE
+                PIOPApp/Db/PIOP_phase.template: change TSE from 0 to -1
+                CrateVerifierApp/src/* - define MIN, MAX (removed from dbDefs.h)
+
 PSCD_Camac-R2-0-6:
 09-May-2012, K. Luchini (LUCHINI):
                 Modify PDU driver functions for mode set/read
