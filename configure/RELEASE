@@ -37,16 +37,14 @@ TEMPLATE_TOP=$(BASE_SITE_TOP)/$(EPICS_BASE_VER)/templates/makeBaseApp/top
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-SEQ_MODULE_VERSION=seq-R2-0-11-lcls5
-EVENT_MODULE_VERSION=event-R3-2-2
-GENERALTIME_MODULE_VERSION=generalTime-R2-2-1
-MISCUTILS_MODULE_VERSION=miscUtils-R2-2-1
+SEQ_MODULE_VERSION=seq-R2-0-11-lcls4
+EVENT_MODULE_VERSION=event-R3-2-2-br_generaltime-2-1
+MISCUTILS_MODULE_VERSION=miscUtils-R2-2-2
 GENSUB_MODULE_VERSION=genSub-R1-6-lcls6
 
 #If using the sequencer, point SNCSEQ at its top directory:
 SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
 EVENT=$(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
-GENERALTIME=$(EPICS_MODULES)/generalTime/$(GENERALTIME_MODULE_VERSION)
 MISCUTILS=$(EPICS_MODULES)/miscUtils/$(MISCUTILS_MODULE_VERSION)
 GENSUB=$(EPICS_MODULES)/genSub/$(GENSUB_MODULE_VERSION)
 
