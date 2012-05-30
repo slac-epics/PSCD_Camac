@@ -79,6 +79,9 @@
 extern "C" {
 #endif  /* __cplusplus */
 
+/* Minimum and maximum (removed from dbDef.h) */
+#define MIN(x,y) ((x>y) ? y : x)
+#define MAX(x,y) ((x>y) ? x : y)
 
 /******************************************************************************************/
 /*********************        VMS Status Message Codes          ***************************/

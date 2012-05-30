@@ -169,11 +169,11 @@ static long CV_Bus_Data_Init(genSubRecord *sub_ps)
          status = OK;
          dpvt_ps->data_a =  (unsigned long *)sub_ps->a;                    /* ptr to local wf    */
          dpvt_ps->type   = *(unsigned long *)sub_ps->c;                    /* type of bus data   */
-         dpvt_ps->nelem  = min(*(unsigned long *)sub_ps->b,sub_ps->noa);   /* # of data elements */
+         dpvt_ps->nelem  = MIN(*(unsigned long *)sub_ps->b,sub_ps->noa);   /* # of data elements */
          if (type==CMDLINE)
-	   dpvt_ps->nelem = min(dpvt_ps->nelem,CMD_LINE_NUM);
+	   dpvt_ps->nelem = MIN(dpvt_ps->nelem,CMD_LINE_NUM);
          else
- 	   dpvt_ps->nelem = min(dpvt_ps->nelem,RW_LINE_NUM);
+ 	   dpvt_ps->nelem = MIN(dpvt_ps->nelem,RW_LINE_NUM);
          dpvt_ps->mlock  = epicsMutexMustCreate();                         /* mutex to be used when copying waveform */
          sub_ps->dpvt    = dpvt_ps;
       }

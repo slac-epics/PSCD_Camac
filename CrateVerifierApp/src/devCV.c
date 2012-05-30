@@ -962,7 +962,7 @@ static long read_wf(struct waveformRecord *rec_ps)
     switch( dpvt_ps->func_e )
     {
           case CAMAC_TST_CMD:       /* command line data         */
-            rec_ps->nord = min(CMD_LINE_NUM,rec_ps->nelm);
+            rec_ps->nord = MIN(CMD_LINE_NUM,rec_ps->nelm);
 	    val_a = (unsigned long *)rec_ps->bptr;
             epicsMutexMustLock( module_ps->cmdLine_s.mlock );
             for (i=0; i<rec_ps->nord; i++)
@@ -972,7 +972,7 @@ static long read_wf(struct waveformRecord *rec_ps)
 
           case CAMAC_TST_RW:            /* read-write lines W1-24 */ 
           case CAMAC_TST_RW_PATTERN:    /* read-write lines W1-24 pattern */ 
-            rec_ps->nord = min(RW_LINE_NUM,rec_ps->nelm);
+            rec_ps->nord = MIN(RW_LINE_NUM,rec_ps->nelm);
 	    val_a = (unsigned long *)rec_ps->bptr;
             if (dpvt_ps->func_e==CAMAC_TST_RW_PATTERN) 
 	      data_a = module_ps->rwLine_s.expected_data_a;
