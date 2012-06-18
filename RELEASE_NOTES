@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-0-1:
+18-Jun-2012, K. Luchini (LUCHINI):
+                Deprecate RELEASE_SITE and create on fly using eco script.
+                Modify configure/RELEASE accordingly with new RELEASE_SITE         
+
 PSCD_Camac-R3-0-0:
 30-May-2012, S. Hoobler (SONYA):
                 Changes to be compatible with R3-14-12
