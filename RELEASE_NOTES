@@ -17,7 +17,14 @@
 #
 #==============================================================
 #
-PSCD_Camac-R3-0-1:
+PSCD_Camac-R3-0-2
+22-Oct-2012, K. Luchini (LUCHINI)
+                Modify the function PDUII_Status function
+                in drvPDUII.c to handle a PDU module problem where
+                the status register of the PDU ocassionally reads 0
+                and on subsequent reads the correct value is read.
+
+PSCD_Camac-R3-0-1
 18-Jun-2012, K. Luchini (LUCHINI):
                 Deprecate RELEASE_SITE and create on fly using eco script.
                 Modify configure/RELEASE accordingly with new RELEASE_SITE         
