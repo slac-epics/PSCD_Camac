@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.15 2012/05/09 19:52:54 luchini Exp $
+ *   $Id: drvPDUII.c,v 1.16 2012/05/11 19:31:29 luchini Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -19,8 +19,8 @@
 extern struct PSCD_CARD pscd_card;
 
 int PDUII_DRV_DEBUG = 0;
+int pduii_debug = 0;
 static const UINT32 XM2QM1 = (CCTLW__XM2|CCTLW__QM1);  /* terminate X=0,Q=1 */
-
 
 
 /* We only support one PSCD per IOC */
@@ -33,6 +33,7 @@ ELLLIST PDUIIModuleList = {{NULL, NULL}, 0};
 #define LOCKMODULE 
 #define UNLOCKMODULE 
 #endif
+#define MAX_RETRIES 5
 
 /*********************************************************************/
 static PDUII_MODULE * findPDUIIModuleByBCN(short b, short c, short n)
@@ -213,38 +214,75 @@ UINT32 PDUII_SeqrEnDis(PDUII_MODULE *pPDUIIModule, UINT32 enable)
 /* Return 0 means succeed, otherwise error code */
 UINT32 PDUII_Status(PDUII_MODULE *pPDUIIModule, UINT32 *pStatus)
 {
+    UINT32    status = PDUII_MODULE_NOT_EXIST;;
+    vmsstat_t iss;
+    STAS_SDAT read_pduii = {0,0}; 
+    UINT32    pduiictlw = 0x0; 
+    UINT16    bcnt = 2; 
+    UINT16    emask= 0xE0E0;         /* check x,n,(q) 0xF2F2 - was 0xE0E0; */
+    UINT16    nops = 1,i;
+    void     *pkg_p;                 /* A camac package           */
+
+
     if(!pPDUIIModule) return -1;
 
     /* check if module exists */
-    if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
-    {/* b (Branch) is not used in SLAC system, but mean PSCD port */
-        vmsstat_t iss;
+    /* b (Branch) is not used in SLAC system, but mean PSCD port */
+    if(!isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n)) 
+      goto egress;
 
-	STAS_SDAT read_pduii = {0,0};
-        UINT32 pduiictlw = 0x0;
-        UINT16 bcnt = 2; 
-        UINT16 emask= 0xF2F2;   /* 0xE0E0; */
-
-        /* F2A2 to read status, ignore-overwrite whatever a,f in record   */
-        /* Note that when the PDU (not PPDU) is                           */
-        /* busy and incapable of accepting or returning data, the PDU     */
-        /* usually (but not always) indicates this condition by returning */
-        /* Q = 0.  When this happens for the F2A2, the MBCD returns 0 as  */
-        /* the status register contents, but the PDU resets the status    */
-        /* register nonetheless                                           */
-        pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (2 << 16) | 2;
-
-	bcnt = 2;
-        if (!SUCCESS(iss = camio(&pduiictlw, &(read_pduii.sdata), &bcnt, &(read_pduii.stat), &emask)))
-        {
-            errlogPrintf ("camio error %s for PDUII enable-disable sequencer\n", cammsg(iss));
-            return (PDUII_STS_CAMIO_FAIL|iss);
-        }
-        if(pStatus) *pStatus = read_pduii.sdata & 0xFF;
-        return 0;
+    /* Allocate package for PDUII status register read */
+    if (!SUCCESS(iss = camalo (&nops, &pkg_p)))
+    {
+       errlogPrintf("camalo error %s\n",cammsg(iss));
+       status = (PDUII_CAM_ALLOC_FAIL|iss);
+       goto egress;
     }
-    else
-        return PDUII_MODULE_NOT_EXIST;
+
+    /* F2A2 to read status, ignore-overwrite whatever a,f in record   */
+    /* Note that when the PDU (not PPDU) is                           */
+    /* busy and incapable of accepting or returning data, the PDU     */
+    /* usually (but not always) indicates this condition by returning */
+    /* Q = 0.  When this happens for the F2A2, the MBCD returns 0 as  */
+    /* the status register contents, but the PDU resets the status    */
+    /* register nonetheless                                           */
+    pduiictlw = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (2 << 16) | 2;
+        
+    if (!SUCCESS(iss = camadd (&pduiictlw, &(read_pduii.stat), &bcnt, &emask, &pkg_p)))
+    {
+       errlogPrintf("camadd error %s\n",cammsg(iss));
+       status = (PDUII_CAM_ADD_FAIL|iss);
+       goto release_campkg;
+    }      
+    
+    iss = camgo(&pkg_p);
+    /*  iss = camio(&pduiictlw, &(read_pduii.sdata), &bcnt, &(read_pduii.stat), &emask);
+    for (i=0; ((read_pduii. & 1)==0) && SUCCESS(iss) && i<MAX_RETRIES; ++i)
+    {
+        The RMX code has a 1 millisecond wait here. 
+       iss = camgo(&pkg_p);
+    }
+    */
+    if (!SUCCESS(iss))
+    {
+        errlogPrintf("drvPDUII camgo error %s reading status.\n",cammsg(iss));
+        status = (PDUII_CAM_GO_FAIL|iss);
+        goto release_campkg;
+    }
+    /*
+    else if ((read_pduii.stat & 1)==0)
+      errlogPrintf("drvPDUII NoQ error reading status 0x%8.8hx C=%hd.\n",read_pduii.stat,pPDUIIModule->c);
+    */
+    if(pStatus) *pStatus = read_pduii.sdata & 0xFF;
+    status = 0;
+
+release_campkg: 
+    if (!SUCCESS(iss = camdel (&pkg_p)))
+       errlogPrintf("drvPDUII camdel error %s\n",cammsg(iss));       
+
+egress:
+
+    return(status);
 }
 
 /* This function tries to read mode of PDUII module */
@@ -262,7 +300,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
     if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
     {
         void *pkg_p;  /* A camac package */
-        vmsstat_t iss;
+        vmsstat_t iss,issx;
         UINT16 bcnt = 4;
         UINT16 emask = 0xF3F3;   /* 0xE0E0 */
 
@@ -339,7 +377,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 
 release_campkg: 
 
-        if (!SUCCESS(iss = camdel (&pkg_p)))
+        if (!SUCCESS(issx = camdel (&pkg_p)))
             errlogPrintf("drvPDUII camdel error %s\n",cammsg(iss));
     }
     else
@@ -369,7 +407,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
     if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
     {
         void *pkg_p=NULL;  /* A camac package */
-        vmsstat_t iss;
+        vmsstat_t iss,issx;
         UINT16 bcnt = 4;
         UINT16 emask= 0xF3F3;   /* 0xE0E0; */
 
@@ -450,7 +488,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
 	    read2 = ((read_pduii[1].sdata)>>12) & 0x7; 
             if ((read1!= write_pduii[1].sdata) && (read2!= write_pduii[1].sdata))
 	    {/* Mode did not latch, write failed */
-	      errlogPrintf("drvPDUII failed to set mode (wt=0x%4.4hx rd1=0x%4.4hx rd2=0x%4.4hx) in PDU n=%hd chan %hd %s\n",
+	      errlogPrintf("drvPDUII failed to set mode (wt=0x%4.4hx rd1=0x%4.4hx rd2=0x%4.4hx) in PDU n=%.2hd chan %.2hd %s\n",
 			    write_pduii[1].sdata,
 			    read1,
 		 	    read2,
@@ -465,7 +503,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
 
 release_campkg: 
 
-        if (!SUCCESS(iss = camdel (&pkg_p)))
+        if (!SUCCESS(issx = camdel (&pkg_p)))
             errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
@@ -494,7 +532,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
     if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
     {
         void *pkg_p;  /* A camac package */
-        vmsstat_t iss;
+        vmsstat_t iss,issx;
         UINT16 bcnt = 4;
         UINT16 emask= 0xF3F3;  /* 0xE0E0; */
 
@@ -572,7 +610,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         }
         else
 	{
-            errlogPrintf("drvPDUII failed pttp read (rd1=0x%8.8hx rd2=0x%8.8hx) PDU n=%hd chan %hd %s\n",
+            errlogPrintf("drvPDUII failed pttp read (rd1=0x%8.8hx rd2=0x%8.8hx) PDU n=%.2hd chan %.2hd %s\n",
 			  read_pduii[0].data,
                           read_pduii[1].data,
 			  pPDUIIModule->n,
@@ -581,7 +619,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 	}
 release_campkg: 
 
-        if (!SUCCESS(iss = camdel (&pkg_p)))
+        if (!SUCCESS(issx = camdel (&pkg_p)))
             errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
@@ -610,7 +648,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
     if(isModuleExsit(pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n))
     {
         void *pkg_p;  /* A camac package */
-        vmsstat_t iss;
+        vmsstat_t iss,issx;
         UINT16 bcnt = 4;
         UINT16 emask= 0xF3F3;  /* 0xE0E0; */
 
@@ -684,7 +722,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
             read1 = read_pduii.data & 0xFFFFF;
             if ( read1 != write_pduii[1].data )
 	    {
-	      errlogPrintf("drvPDUII failed to set ptt (wt=0x%8.8hx rd=0x%8.8hx) in PDU n=%hd chan %hd %s\n",
+	      errlogPrintf("drvPDUII failed to set ptt (wt=0x%8.8hx rd=0x%8.8hx) in PDU n=%02hd chan %02hd %s\n",
 			    write_pduii[1].data,
 			    read1,
 			    pPDUIIModule->n,
@@ -695,7 +733,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
 
 release_campkg: 
 
-        if (!SUCCESS(iss = camdel (&pkg_p)))
+        if (!SUCCESS(issx = camdel (&pkg_p)))
             errlogPrintf("camdel error %s\n",cammsg(iss));
     }
     else
