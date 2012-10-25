@@ -17,6 +17,14 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-1-0
+25-Oct-2012, S. Hoobler (SONYA)
+                Add delay in PDU 360 Hz task. Use HW timer to interrupt
+                task. Add device support for delay PV.
+                  Changes to PDUApp/src/PDUII_360Task.c, Makefile, PDUII.dbd
+                             PDUApp/Db/PDUDIAG.db
+                  New file   PDUApp/src/devPDUII_360Task.c
+
 PSCD_Camac-R3-0-2
 22-Oct-2012, K. Luchini (LUCHINI)
                 Modify the function PDUII_Status function
