@@ -66,7 +66,8 @@ char  *parm, *str;
 
         if ( CAMAC_IO != plongout->out.type ) {
 		status = S_dev_badBus;
-		goto bail;
+		plongout->pact = TRUE;
+		return status;
 	}
 
 	camio = &(plongout->out.value.camacio);
@@ -77,10 +78,9 @@ char  *parm, *str;
 	       	status = S_dev_badSignal;
        	}
 
-bail:
 	if ( status ) {
 	       recGblRecordError( status, (void *)plongout , (const char *)str );
-	       plongout->pact=TRUE;
+	       plongout->pact = TRUE;
 	}
 
 	return status;
