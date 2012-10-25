@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.19 2011/03/16 00:08:08 rcs Exp $
+ **   $Id: PDUII_360Task.c,v 1.20 2012/10/25 19:42:43 sonya Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -109,9 +109,6 @@ static int PDUIIFidu360Task(void * parg)
   
     void *F19pkg_p;
     UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
-
-    struct timespec tmexpir, tmcurr; /* for pre-F19 delay */
-    double expir, curr;
 
     unsigned int timerNum = 0;   /* BSP timer number */
     unsigned int timerDelay;     /* Actual calculated delay */ 
