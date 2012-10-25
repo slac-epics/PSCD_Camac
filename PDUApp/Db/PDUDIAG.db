@@ -30,6 +30,19 @@ record(longout,"$(NAME):CHAN_SELECT") {
   field(OUT,  "#B0 C0 N0 A0 F0@CHANL")
 }
 
+record(longout,"$(IOC):PDU360_DELAY") {
+  field(DESC, "F19 Delay in 360Hz Task")
+  field(SCAN, "Passive")
+  field(DTYP, "PDU360")
+  field(DRVH, "1000")
+  field(DRVL, "0")
+  field(EGU,  "us")
+  field(OMSL, "supervisory")
+  field(OUT,  "#B0 C0 N0 A0 F0@DELAY")
+  field(PINI, "YES")
+  info(autosaveFields,"VAL")
+}
+
 
 
 
