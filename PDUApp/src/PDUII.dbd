@@ -12,6 +12,8 @@ device(mbbi,          CAMAC_IO,devMiPDUII,  "PDUII")
 device(mbbo,          CAMAC_IO,devMoPDUII,  "PDUII")
 device(waveform,      CAMAC_IO,devWfPDUII,  "PDUII")
 
+device(longout,       CAMAC_IO,devLongoutPDU360,  "PDU360")
+
 driver(drvPDUII)
 
 function(STB_Test)

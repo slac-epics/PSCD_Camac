@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.18 2011/02/28 18:40:25 luchini Exp $
+ **   $Id: PDUII_360Task.c,v 1.19 2011/03/16 00:08:08 rcs Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -26,6 +26,13 @@
 #include "cam_proto.h"
 #include "cctlwmasks.h"
 
+/*
+** For BSP fine granularity timer. RTEMS only.
+*/
+#ifdef __rtems__
+#include <bsp/gt_timer.h>
+#endif
+
 extern struct PSCD_CARD pscd_card;
 extern ELLLIST PDUIIModuleList;
 
@@ -34,6 +41,9 @@ epicsExportAddress(int, PDUII_360T_DEBUG);
 
 int PDUII_360T_BADCAM = 0;
 
+unsigned int PDU_F19_DELAY_US = 0;
+epicsExportAddress(int, PDU_F19_DELAY_US);
+
 #define DEFAULT_EVR_TIMEOUT 0.2
 
 #define MAX_PKTS_PER_BRANCH	20
@@ -41,6 +51,7 @@ int PDUII_360T_BADCAM = 0;
 
 static int PDUIIFidu360Task(void * parg);
 static epicsEventId EVRFidu360Event = NULL;
+static epicsEventId fidIsrEvent = NULL; /* Set by timer to wake up task */
 
 #ifndef vxWorks
 static void binvert(char * pBuf, int nBytes)
@@ -65,6 +76,20 @@ int PDUII360TaskStart()
     return (int)(epicsThreadMustCreate("PDUIIFidu360", epicsThreadPriorityMax, 204800, (EPICSTHREADFUNC)PDUIIFidu360Task, NULL));
 }
 
+#ifdef __rtems__
+/*
+** BSP timer isr
+*/
+/*
+** BSP RTEMS timer isr. Used to delay PDUIIFidu360Task's "work" after receiving fiducial interrupt.
+** Without the delay, the IOC sends out the F19 too soon for the PIOP, resulting in missed triggers.
+*/
+static void fidPDUII360TimerIsr(void *arg)
+{
+    epicsEventSignal(fidIsrEvent);  /* Signal fiducial task to do work */
+    return;
+}
+#endif
 static void EVRFidu360(void *parg)
 {/* This funciton will be registered with EVR callback and be called at Fuducial rate*/
 
@@ -84,10 +109,33 @@ static int PDUIIFidu360Task(void * parg)
   
     void *F19pkg_p;
     UINT16 nops = MAX_PKTS_PER_BRANCH * MAX_NUM_OF_BRANCH;
+
+    struct timespec tmexpir, tmcurr; /* for pre-F19 delay */
+    double expir, curr;
+
+    unsigned int timerNum = 0;   /* BSP timer number */
+    unsigned int timerDelay;     /* Actual calculated delay */ 
+    unsigned int clockFreq;      /* Board clock frequency */
+
     /*---------------------------------------------*/
 
-    /* Create event and register with EVR */
+    /*
+    ** Find a free timer and get board clock frequency
+    */
+    while (BSP_timer_setup(timerNum, fidPDUII360TimerIsr, 0, 0))
+    {
+       if (++timerNum >= BSP_timer_instances())
+       {
+           errlogSevPrintf(errlogFatal,
+                       "No BSP timer found in fidPDUII360Task. We die now.\n");
+           epicsThreadSuspendSelf();
+       }
+    }
+    clockFreq = BSP_timer_clock_get(timerNum);
+
+    /* Create events and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
+    fidIsrEvent     = epicsEventMustCreate(epicsEventEmpty); /* Event used to signal timer */
 
     epicsThreadSleep(20.0); /* Wait for all save restore to finish */
 
@@ -138,7 +186,16 @@ static int PDUIIFidu360Task(void * parg)
             }
         }
         else
-        {/* Receive ficudical, do work */
+        {/* Receive fiducial, wait for timer, do work */
+
+	    /* SLC micro delivered F19 ~400 us later then IOC, so we add optional delay */
+	    if ( PDU_F19_DELAY_US ) {
+
+		timerDelay = PDU_F19_DELAY_US * (double)(clockFreq * 1.E-6);
+		BSP_timer_start(timerNum, timerDelay);
+		epicsEventMustWait(fidIsrEvent);
+	    }
+
             epicsTimeStamp time_s[3];
             evrModifier_ta modifier_a[3];
             unsigned long  patternStatus[3]; /* see evrPattern.h for values */
@@ -359,7 +416,7 @@ static int PDUIIFidu360Task(void * parg)
             }/* go thru the linked list */
 
 	    if(totalPkts > 0)
-            {
+            { 
                 fidPDUDIAGPreCam (&F19pkg_p);
                 iss = camgo (&F19pkg_p);
                 fidPDUDIAGPostCam ();
@@ -393,7 +450,9 @@ static int PDUIIFidu360Task(void * parg)
 reset_campkg:
             camrst(&F19pkg_p);
             /* scanIoRequest(ioscan); */
+
         }
+
     }
 
     /*Should never return from following call*/

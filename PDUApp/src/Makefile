@@ -43,6 +43,9 @@ PDU_SRCS += devPDUDIAG.c
 PDU_SRCS += drvPDUDIAG.c
 PDU_SRCS += fidPDUDIAG.c
 
+#Support for delay in PDU 360 Hz task
+PDU_SRCS += devPDUII_360Task.c
+
 PDU_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
