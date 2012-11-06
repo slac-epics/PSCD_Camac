@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: PDUII_360Task.c,v 1.20 2012/10/25 19:42:43 sonya Exp $
+ **   $Id: PDUII_360Task.c,v 1.21 2012/10/25 20:14:35 sonya Exp $
  **   File:              PDUII_360Task.c
  **   Author:            Sheng Peng
  **   Email:             pengsh2003@yahoo.com
@@ -42,7 +42,6 @@ epicsExportAddress(int, PDUII_360T_DEBUG);
 int PDUII_360T_BADCAM = 0;
 
 unsigned int PDU_F19_DELAY_US = 0;
-epicsExportAddress(int, PDU_F19_DELAY_US);
 
 #define DEFAULT_EVR_TIMEOUT 0.2
 
@@ -51,7 +50,7 @@ epicsExportAddress(int, PDU_F19_DELAY_US);
 
 static int PDUIIFidu360Task(void * parg);
 static epicsEventId EVRFidu360Event = NULL;
-static epicsEventId fidIsrEvent = NULL; /* Set by timer to wake up task */
+static epicsEventId F19DelayTimerEvent = NULL; /* Set by timer to wake up task */
 
 #ifndef vxWorks
 static void binvert(char * pBuf, int nBytes)
@@ -86,7 +85,7 @@ int PDUII360TaskStart()
 */
 static void fidPDUII360TimerIsr(void *arg)
 {
-    epicsEventSignal(fidIsrEvent);  /* Signal fiducial task to do work */
+    if ( F19DelayTimerEvent ) epicsEventSignal(F19DelayTimerEvent);  /* Signal fiducial task to do work */
     return;
 }
 #endif
@@ -132,7 +131,7 @@ static int PDUIIFidu360Task(void * parg)
 
     /* Create events and register with EVR */
     EVRFidu360Event = epicsEventMustCreate(epicsEventEmpty);
-    fidIsrEvent     = epicsEventMustCreate(epicsEventEmpty); /* Event used to signal timer */
+    F19DelayTimerEvent     = epicsEventMustCreate(epicsEventEmpty); /* Event used to signal timer */
 
     epicsThreadSleep(20.0); /* Wait for all save restore to finish */
 
@@ -185,12 +184,12 @@ static int PDUIIFidu360Task(void * parg)
         else
         {/* Receive fiducial, wait for timer, do work */
 
-	    /* SLC micro delivered F19 ~400 us later then IOC, so we add optional delay */
+	    /* SLC micro delivered F19 later then IOC, so we add optional delay */
 	    if ( PDU_F19_DELAY_US ) {
 
 		timerDelay = PDU_F19_DELAY_US * (double)(clockFreq * 1.E-6);
 		BSP_timer_start(timerNum, timerDelay);
-		epicsEventMustWait(fidIsrEvent);
+		epicsEventWaitWithTimeout( F19DelayTimerEvent, DEFAULT_EVR_TIMEOUT );
 	    }
 
             epicsTimeStamp time_s[3];
