@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-1-2
+11-Jan-2012, S. Hoobler (SONYA)
+                CAMCOMApp/src/Camcom_seq.stt: fix 'ACTIVE_TOKEN' PV name 
+
 PSCD_Camac-R3-1-1
 06-Nov-2012, S. Hoobler (SONYA)
                 PDUApp/src/PDUII_360Task.c: change epicsEventMustWait to epicsEventWaitWithTimeout, 
