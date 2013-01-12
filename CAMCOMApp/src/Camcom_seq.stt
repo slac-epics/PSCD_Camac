@@ -17,7 +17,7 @@ option -r;
 %%#define CAMCOM_BUSY 3
 %%#define CAMCOM_DONE 4
 
-short active_token; assign active_token to "{BR}:CAMCOM:ACTIVE_TOKEN";
+short active_token; assign active_token to "CAMC:${LOCA}:CV01:ACTIVE_TOKEN";
 monitor active_token;
 
 short last_active_token;
