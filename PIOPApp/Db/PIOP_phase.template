@@ -1,5 +1,5 @@
 # Read raw phase from PIOP at 120 Hz
-record(ai, "$(DEV):PHAS_FAST_RAW") {
+record(ai, "$(DEV):BSA_FAST_RAW") {
   field(DESC, "Raw phase")
   field(SCAN, "I/O Intr")
   field(DTYP, "PIOP")
@@ -7,7 +7,13 @@ record(ai, "$(DEV):PHAS_FAST_RAW") {
   field(LINR, "NO CONVERSION")
   field(EGU, "")
   field(PRIO, "HIGH")
-  field(FLNK, "$(DEV):PHAS_FAST_CONVERT")
+  field(FLNK, "$(DEV):BSA_FAST_FO")
+}
+
+record(fanout, "$(DEV):BSA_FAST_FO") {
+  field(DESC, "Raw may be PHAS or BVLT")
+  field(LNK1, "$(DEV):PHAS_FAST_CONVERT")
+  field(LNK2, "$(DEV):BVLT_FAST_CALC")
 }
 
 # Convert raw phase to real phase units using
@@ -23,7 +29,7 @@ record(sub, "$(DEV):PHAS_FAST_CONVERT") {
   field(SCAN, "Passive")
   field(INAM, "phasePIOPinit")
   field(SNAM, "phasePIOPproc")
-  field(INPA, "$(DEV):PHAS_FAST_RAW.RVAL MS NPP")
+  field(INPA, "$(DEV):BSA_FAST_RAW.RVAL MS NPP")
   field(INPB, "$(INPB)")
   field(INPC, "$(INPC)")
   field(INPD, "$(INPD)")
@@ -35,7 +41,17 @@ record(sub, "$(DEV):PHAS_FAST_CONVERT") {
   field(FLNK, "$(DEV):PHAS_FAST")
 }
 
+record(calc, $(DEV):BVLT_FAST_CALC) {
+  field(DESC, "Convert raw bvlt")
+  field(EGU, "kV")
+  field(CALC, "A*B*10.0*(10.0/4096.0)")
+  field(INPA, "$(DEV):BSA_FAST_RAW.RVAL NMS NPP")
+  field(INPB, "$(DEV):DIVR NMS NPP")
+  field(FLNK, "$(DEV):BVLT_FAST")
+}
+
 record(ai, "$(DEV):PHAS_FAST") {
+  info(autosaveFields,"DISA")
   field(DESC, "Phase")
   field(SCAN, "Passive")
   field(EGU,  "$(EGU)")
@@ -44,3 +60,15 @@ record(ai, "$(DEV):PHAS_FAST") {
 # FLNK to BSA
   field(FLNK, "$(DEV):EFPHAS_FAST.PROC")
 }
+
+record(ai, "$(DEV):BVLT_FAST") {
+  info(autosaveFields,"DISA")
+  field(DESC, "Beam Volts")
+  field(SCAN, "Passive")
+  field(EGU,  "kV")
+  field(INP,  "$(DEV):BVLT_FAST_CALC NMS NPP")
+  field(TSE,  "-1")
+# FLNK to BSA
+  field(FLNK, "$(DEV):EFBVLT_FAST.PROC")
+}
+

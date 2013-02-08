@@ -36,6 +36,10 @@ vmsstat_t iplPIOPMain (PIOP_PVT *pvt_p, short crate, short slot)
   char *name_p = (char *)pvt_p->val_p;
   vmsstat_t iss;
   /*------------------------------*/
+  /* 
+  ** Issue message indicating which PIOP image is downloaded 
+  */
+  errlogPrintf("Request to download %s by %s\n", name_p, pvt_p->rec_p->name);
   /*
   ** Read in the image if not already done.
   */
@@ -43,6 +47,8 @@ vmsstat_t iplPIOPMain (PIOP_PVT *pvt_p, short crate, short slot)
     goto egress;
   iss = iplPIOPDownload(pvt_p, crate, slot);
 egress:
+  if (ImagePIOP_p != NULL) free (ImagePIOP_p);
+  ImagePIOP_p = NULL;
   return (iss);
 }
 

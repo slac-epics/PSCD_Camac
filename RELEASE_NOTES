@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-2-0
+08-Feb-2013, Mike Zelazny (zelazny)
+                Allow for multiple PIOP images.
+
 PSCD_Camac-R3-1-2
 11-Jan-2013, S. Hoobler (SONYA)
                 CAMCOMApp/src/Camcom_seq.stt: fix 'ACTIVE_TOKEN' PV name 
