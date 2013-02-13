@@ -28,9 +28,6 @@ char real_buff[16348]; assign real_buff to "CAMC:{LOCA}:CV01:REALBUFF";
 
 char in_buff[16348]; assign in_buff to "CAMC:{LOCA}:CV01:INBUFF";
 
-short token_valid; assign token_valid to "CAMC:{LOCA}:CV01:TOKEN_VALID";
-monitor token_valid;
-
 short camcom_status; assign camcom_status to "CAMC:{LOCA}:CV01:STATUS";
 monitor camcom_status;
 
