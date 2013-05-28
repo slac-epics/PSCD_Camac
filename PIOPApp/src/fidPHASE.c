@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: fidPHASE.c,v 1.2 2011/02/23 07:22:41 rcs Exp $
+ **   $Id: fidPHASE.c,v 1.3 2011/03/11 22:53:44 rcs Exp $
  **   File:              fidPHASE.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -43,7 +43,8 @@ epicsExportAddress(int, FIDPHASE_DEBUG);
 /*
 ** Move these inside loop when debug complete. ??
 */
-unsigned long Delay_usec = 2000;  /* For BSP timer */
+unsigned long Delay_usec = 3000;  /* For BSP timer */
+/* Zelazny (28-May-2013): Increased Delay_usec from 2000 to 3000 for CATER 103892 */
 
 int Phasecambad  = 0;   /* !!?? Temp for debugging */
 int Phasecamgud  = 0;
