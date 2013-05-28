@@ -17,8 +17,12 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-3-0
+28-May-2013, Mike Zelazny (zelazny)
+                Fix CATER 103892 - BSA Phase off by 1 bug.
+
 PSCD_Camac-R3-2-3: Build sequencer version --> seq-R2-1-6_1-0
-                   And also the new EVENT module --> 
+(Ernest)           And also the new EVENT module --> 
                    event-R3-2-2-br_generaltime-4-0
 
 PSCD_Camac-R3-2-2
