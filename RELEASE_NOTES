@@ -17,6 +17,12 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-3-1
+10-Dec-2013, Sonya Hoobler (sonya)
+                No longer log/print every error message related to no reply from 
+                CAMAC unless debug flag(s) set. Prevents excessive messages due to offline hardware.
+                Changes to dev/drv .c files for almost all Apps (e.g. drvSAM.c, devSAM.c)
+
 PSCD_Camac-R3-3-0
 28-May-2013, Mike Zelazny (zelazny)
                 Fix CATER 103892 - BSA Phase off by 1 bug.
