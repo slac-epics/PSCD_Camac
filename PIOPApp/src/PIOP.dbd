@@ -16,4 +16,5 @@ function(msgPIOPproc)
 function(phasePIOPinit)
 function(phasePIOPproc)
 #registrar(myRegistrar)
-#variable(myVariable)
+variable(PIOP_DRV_DEBUG)
+

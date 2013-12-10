@@ -3,3 +3,4 @@
 function(camrst)
 #registrar(myRegistrar)
 variable(MBCD_MODE)
+variable(CAM_DRV_DEBUG)

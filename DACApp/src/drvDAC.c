@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.4 2009/09/04 03:36:26 pengs Exp $
+ *   $Id: drvDAC.c,v 1.5 2011/02/23 06:48:46 rcs Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -116,7 +116,7 @@ UINT32 DAC_WriteData(DAC_REQUEST  *pDACRequest)
             *((UINT16 *)(&(op_dac.data))) = pDACRequest->val;
             if (!SUCCESS(iss = camio (&dacctlw, &(op_dac.data), &bcnt, &(op_dac.stat), &emask)))
             {
-                errlogPrintf ("camio error %s for DAC F16 write.\n", cammsg(iss));
+                if(DAC_DRV_DEBUG) printf ("camio error %s for DAC F16 write.\n", cammsg(iss));
                 status = (DAC_WRT_CAMIO_FAIL|iss);
             }
 	}
@@ -161,7 +161,7 @@ UINT32 DAC_ReadData(DAC_REQUEST  *pDACRequest)
             bcnt = 2;
             if (!SUCCESS(iss = camio (&dacctlw, &op_dac.data, &bcnt, &op_dac.stat, &emask)))
             {
-                 errlogPrintf ("camio error %s for DAC F0 read\n", cammsg(iss));
+                 if(DAC_DRV_DEBUG) printf ("camio error %s for DAC F0 read\n", cammsg(iss));
                  status = (DAC_RDDAT_CAMIO_FAIL|iss);
             }
             else
@@ -212,7 +212,7 @@ UINT32 DAC_ReadID(DAC_REQUEST  *pDACRequest)
             bcnt = 2;
             if (!SUCCESS(iss = camio (&dacctlw, &op_dac.data, &bcnt, &op_dac.stat, &emask)))
             {
-                 errlogPrintf ("camio error %s for DAC F0 read\n", cammsg(iss));
+                 if(DAC_DRV_DEBUG) printf ("camio error %s for DAC F0 read\n", cammsg(iss));
                  status = (DAC_RDDAT_CAMIO_FAIL|iss);
             }
 

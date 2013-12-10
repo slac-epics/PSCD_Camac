@@ -28,6 +28,8 @@
 --------------------------------------------------------------------------------
  
   Mod:  
+        09-Dec-2013, Sonya Hoobler (SONYA)
+            Add flag to disable error messages; add check of flag to print statements
         16-Feb-2009, Robert C. Sass (RCS)
             Cahnge for PSCD card struct and interrupts.
         21-Jul-2008, Robert C. Sass (RCS)
@@ -69,6 +71,8 @@
 #include "epicsThread.h"
 
 int MBCD_MODE = 0;   /* Global flag to disable crate/soft timeout msgs when in MBCD mode */
+int CAM_DRV_DEBUG = 0; /* Global flag to disable/enable messages; default is to disable */
+
 epicsExportAddress(int, MBCD_MODE);
 
  static unsigned long cam_tdv_busy_count = 0,
@@ -342,7 +346,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
 	   if ((ess = epicsEventWaitWithTimeout(pscd_card.semSio[prior], 0.1)) != epicsEventWaitOK)
 	   {
               iss = CAM_NGNG;        
-              errlogSevPrintf (errlogMinor, "CAMGO - timeout waiting for interrupt %x\n",ess);
+              if (CAM_DRV_DEBUG)   errlogSevPrintf (errlogMinor, "CAMGO - timeout waiting for interrupt %x\n",ess);
               pscd_card.waitSemSio[prior] = FALSE;  /* Tell ISR no longer waiting for interrupt */
 	   }
            *pscd_card.tdv_p[prior] = TDV_DONE_MSK;  /* Insure clear for next I/O */
@@ -507,50 +511,53 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
              parmdw[1] = (mbcd_pkt_p[jp].cctlw & CCTLW__M) >> CCTLW__M_shc;
              parmdw[2] = mbcd_pkt_p[jp].cctlw & CCTLW__A;
              parmdw[3] = (mbcd_pkt_p[jp].cctlw & CCTLW__F) >> CCTLW__F_shc;
-             switch (issx)
-             {
-                case CAM_NO_Q:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: no Q response C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  break;
-                case CAM_NO_X:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: no X response C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  break;
-                case CAM_NO_EOSTRM:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: failed to terminate on end of scan C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  break;
-                case CAM_NO_WCTERM:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: failed to exhaust word count C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  break;
-                case CAM_CRATE_TO:
-                  if (!MBCD_MODE)
-		  {
-                     errlogSevPrintf (errlogMinor,
-                    "Camgo: crate timeout C %x N %x A %x F %x Stat=%x\n",
-                     parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  }
-                  break;
-                case CAM_SOFT_TO:
-                  if (!MBCD_MODE)
-		  {
-                     errlogSevPrintf (errlogMinor,
-                    "Camgo: software timeout. No PSCD response C %x N %x A %x F %x Stat=%x\n",
-                     parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-		  }
-                  break;
-                case CAM_MBCD_NFG:
-                  errlogSevPrintf (errlogMinor,
-                 "Camgo: PSCD failure C %x N %x A %x F %x Stat=%x\n",
-                  parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
-                  break;
-             }
+	     if (CAM_DRV_DEBUG) 
+             { 
+               switch (issx)
+               {
+                  case CAM_NO_Q:
+                    errlogSevPrintf (errlogMinor,
+                   "Camgo: no Q response C %x N %x A %x F %x Stat=%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    break;
+                  case CAM_NO_X:
+                    errlogSevPrintf (errlogMinor,
+                   "Camgo: no X response C %x N %x A %x F %x Stat=%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    break;
+                  case CAM_NO_EOSTRM:
+                    errlogSevPrintf (errlogMinor,
+                   "Camgo: failed to terminate on end of scan C %x N %x A %x F %x Stat=%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    break;
+                  case CAM_NO_WCTERM:
+                    errlogSevPrintf (errlogMinor,
+                   "Camgo: failed to exhaust word count C %x N %x A %x F %x Stat=%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    break;
+                  case CAM_CRATE_TO:
+                    if (!MBCD_MODE)
+		    {
+                       errlogSevPrintf (errlogMinor,
+                      "Camgo: crate timeout C %x N %x A %x F %x Stat=%x\n",
+                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    }
+                    break;
+                  case CAM_SOFT_TO:
+                    if (!MBCD_MODE)
+		    {
+                       errlogSevPrintf (errlogMinor,
+                      "Camgo: software timeout. No PSCD response C %x N %x A %x F %x Stat=%x\n",
+                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+		    }
+                    break;
+                  case CAM_MBCD_NFG:
+                    errlogSevPrintf (errlogMinor,
+                   "Camgo: PSCD failure C %x N %x A %x F %x Stat=%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                    break;
+               }
+	   }
 
          }
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask >> 8))  &&

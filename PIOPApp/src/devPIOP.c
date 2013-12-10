@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.14 2011/02/23 03:34:54 rcs Exp $
+ *   $Id: devPIOP.c,v 1.15 2011/02/23 07:16:33 rcs Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -18,6 +18,8 @@
 /******************************************************************************************/
 /*********************  Externs defined in drvPIOP or fidPHASE     ************************/
 /******************************************************************************************/
+
+extern int PIOP_DRV_DEBUG;
 
 /*
 ** MessageQueue associated with the thread for each PIOP module.
@@ -230,8 +232,7 @@ static long So_write (struct stringoutRecord *sor_p)
       if (!SUCCESS(pvt_p->status))
       {
          recGblSetSevr(sor_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] error %s!\n", sor_p->name, 
-                      cammsg(pvt_p->status));
+         if (PIOP_DRV_DEBUG)   printf("Record [%s] error %s!\n", sor_p->name, cammsg(pvt_p->status));
       }
    }   /* post-process */ 
    return (rtn);
@@ -357,7 +358,7 @@ static long Wf_read_write (struct waveformRecord *wfr_p)
       {
          recGblSetSevr(wfr_p, WRITE_ALARM, INVALID_ALARM);
          if(pvt_p->status != CAM_NGNG)
-            errlogPrintf("Record [%s] error %s!\n", wfr_p->name, cammsg(pvt_p->status));
+                     if (PIOP_DRV_DEBUG)   printf("Record [%s] error %s!\n", wfr_p->name, cammsg(pvt_p->status));
       }
       else if (pvt_p->camfunc_e == STATUSBLOCK)
       {
@@ -430,7 +431,7 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
       if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] SBI STATUS can't send msg to thread", mbir_p->name);
+         if (PIOP_DRV_DEBUG)   printf("Record [%s] SBI STATUS can't send msg to thread", mbir_p->name);
       }
       else
       {
@@ -447,7 +448,7 @@ static long Mbi_read (struct mbbiRecord *mbir_p)
       {
          recGblSetSevr(mbir_p, WRITE_ALARM, INVALID_ALARM);
          if (pvt_p->status != CAM_NGNG)
-            errlogPrintf("Record [%s] error %s!\n", mbir_p->name,cammsg(pvt_p->status));
+           if (PIOP_DRV_DEBUG)   printf("Record [%s] error %s!\n", mbir_p->name,cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);
@@ -514,7 +515,7 @@ static long Bi_read (struct biRecord *bir_p)
       if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
       {
          recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] PIOP MSG can't send msg to thread", bir_p->name);
+         if (PIOP_DRV_DEBUG)   printf("Record [%s] PIOP MSG can't send msg to thread", bir_p->name);
       }
       else
       {
@@ -529,7 +530,7 @@ static long Bi_read (struct biRecord *bir_p)
       {
          recGblSetSevr(bir_p, WRITE_ALARM, INVALID_ALARM);
          if (pvt_p->status != CAM_NGNG)
-            errlogPrintf("Record [%s] error %s!\n", bir_p->name, cammsg(pvt_p->status));
+            if (PIOP_DRV_DEBUG)   printf("Record [%s] error %s!\n", bir_p->name, cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);
@@ -702,7 +703,7 @@ static long Lo_write (struct longoutRecord *lor_p)
       if (epicsMessageQueueTrySend (sbi_msgQId, &msg_s, sizeof(msg_s)) == -1)
       {
          recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
-         errlogPrintf("Record [%s] can't send msg to SBI thread", lor_p->name);
+         if (PIOP_DRV_DEBUG)   printf("Record [%s] can't send msg to SBI thread", lor_p->name);
       }
       else
       {
@@ -717,7 +718,7 @@ static long Lo_write (struct longoutRecord *lor_p)
       {
          recGblSetSevr(lor_p, WRITE_ALARM, INVALID_ALARM);
          if (pvt_p->status != CAM_NGNG)
-            errlogPrintf("Record [%s] error %s!\n", lor_p->name, cammsg(pvt_p->status));
+            if (PIOP_DRV_DEBUG)   printf("Record [%s] error %s!\n", lor_p->name, cammsg(pvt_p->status));
       }
    }   /* post-process */
    return (rtn);

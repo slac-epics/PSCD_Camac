@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvLDIM.c,v 1.2 2009/09/04 00:47:22 pengs Exp $
+ *   $Id: drvLDIM.c,v 1.3 2011/02/23 06:51:56 rcs Exp $
  *   File:		drvLDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -120,7 +120,7 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 #if 1
         if (!SUCCESS(iss = camio (&ldimctlw, &read_ldim[0].data, &bcnt, &read_ldim[0].stat, &emask)))
         {
-            errlogPrintf ("camio error %s for LDIM F%dA%d\n", cammsg(iss), pLDIMRequest->f, pLDIMRequest->a);
+            if(LDIM_DRV_DEBUG) printf ("camio error %s for LDIM F%dA%d\n", cammsg(iss), pLDIMRequest->f, pLDIMRequest->a);
             rtn = (LDIM_READ_CAMIO_FAIL|iss);
             goto egress;
         }
@@ -145,7 +145,7 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 
 	    if (!SUCCESS(iss = camgo (&pkg_p)))
 	    {
-	        errlogPrintf("camgo error %s\n",cammsg(iss));
+	        if(LDIM_DRV_DEBUG) printf("camgo error %s\n",cammsg(iss));
 	        rtn = (LDIM_CAM_GO_FAIL|iss);
 	        goto release_campkg;
 	    }

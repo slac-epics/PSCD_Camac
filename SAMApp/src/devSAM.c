@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.4 2011/02/23 07:27:48 rcs Exp $
+ *   $Id: devSAM.c,v 1.5 2011/11/07 23:25:29 luchini Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -119,7 +119,7 @@ static long read_ai(struct aiRecord *pai)
                ((pai->stat!=nsta) || (pai->sevr!=nsev)) ) 
 	   {
               recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-              errlogPrintf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
+              if (SAM_DRV_DEBUG) printf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
               rtn = -1;
 	   }
         }
@@ -194,7 +194,7 @@ static long write_bo(struct boRecord *pbo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
+            if (SAM_DRV_DEBUG) printf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

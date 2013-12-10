@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPPOM.c,v 1.1 2009/11/02 05:20:18 pengs Exp $
+ *   $Id: devPPOM.c,v 1.2 2011/02/23 07:34:57 rcs Exp $
  *   File:		devPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -94,7 +94,7 @@ static long write_bo(struct boRecord *pbo)
         if(epicsMessageQueueTrySend(pRequest->pPPOMModule->msgQId, (void *)&pRequest, sizeof(PPOM_REQUEST *)) == -1)
         {
             recGblSetSevr(pbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Send Message to PPOM Operation Thread Error [%s]", pbo->name);
+            if(PPOM_DRV_DEBUG)   printf("Send Message to PPOM Operation Thread Error [%s]", pbo->name);
             rtn = -1;
         }
         else
@@ -109,7 +109,7 @@ static long write_bo(struct boRecord *pbo)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pbo, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
+            if(PPOM_DRV_DEBUG)   printf("Record [%s] error %s!\n", pbo->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -167,7 +167,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         if(epicsMessageQueueTrySend(pRequest->pPPOMModule->msgQId, (void *)&pRequest, sizeof(PPOM_REQUEST *)) == -1)
         {
             recGblSetSevr(pmbbid, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Send Message to PPOM Operation Thread Error [%s]", pmbbid->name);
+            if(PPOM_DRV_DEBUG)   printf("Send Message to PPOM Operation Thread Error [%s]", pmbbid->name);
             rtn = -1;
         }
         else
@@ -182,7 +182,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbid, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
+            if(PPOM_DRV_DEBUG)   printf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -264,7 +264,7 @@ static long write_mod(struct mbboDirectRecord *pmbbod)
         if(epicsMessageQueueTrySend(pRequest->pPPOMModule->msgQId, (void *)&pRequest, sizeof(PPOM_REQUEST *)) == -1)
         {
             recGblSetSevr(pmbbod, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Send Message to PPOM Operation Thread Error [%s]", pmbbod->name);
+            if(PPOM_DRV_DEBUG)   printf("Send Message to PPOM Operation Thread Error [%s]", pmbbod->name);
             rtn = -1;
         }
         else
@@ -279,7 +279,7 @@ static long write_mod(struct mbboDirectRecord *pmbbod)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbod, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pmbbod->name, cammsg(pRequest->errCode));
+            if(PPOM_DRV_DEBUG)   printf("Record [%s] error %s!\n", pmbbod->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

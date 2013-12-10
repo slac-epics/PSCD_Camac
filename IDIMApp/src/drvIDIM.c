@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDIM.c,v 1.3 2009/04/08 22:06:39 pengs Exp $
+ *   $Id: drvIDIM.c,v 1.4 2011/02/23 07:32:44 rcs Exp $
  *   File:		drvIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -118,7 +118,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 #if 1
         if (!SUCCESS(iss = camio (&idimctlw, &read_idim[0].data, &bcnt, &read_idim[0].stat, &emask)))
         {
-            errlogPrintf ("camio error %s for IDIM F%dA%d\n", cammsg(iss), pIDIMRequest->f, pIDIMRequest->a);
+            if(IDIM_DRV_DEBUG) printf ("camio error %s for IDIM F%dA%d\n", cammsg(iss), pIDIMRequest->f, pIDIMRequest->a);
             rtn = (IDIM_READ_CAMIO_FAIL|iss);
             goto egress;
         }
@@ -143,7 +143,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 
 	    if (!SUCCESS(iss = camgo (&pkg_p)))
 	    {
-	        errlogPrintf("camgo error %s\n",cammsg(iss));
+	        if(IDIM_DRV_DEBUG) printf("camgo error %s\n",cammsg(iss));
 	        rtn = (IDIM_CAM_GO_FAIL|iss);
 	        goto release_campkg;
 	    }

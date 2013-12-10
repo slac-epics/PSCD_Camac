@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devLDIM.c,v 1.1 2009/09/04 00:37:41 pengs Exp $
+ *   $Id: devLDIM.c,v 1.2 2011/02/23 06:51:34 rcs Exp $
  *   File:		devLDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -98,7 +98,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbid, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
+            if(LDIM_DRV_DEBUG)   printf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devDAC.c,v 1.3 2009/05/12 09:10:47 pengs Exp $
+ *   $Id: devDAC.c,v 1.4 2011/02/23 06:48:33 rcs Exp $
  *   File:		devDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,7 +112,7 @@ static long read_ai(struct aiRecord *pai)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
+            if(DAC_DRV_DEBUG)   printf("Record [%s] error %s!\n", pai->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -223,7 +223,7 @@ static long write_ao(struct aoRecord *pao)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pao, WRITE_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pao->name, cammsg(pRequest->errCode));
+            if(DAC_DRV_DEBUG)   printf("Record [%s] error %s!\n", pao->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
@@ -301,7 +301,7 @@ static long read_li(struct longinRecord *pli)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pli, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pli->name, cammsg(pRequest->errCode));
+            if(DAC_DRV_DEBUG)   printf("Record [%s] error %s!\n", pli->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else

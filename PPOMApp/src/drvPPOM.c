@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPPOM.c,v 1.3 2009/11/16 12:40:24 pengs Exp $
+ *   $Id: drvPPOM.c,v 1.4 2011/02/23 07:40:41 rcs Exp $
  *   File:		drvPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -121,7 +121,7 @@ UINT32 PPOM_RstClr(PPOM_REQUEST  *pPPOMRequest)
 	    bcnt = 0;
             if (!SUCCESS(iss = camio (&ppomctlw, NULL, &bcnt, &(rstclr_ppom.stat), &emask)))
             {
-                errlogPrintf ("camio error %s for PPOM F%dA%d write.\n",
+                if(PPOM_DRV_DEBUG) printf ("camio error %s for PPOM F%dA%d write.\n",
 				cammsg(iss), pPPOMRequest->f, pPPOMRequest->a);
                 status = (PPOM_RSTCLR_CAMIO_FAIL|iss);
             }
@@ -172,7 +172,7 @@ UINT32 PPOM_WriteData(PPOM_REQUEST  *pPPOMRequest)
             *((UINT16 *)(&(write_ppom.data))) = pPPOMRequest->val;
             if (!SUCCESS(iss = camio (&ppomctlw, &(write_ppom.data), &bcnt, &(write_ppom.stat), &emask)))
             {
-                errlogPrintf ("camio error %s for PPOM F%dA%d write.\n",
+                if(PPOM_DRV_DEBUG) printf ("camio error %s for PPOM F%dA%d write.\n",
 				cammsg(iss), pPPOMRequest->f, pPPOMRequest->a);
                 status = (PPOM_WRT_CAMIO_FAIL|iss);
             }
@@ -224,7 +224,7 @@ UINT32 PPOM_ReadData(PPOM_REQUEST * pPPOMRequest)
 
             if (!SUCCESS(iss = camio (&ppomctlw, &read_ppom[0].data, &bcnt, &read_ppom[0].stat, &emask)))
             {
-                errlogPrintf ("camio error %s for PPOM F%dA%d\n", cammsg(iss), pPPOMRequest->f, pPPOMRequest->a);
+                if(PPOM_DRV_DEBUG) printf ("camio error %s for PPOM F%dA%d\n", cammsg(iss), pPPOMRequest->f, pPPOMRequest->a);
                 status = (PPOM_READ_CAMIO_FAIL|iss);
             }
 	    else

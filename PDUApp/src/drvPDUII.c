@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.16 2012/05/11 19:31:29 luchini Exp $
+ *   $Id: drvPDUII.c,v 1.17 2012/10/23 17:28:35 luchini Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -265,7 +265,7 @@ UINT32 PDUII_Status(PDUII_MODULE *pPDUIIModule, UINT32 *pStatus)
     */
     if (!SUCCESS(iss))
     {
-        errlogPrintf("drvPDUII camgo error %s reading status.\n",cammsg(iss));
+        if(PDUII_DRV_DEBUG) printf("drvPDUII camgo error %s reading status.\n",cammsg(iss));
         status = (PDUII_CAM_GO_FAIL|iss);
         goto release_campkg;
     }
@@ -354,7 +354,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-	    errlogPrintf("drvPDUII camgo error %s reading mode.\n",cammsg(iss));
+	    if(PDUII_DRV_DEBUG) printf("drvPDUII camgo error %s reading mode.\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
             goto release_campkg;
         }
@@ -364,7 +364,7 @@ UINT32 PDUII_ModeGet(PDUII_REQUEST  *pPDUIIRequest)
 	    read2 = ((read_pduii[1].sdata >>12) & 0x7);
             if ( read1!=read2 )
 	    {
-              errlogPrintf("drvPDUII failed mode read (rd1=0x%4.4hx rd2=0x%4.4hx) PDU n=%hd chan %hd %s\n",
+              if(PDUII_DRV_DEBUG) printf("drvPDUII failed mode read (rd1=0x%4.4hx rd2=0x%4.4hx) PDU n=%hd chan %hd %s\n",
 			     read1,
                              read2,
 			     pPDUIIModule->n,
@@ -475,7 +475,7 @@ UINT32 PDUII_ModeSet(PDUII_REQUEST  *pPDUIIRequest)
         pPDUIIModule->chnlModeSet[pPDUIIRequest->a] = CHNL_MODE_TRANSITING|(pPDUIIRequest->val & 0x7);
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {/* Fail to set mode, leave as invalid */
-            errlogPrintf("drvPDUII camgo error %s setting mode\n",cammsg(iss));
+            if(PDUII_DRV_DEBUG) printf("drvPDUII camgo error %s setting mode\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
             goto release_campkg;  
         }
@@ -600,7 +600,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-	    errlogPrintf("drvPDUII camgo error %s reading the PTT\n",cammsg(iss));
+	    if(PDUII_DRV_DEBUG) errlogPrintf("drvPDUII camgo error %s reading the PTT\n",cammsg(iss));
             status = (PDUII_CAM_GO_FAIL|iss);
         }
         else if ( (read_pduii[0].data & 0xFFFF) == (read_pduii[1].data & 0xFFFF) )
@@ -610,7 +610,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         }
         else
 	{
-            errlogPrintf("drvPDUII failed pttp read (rd1=0x%8.8hx rd2=0x%8.8hx) PDU n=%.2hd chan %.2hd %s\n",
+            if(PDUII_DRV_DEBUG) printf("drvPDUII failed pttp read (rd1=0x%8.8hx rd2=0x%8.8hx) PDU n=%.2hd chan %.2hd %s\n",
 			  read_pduii[0].data,
                           read_pduii[1].data,
 			  pPDUIIModule->n,

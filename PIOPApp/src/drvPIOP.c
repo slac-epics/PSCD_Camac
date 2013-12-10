@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPIOP.c,v 1.12 2011/02/10 17:15:15 rcs Exp $
+ *   $Id: drvPIOP.c,v 1.13 2011/02/23 07:21:26 rcs Exp $
  *   File:		drvPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -14,6 +14,8 @@
 
 #include <devPIOP.h>
 #include <drvPIOP.h>
+
+int PIOP_DRV_DEBUG = 0;
 
 /************************************
 ** MessageQueue array for thread/PIOP

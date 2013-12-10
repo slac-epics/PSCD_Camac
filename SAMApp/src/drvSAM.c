@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.18 2009/09/25 01:16:31 pengs Exp $
+ *   $Id: drvSAM.c,v 1.19 2011/02/23 07:28:30 rcs Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -245,7 +245,7 @@ static UINT32 SAM_Read(SAM_MODULE * pSAMModule)
 
         if (!SUCCESS(iss = camgo (&pkg_p)))
         {
-            errlogPrintf("camgo error %s\n",cammsg(iss));
+            if(SAM_DRV_DEBUG) errlogPrintf("camgo error %s\n",cammsg(iss));
             rtn = (SAM_CAM_GO_FAIL|iss);
             goto release_campkg;
         }

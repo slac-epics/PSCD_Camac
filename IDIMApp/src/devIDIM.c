@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devIDIM.c,v 1.2 2009/04/06 02:54:26 pengs Exp $
+ *   $Id: devIDIM.c,v 1.3 2011/02/23 07:32:20 rcs Exp $
  *   File:		devIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -98,7 +98,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         if( (!pRequest->opDone) || pRequest->errCode )
         {
             recGblSetSevr(pmbbid, READ_ALARM, INVALID_ALARM);
-            errlogPrintf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
+            if(IDIM_DRV_DEBUG)   printf("Record [%s] error %s!\n", pmbbid->name, cammsg(pRequest->errCode));
             rtn = -1;
         }
         else
