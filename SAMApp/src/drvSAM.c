@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvSAM.c,v 1.19 2011/02/23 07:28:30 rcs Exp $
+ *   $Id: drvSAM.c,v 1.20 2013/12/10 18:22:38 sonya Exp $
  *   File:		drvSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -309,7 +309,7 @@ static int SAM_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(SAM_DRV_DEBUG) printf("SAM Operation task gets requests!\n");
+            if(SAM_DRV_DEBUG > 1) printf("SAM Operation task gets requests!\n");
 
             switch(pSAMRequest->funcflag)
             {/* check funcflag */

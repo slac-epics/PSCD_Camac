@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDOM.c,v 1.5 2011/02/23 07:52:36 rcs Exp $
+ *   $Id: drvIDOM.c,v 1.6 2013/12/10 18:22:37 sonya Exp $
  *   File:		drvIDOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -221,7 +221,7 @@ UINT32 IDOM_ReadData(IDOM_REQUEST * pIDOMRequest)
         {
             /* F0 Aa to read IDOM, we don't use pIDOMRequest->f here to help init mbboDirect */
             idomctlw = (pIDOMModule->n << 7) | (pIDOMModule->c << 12) /*| (pIDOMRequest->f << 16)*/ | (pIDOMRequest->a);
-            if(IDOM_DRV_DEBUG) printf("IDOM Operation control word is 0x%08x\n", idomctlw);
+            if(IDOM_DRV_DEBUG > 1) printf("IDOM Operation control word is 0x%08x\n", idomctlw);
             bcnt = 4;
 
             if (!SUCCESS(iss = camio (&idomctlw, &read_idom[0].data, &bcnt, &read_idom[0].stat, &emask)))
@@ -265,7 +265,7 @@ static int IDOM_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(IDOM_DRV_DEBUG) printf("IDOM Operation task gets requests!\n");
+            if(IDOM_DRV_DEBUG > 1) printf("IDOM Operation task gets requests!\n");
 
             switch(pIDOMRequest->funcflag)
             {/* check funcflag */
