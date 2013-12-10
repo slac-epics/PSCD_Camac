@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devLDIM.c,v 1.2 2011/02/23 06:51:34 rcs Exp $
+ *   $Id: devLDIM.c,v 1.3 2013/12/10 18:22:38 sonya Exp $
  *   File:		devLDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -103,7 +103,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         }
         else
         {
-            if(LDIM_DRV_DEBUG)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
+            if(LDIM_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
 
             if(pmbbid->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbid->time = pRequest->reqTime;

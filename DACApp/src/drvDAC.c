@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvDAC.c,v 1.5 2011/02/23 06:48:46 rcs Exp $
+ *   $Id: drvDAC.c,v 1.6 2013/12/10 18:22:37 sonya Exp $
  *   File:		drvDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -167,7 +167,7 @@ UINT32 DAC_ReadData(DAC_REQUEST  *pDACRequest)
             else
             {
                 pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
-                if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
+                if(DAC_DRV_DEBUG > 1) printf("DAC at crate[%d] slot [%d] ch[%d] with value: 0x%X\n",
 			    pDACModule->c, pDACModule->n, pDACRequest->a, pDACRequest->val);
 	    }
 	}
@@ -218,7 +218,7 @@ UINT32 DAC_ReadID(DAC_REQUEST  *pDACRequest)
 
             pDACRequest->val = *((UINT16 *)(&(op_dac.data)));
             pDACModule->moduleID = pDACRequest->val;
-            if(DAC_DRV_DEBUG) printf("DAC at crate[%d] slot [%d] ch[%d] with module ID: %d\n",
+            if(DAC_DRV_DEBUG > 1) printf("DAC at crate[%d] slot [%d] ch[%d] with module ID: %d\n",
 			    pDACModule->c, pDACModule->n, pDACRequest->a, pDACRequest->val);
 	}
     }
@@ -254,7 +254,7 @@ static int DAC_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(DAC_DRV_DEBUG) printf("DAC Operation task gets requests!\n");
+            if(DAC_DRV_DEBUG > 1) printf("DAC Operation task gets requests!\n");
 
             switch(pDACRequest->funcflag)
             {/* check funcflag */
@@ -272,11 +272,11 @@ static int DAC_Operation(void * parg)
             /* process record */
             if(pDACRequest->pRecord)
             {
-                if(DAC_DRV_DEBUG > 1) printf("Value for record [%s]=[0x%X]\n", pDACRequest->pRecord->name, pDACRequest->val);
+                if(DAC_DRV_DEBUG > 2) printf("Value for record [%s]=[0x%X]\n", pDACRequest->pRecord->name, pDACRequest->val);
                 dbScanLock(pDACRequest->pRecord);
                 (*(pDACRequest->pRecord->rset->process))(pDACRequest->pRecord);
                 dbScanUnlock(pDACRequest->pRecord);
-                if(DAC_DRV_DEBUG > 1) printf("Record [%s] processed\n", pDACRequest->pRecord->name);
+                if(DAC_DRV_DEBUG > 2) printf("Record [%s] processed\n", pDACRequest->pRecord->name);
             }
         }/* process requests */
     }/* infinite loop */
@@ -346,7 +346,7 @@ typedef struct DAC_MODULE
 
         ellAdd(&DACModuleList, (ELLNODE *)pDACModule);
 
-        if(DAC_DRV_DEBUG) printf("Add DAC[%d,%d,%d]\n",
+        if(DAC_DRV_DEBUG > 1) printf("Add DAC[%d,%d,%d]\n",
             pDACModule->b, pDACModule->c, pDACModule->n);
     }
     /* Done check if the DAC module is already in our list, or else add it */

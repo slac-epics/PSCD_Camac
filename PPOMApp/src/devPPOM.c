@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPPOM.c,v 1.2 2011/02/23 07:34:57 rcs Exp $
+ *   $Id: devPPOM.c,v 1.3 2013/12/10 18:22:38 sonya Exp $
  *   File:		devPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -114,7 +114,7 @@ static long write_bo(struct boRecord *pbo)
         }
         else
         {
-            if(PPOM_DRV_DEBUG)   printf("Record [%s] succeed!\n", pbo->name);
+            if(PPOM_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pbo->name);
 
             if(pbo->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pbo->time = pRequest->actTime;
@@ -187,7 +187,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         }
         else
         {
-            if(PPOM_DRV_DEBUG)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
+            if(PPOM_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
 
             if(pmbbid->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbid->time = pRequest->actTime;
@@ -284,7 +284,7 @@ static long write_mod(struct mbboDirectRecord *pmbbod)
         }
         else
         {
-            if(PPOM_DRV_DEBUG)   printf("Record [%s] succeed!\n", pmbbod->name);
+            if(PPOM_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pmbbod->name);
 
             if(pmbbod->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbod->time = pRequest->actTime;

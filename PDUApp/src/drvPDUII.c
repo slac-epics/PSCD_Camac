@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPDUII.c,v 1.17 2012/10/23 17:28:35 luchini Exp $
+ *   $Id: drvPDUII.c,v 1.18 2013/12/10 18:22:38 sonya Exp $
  *   File:		drvPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -557,7 +557,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].sdata))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
-        if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
+        if(PDUII_DRV_DEBUG > 1) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
         if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
@@ -581,7 +581,7 @@ UINT32 PDUII_PTTGet(PDUII_REQUEST  *pPDUIIRequest)
 
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[1].sdata))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
-        if(PDUII_DRV_DEBUG) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
+        if(PDUII_DRV_DEBUG > 1) printf("PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
         if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[1], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
@@ -675,7 +675,7 @@ UINT32 PDUII_PTTSet(PDUII_REQUEST  *pPDUIIRequest)
         ctlwF17A0 = (pPDUIIModule->n << 7) | (pPDUIIModule->c << 12) | (17 << 16) | 0 | XM2QM1;
 	bcnt = 2;
         *((UINT16 *)(&(write_pduii[0].data))) = (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF);
-        if(PDUII_DRV_DEBUG) printf("Set PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
+        if(PDUII_DRV_DEBUG > 1) printf("Set PTTP is 0x[%x]\n", (pPDUIIRequest->a << 8) | (pPDUIIRequest->extra & 0xFF));
         if (!SUCCESS(iss = camadd (&ctlwF17A0, &write_pduii[0], &bcnt, &emask, &pkg_p)))
         {
             errlogPrintf("camadd error %s\n",cammsg(iss));
@@ -781,7 +781,7 @@ static int PDUII_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(PDUII_DRV_DEBUG) printf("PDUII Operation task gets requests!\n");
+            if(PDUII_DRV_DEBUG > 1) printf("PDUII Operation task gets requests!\n");
 
             switch(pPDUIIRequest->funcflag)
             {/* check funcflag */
@@ -867,7 +867,7 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
                 if(strlen(param_map[loop].param) < strlen(inout.parm))
                 {
                     extra = atoi(inout.parm + strlen(param_map[loop].param));
-                    if(PDUII_DRV_DEBUG) printf("extra is %d for [%s]\n", extra, pRecord->name);
+                    if(PDUII_DRV_DEBUG > 1) printf("extra is %d for [%s]\n", extra, pRecord->name);
                 }
                 else
                     extra = 0;
@@ -947,7 +947,7 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
             ellAdd(&PDUIIModuleList, (ELLNODE *)pPDUIIModule);
         }
 
-        if(PDUII_DRV_DEBUG) printf("Add PDUII[%d,%d,%d]\n",
+        if(PDUII_DRV_DEBUG > 1) printf("Add PDUII[%d,%d,%d]\n",
             pPDUIIModule->b, pPDUIIModule->c, pPDUIIModule->n);
     }
     /* Done check if the PDUII module is already in our list, or else add it */

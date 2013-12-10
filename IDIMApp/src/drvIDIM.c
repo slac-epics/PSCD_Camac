@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvIDIM.c,v 1.4 2011/02/23 07:32:44 rcs Exp $
+ *   $Id: drvIDIM.c,v 1.5 2013/12/10 18:22:37 sonya Exp $
  *   File:		drvIDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -112,7 +112,7 @@ static UINT32 IDIM_Read(IDIM_REQUEST * pIDIMRequest)
 
         /* F0 Aa to read IDIM */
         idimctlw = (pIDIMModule->n << 7) | (pIDIMModule->c << 12) | (pIDIMRequest->f << 16) | (pIDIMRequest->a);
-        if(IDIM_DRV_DEBUG) printf("IDIM Operation control word is 0x%08x\n", idimctlw);
+        if(IDIM_DRV_DEBUG > 1) printf("IDIM Operation control word is 0x%08x\n", idimctlw);
         bcnt = 4;
 
 #if 1
@@ -190,18 +190,18 @@ static int IDIM_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(IDIM_DRV_DEBUG) printf("IDIM Operation task gets requests!\n");
+            if(IDIM_DRV_DEBUG >1) printf("IDIM Operation task gets requests!\n");
 
             IDIM_Read(pIDIMRequest);
 
             /* process record */
             if(pIDIMRequest->pRecord)
             {
-                if(IDIM_DRV_DEBUG > 1) printf("Got value for record [%s]=[0x%04X]\n", pIDIMRequest->pRecord->name, pIDIMRequest->val);
+                if(IDIM_DRV_DEBUG > 2) printf("Got value for record [%s]=[0x%04X]\n", pIDIMRequest->pRecord->name, pIDIMRequest->val);
                 dbScanLock(pIDIMRequest->pRecord);
                 (*(pIDIMRequest->pRecord->rset->process))(pIDIMRequest->pRecord);
                 dbScanUnlock(pIDIMRequest->pRecord);
-                if(IDIM_DRV_DEBUG > 1) printf("Record [%s] processed\n", pIDIMRequest->pRecord->name);
+                if(IDIM_DRV_DEBUG > 2) printf("Record [%s] processed\n", pIDIMRequest->pRecord->name);
             }
         }/* process requests */
 
@@ -236,7 +236,7 @@ int IDIMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 
         ellAdd(&IDIMModuleList, (ELLNODE *)pIDIMModule);
 
-        if(IDIM_DRV_DEBUG) printf("Add IDIM[%d,%d,%d]\n",
+        if(IDIM_DRV_DEBUG > 1) printf("Add IDIM[%d,%d,%d]\n",
             pIDIMModule->b, pIDIMModule->c, pIDIMModule->n);
     }
     /* Done check if the IDIM module is already in our list, or else add it */

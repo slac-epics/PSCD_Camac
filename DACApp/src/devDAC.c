@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devDAC.c,v 1.4 2011/02/23 06:48:33 rcs Exp $
+ *   $Id: devDAC.c,v 1.5 2013/12/10 18:22:37 sonya Exp $
  *   File:		devDAC.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -117,7 +117,7 @@ static long read_ai(struct aiRecord *pai)
         }
         else
         {
-            if(DAC_DRV_DEBUG)   printf("Record [%s] receives val [0x%X]!\n", pai->name, pRequest->val);
+            if(DAC_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%X]!\n", pai->name, pRequest->val);
 
             if(pai->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pai->time = pRequest->actTime;
@@ -228,7 +228,7 @@ static long write_ao(struct aoRecord *pao)
         }
         else
         {
-            if(DAC_DRV_DEBUG)   printf("Record [%s] succeed!\n", pao->name);
+            if(DAC_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pao->name);
 
             rtn = NO_CONVERT;
         }
@@ -306,7 +306,7 @@ static long read_li(struct longinRecord *pli)
         }
         else
         {
-            if(DAC_DRV_DEBUG)   printf("Record [%s] receives val [%d]!\n", pli->name, pRequest->val);
+            if(DAC_DRV_DEBUG > 1)   printf("Record [%s] receives val [%d]!\n", pli->name, pRequest->val);
 
             if(pli->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pli->time = pRequest->actTime;

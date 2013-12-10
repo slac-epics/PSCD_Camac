@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPDUII.c,v 1.7 2011/02/23 08:05:15 rcs Exp $
+ *   $Id: devPDUII.c,v 1.8 2013/12/10 18:22:38 sonya Exp $
  *   File:		devPDUII.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -147,7 +147,7 @@ static long write_bo(struct boRecord *pbo)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] succeed!\n", pbo->name);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pbo->name);
 
             if(pbo->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pbo->time = pRequest->actTime;
@@ -221,7 +221,7 @@ static long read_mid(struct mbbiDirectRecord *pmbbid)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%04X]!\n", pmbbid->name, pRequest->val);
 
             if(pmbbid->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbid->time = pRequest->actTime;
@@ -296,7 +296,7 @@ static long read_mbbi(struct mbbiRecord *pmbbi)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] receives val [0x%04X]!\n", pmbbi->name, pRequest->val);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%04X]!\n", pmbbi->name, pRequest->val);
 
             if(pmbbi->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbi->time = pRequest->actTime;
@@ -376,7 +376,7 @@ static long write_mbbo(struct mbboRecord *pmbbo)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] succeed!\n", pmbbo->name);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pmbbo->name);
 
             if(pmbbo->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pmbbo->time = pRequest->actTime;
@@ -450,7 +450,7 @@ static long read_li(struct longinRecord *pli)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] receives val [0x%04X]!\n", pli->name, pRequest->val);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] receives val [0x%04X]!\n", pli->name, pRequest->val);
 
             if(pli->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 pli->time = pRequest->actTime;
@@ -537,7 +537,7 @@ static long write_lo(struct longoutRecord *plo)
         }
         else
         {
-            if(PDUII_DRV_DEBUG)   printf("Record [%s] succeed!\n", plo->name);
+            if(PDUII_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", plo->name);
 
             if(plo->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
                 plo->time = pRequest->actTime;

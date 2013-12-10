@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvLDIM.c,v 1.3 2011/02/23 06:51:56 rcs Exp $
+ *   $Id: drvLDIM.c,v 1.4 2013/12/10 18:22:38 sonya Exp $
  *   File:		drvLDIM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -114,7 +114,7 @@ static UINT32 LDIM_Read(LDIM_REQUEST * pLDIMRequest)
 
         /* F0 Aa to read LDIM */
         ldimctlw = (pLDIMModule->n << 7) | (pLDIMModule->c << 12) | (pLDIMRequest->f << 16) | (pLDIMRequest->a);
-        if(LDIM_DRV_DEBUG) printf("LDIM Operation control word is 0x%08x\n", ldimctlw);
+        if(LDIM_DRV_DEBUG > 1) printf("LDIM Operation control word is 0x%08x\n", ldimctlw);
         bcnt = 4;
 
 #if 1
@@ -192,18 +192,18 @@ static int LDIM_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(LDIM_DRV_DEBUG) printf("LDIM Operation task gets requests!\n");
+            if(LDIM_DRV_DEBUG > 1) printf("LDIM Operation task gets requests!\n");
 
             LDIM_Read(pLDIMRequest);
 
             /* process record */
             if(pLDIMRequest->pRecord)
             {
-                if(LDIM_DRV_DEBUG > 1) printf("Got value for record [%s]=[0x%04X]\n", pLDIMRequest->pRecord->name, pLDIMRequest->val);
+                if(LDIM_DRV_DEBUG > 2) printf("Got value for record [%s]=[0x%04X]\n", pLDIMRequest->pRecord->name, pLDIMRequest->val);
                 dbScanLock(pLDIMRequest->pRecord);
                 (*(pLDIMRequest->pRecord->rset->process))(pLDIMRequest->pRecord);
                 dbScanUnlock(pLDIMRequest->pRecord);
-                if(LDIM_DRV_DEBUG > 1) printf("Record [%s] processed\n", pLDIMRequest->pRecord->name);
+                if(LDIM_DRV_DEBUG > 2) printf("Record [%s] processed\n", pLDIMRequest->pRecord->name);
             }
         }/* process requests */
 
@@ -238,7 +238,7 @@ int LDIMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 
         ellAdd(&LDIMModuleList, (ELLNODE *)pLDIMModule);
 
-        if(LDIM_DRV_DEBUG) printf("Add LDIM[%d,%d,%d]\n",
+        if(LDIM_DRV_DEBUG > 1) printf("Add LDIM[%d,%d,%d]\n",
             pLDIMModule->b, pLDIMModule->c, pLDIMModule->n);
     }
     /* Done check if the LDIM module is already in our list, or else add it */

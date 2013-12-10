@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: drvPPOM.c,v 1.4 2011/02/23 07:40:41 rcs Exp $
+ *   $Id: drvPPOM.c,v 1.5 2013/12/10 18:22:38 sonya Exp $
  *   File:		drvPPOM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -219,7 +219,7 @@ UINT32 PPOM_ReadData(PPOM_REQUEST * pPPOMRequest)
         {
             /* F0 A0 to read PPOM, we don't use pPPOMRequest->f here to help init mbboDirect */
             ppomctlw = (pPPOMModule->n << 7) | (pPPOMModule->c << 12) /*| (pPPOMRequest->f << 16)*/ | (pPPOMRequest->a);
-            if(PPOM_DRV_DEBUG) printf("PPOM Operation control word is 0x%08x\n", ppomctlw);
+            if(PPOM_DRV_DEBUG > 1) printf("PPOM Operation control word is 0x%08x\n", ppomctlw);
             bcnt = 4;
 
             if (!SUCCESS(iss = camio (&ppomctlw, &read_ppom[0].data, &bcnt, &read_ppom[0].stat, &emask)))
@@ -263,7 +263,7 @@ static int PPOM_Operation(void * parg)
         }
         else
         {/* some requests come in, we deal it one by one, no dynamic combination */
-            if(PPOM_DRV_DEBUG) printf("PPOM Operation task gets requests!\n");
+            if(PPOM_DRV_DEBUG > 1) printf("PPOM Operation task gets requests!\n");
 
             switch(pPPOMRequest->funcflag)
             {/* check funcflag */
@@ -281,11 +281,11 @@ static int PPOM_Operation(void * parg)
             /* process record */
             if(pPPOMRequest->pRecord)
             {
-                if(PPOM_DRV_DEBUG > 1) printf("Got value for record [%s]=[0x%04X]\n", pPPOMRequest->pRecord->name, pPPOMRequest->val);
+                if(PPOM_DRV_DEBUG > 2) printf("Got value for record [%s]=[0x%04X]\n", pPPOMRequest->pRecord->name, pPPOMRequest->val);
                 dbScanLock(pPPOMRequest->pRecord);
                 (*(pPPOMRequest->pRecord->rset->process))(pPPOMRequest->pRecord);
                 dbScanUnlock(pPPOMRequest->pRecord);
-                if(PPOM_DRV_DEBUG > 1) printf("Record [%s] processed\n", pPPOMRequest->pRecord->name);
+                if(PPOM_DRV_DEBUG > 2) printf("Record [%s] processed\n", pPPOMRequest->pRecord->name);
             }
         }/* process requests */
 
@@ -338,7 +338,7 @@ int PPOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 
         ellAdd(&PPOMModuleList, (ELLNODE *)pPPOMModule);
 
-        if(PPOM_DRV_DEBUG) printf("Add PPOM[%d,%d,%d]\n",
+        if(PPOM_DRV_DEBUG > 1) printf("Add PPOM[%d,%d,%d]\n",
             pPPOMModule->b, pPPOMModule->c, pPPOMModule->n);
     }
     /* Done check if the PPOM module is already in our list, or else add it */

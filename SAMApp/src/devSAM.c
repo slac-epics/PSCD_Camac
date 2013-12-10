@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devSAM.c,v 1.5 2011/11/07 23:25:29 luchini Exp $
+ *   $Id: devSAM.c,v 1.6 2013/12/10 18:22:38 sonya Exp $
  *   File:		devSAM.c
  *   Author:		Sheng Peng
  *   Email:		pengsh2003@yahoo.com
@@ -99,7 +99,7 @@ static long read_ai(struct aiRecord *pai)
         if(epicsMessageQueueTrySend(pRequest->pSAMModule->msgQId, (void *)&pRequest, sizeof(SAM_REQUEST *)) == -1)
         {
             recGblSetSevr(pai, READ_ALARM, INVALID_ALARM);
-            if (SAM_DRV_DEBUG)
+            if (SAM_DRV_DEBUG > 1)
               errlogPrintf("Send Message to SAM Operation Thread Error [%s]", pai->name);
             rtn = -1;
         }
@@ -125,7 +125,7 @@ static long read_ai(struct aiRecord *pai)
         }
         else
         {
-            if(SAM_DRV_DEBUG)   printf("Record [%s] receives val [%g]!\n", pai->name, pRequest->val);
+            if(SAM_DRV_DEBUG > 1)   printf("Record [%s] receives val [%g]!\n", pai->name, pRequest->val);
 
             pai->udf = FALSE;
             if(pai->tse == epicsTimeEventDeviceTime)/* do timestamp by device support */
@@ -199,7 +199,7 @@ static long write_bo(struct boRecord *pbo)
         }
         else
         {
-            if(SAM_DRV_DEBUG)   printf("Record [%s] succeed!\n", pbo->name);
+            if(SAM_DRV_DEBUG > 1)   printf("Record [%s] succeed!\n", pbo->name);
 
             rtn = NO_CONVERT;
         }
