@@ -166,6 +166,7 @@ vmsstat_t blockPIOPFblk (CAMBLOCKS_TS *camblocks_ps, void *outdat_p,
 
    /*-------------------------- code -------------------------*/
    epicsThreadSleep(delay); /* Delay before first read attempt */
+   memset (ftp_camac_ps, 0, sizeof(FTP_CAMAC_TS)); /* Clear the area */
    do
    {
      if (!SUCCESS(iss = camgo (&(camblocks_ps->fblk_pkg_p))))

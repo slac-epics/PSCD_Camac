@@ -17,6 +17,10 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-3-3
+28-Apr-2015, Mike Zelazny (zelazny)
+                CATER 124451: PIOPApp/src/blockPIOP.c(blockPIOPFblk): Clear FTP camac block between FTP requests.
+
 PSCD_Camac-R3-3-2
 18-Feb-2014, S. Hoobler (SONYA)
                 CAMCOMApp/src/Camcom_seq.stt: fix 'ACTIVE_TOKEN' PV name 
