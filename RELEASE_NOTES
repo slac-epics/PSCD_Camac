@@ -17,7 +17,7 @@
 #
 #==============================================================
 #
-PSCD_CAMAC-R3-3-4
+PSCD_Camac-R3-3-4
 08-Jun-2015, K. Luchini (luchini)
                Change CrateVerifierApp/Db/cv+camac_crat_bus_status.template
                seq record BUSSTAT_SEQ LNK fields to process PROC field
