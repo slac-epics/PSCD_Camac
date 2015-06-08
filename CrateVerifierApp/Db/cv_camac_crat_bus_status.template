@@ -23,14 +23,14 @@ record(seq, "$(DEV):BUSSTAT_SEQ") {
   field(DOL6, "1")
   field(DOL7, "1")
   field(DOL8, "1")
-  field(LNK1, "$(DEV):BUSERR PP NMS")
-  field(LNK2, "$(DEV):CMDSTAT PP NMS")
-  field(LNK3, "$(DEV):MODUERR PP NMS")
-  field(LNK4, "$(DEV):CAM_TIMEOUT PP NMS")
-  field(LNK5, "$(DEV):XSTAT_CALC PP NMS")
-  field(LNK6, "$(DEV):QSTAT_CALC PP NMS")
-  field(LNK7, "$(DEV):RWSTAT PP NMS")
-  field(LNK8, "$(DEV):BUSINIT PP NMS")
+  field(LNK1, "$(DEV):BUSERR.PROC PP NMS")
+  field(LNK2, "$(DEV):CMDSTAT.PROC PP NMS")
+  field(LNK3, "$(DEV):MODUERR.PROC PP NMS")
+  field(LNK4, "$(DEV):CAM_TIMEOUT.PROC PP NMS")
+  field(LNK5, "$(DEV):XSTAT_CALC.PROC PP NMS")
+  field(LNK6, "$(DEV):QSTAT_CALC.PROC PP NMS")
+  field(LNK7, "$(DEV):RWSTAT.PROC PP NMS")
+  field(LNK8, "$(DEV):BUSINIT.PROC PP NMS")
 }
 
 record(bi, "$(DEV):BUSERR") {
