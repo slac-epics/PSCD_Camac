@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_CAMAC-R3-3-4
+08-Jun-2015, K. Luchini (luchini)
+               Change CrateVerifierApp/Db/cv+camac_crat_bus_status.template
+               seq record BUSSTAT_SEQ LNK fields to process PROC field
+
 PSCD_Camac-R3-3-3
 28-Apr-2015, Mike Zelazny (zelazny)
                 CATER 124451: PIOPApp/src/blockPIOP.c(blockPIOPFblk): Clear FTP camac block between FTP requests.
