@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: fidPHASE.c,v 1.3 2011/03/11 22:53:44 rcs Exp $
+ **   $Id: fidPHASE.c,v 1.4 2013/05/28 22:51:19 zelazny Exp $
  **   File:              fidPHASE.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -46,8 +46,15 @@ epicsExportAddress(int, FIDPHASE_DEBUG);
 unsigned long Delay_usec = 3000;  /* For BSP timer */
 /* Zelazny (28-May-2013): Increased Delay_usec from 2000 to 3000 for CATER 103892 */
 
-int Phasecambad  = 0;   /* !!?? Temp for debugging */
-int Phasecamgud  = 0;
+/* Diagnostic counters */
+volatile unsigned long Phasecambad  = 0;   /* !!?? Temp for debugging */
+volatile unsigned long Phasecamgud  = 0;
+volatile unsigned long Phasefidphaseevent = 0;
+volatile unsigned long Phaseeventok = 0;
+volatile unsigned long Phasepipepatternok = 0;
+volatile unsigned long Phasemod5beam = 0;
+volatile unsigned long Phasetimerstart = 0;
+volatile unsigned long Phasefidisrevent = 0;
 
 #define DEFAULT_EVR_TIMEOUT 0.2
 
@@ -141,17 +148,25 @@ static int fidPHASETask(void * parg)
     while(TRUE)
     {
         eventstat = epicsEventWaitWithTimeout(fidPHASEEvent, DEFAULT_EVR_TIMEOUT);
+	Phasefidphaseevent++;
         if(eventstat == epicsEventWaitOK)
         {
+	    Phaseeventok++;
             /*
  	    ** Get current modifiers and check for beam crossing.
  	    */
             pipestat = evrTimeGetFromPipeline(&time_s,  evrTimeCurrent, modifier_a,
                                               &patternStatus, 0,0,0);
+            if (FIDPHASE_DEBUG >= 3) 
+                errlogPrintf("fidPhase: pipestat %i patternStatus %lu\n", pipestat, patternStatus);
             if((pipestat == 0) && (patternStatus == PATTERN_OK))
             {
+		Phasepipepatternok++;
+		if (FIDPHASE_DEBUG >= 3) 
+		    errlogPrintf("fidPhase: MOD5_BEAMFULL_MASK 0x%x, modifier_a[MOD5_IDX] 0x%x, & %i\n", MOD5_BEAMFULL_MASK, modifier_a[MOD5_IDX], MOD5_BEAMFULL_MASK & modifier_a[MOD5_IDX]);
                 if (MOD5_BEAMFULL_MASK & modifier_a[MOD5_IDX])
  	        {
+		    Phasemod5beam++;
                     /*
  		    ** We have beam. The beam will arrive in ~1ms & it takes the PIOP ~.5ms to
                     ** store its phase so wait ~2ms before we read it out.
@@ -160,7 +175,9 @@ static int fidPHASETask(void * parg)
  		    */
                     timer_delay = Delay_usec * (double)(clock_freq * 1.E-6);
                     BSP_timer_start (timer_num, timer_delay);
+		    Phasetimerstart++;
                     epicsEventMustWait(fidIsrEvent);
+		    Phasefidisrevent++;
                     if (SUCCESS(camgo (&Phase_pkg_p)))
 		    {
                         Phasecamgud++;
