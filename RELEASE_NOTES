@@ -19,8 +19,8 @@
 #
 PSCD_Camac-R3-3-5
 07-Dec-2015, S. Hoobler (sonya)
-               PIOPApp/src/fidPHASE.c: Additional counters and debug messages
-                 for troubleshooting
+               PIOPApp/src/fidPHASE.c: Add timeout for fidIsrEvent wait.
+		Add counters and debug messages for troubleshooting
 
 PSCD_Camac-R3-3-4
 08-Jun-2015, K. Luchini (luchini)
