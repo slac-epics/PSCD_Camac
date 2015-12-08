@@ -1,5 +1,5 @@
 /***************************************************************************\
- **   $Id: fidPHASE.c,v 1.4 2013/05/28 22:51:19 zelazny Exp $
+ **   $Id: fidPHASE.c,v 1.5 2015/12/07 18:04:30 sonya Exp $
  **   File:              fidPHASE.c
  **   Author:            Robert C. Sass
  **   Email:             rcs@slac.stanford.edu
@@ -54,7 +54,9 @@ volatile unsigned long Phaseeventok = 0;
 volatile unsigned long Phasepipepatternok = 0;
 volatile unsigned long Phasemod5beam = 0;
 volatile unsigned long Phasetimerstart = 0;
-volatile unsigned long Phasefidisrevent = 0;
+volatile unsigned long Phasefidisreventtimeout = 0;
+volatile unsigned long Phasefidisreventok = 0;
+volatile unsigned long Phasefidisreventerror = 0;
 
 #define DEFAULT_EVR_TIMEOUT 0.2
 
@@ -176,8 +178,14 @@ static int fidPHASETask(void * parg)
                     timer_delay = Delay_usec * (double)(clock_freq * 1.E-6);
                     BSP_timer_start (timer_num, timer_delay);
 		    Phasetimerstart++;
-                    epicsEventMustWait(fidIsrEvent);
-		    Phasefidisrevent++;
+                    eventstat = epicsEventWaitWithTimeout(fidIsrEvent, DEFAULT_EVR_TIMEOUT);
+		    if ( eventstat == epicsEventWaitTimeout )
+			    Phasefidisreventtimeout++;
+		    else if ( eventstat == epicsEventWaitOK )
+			    Phasefidisreventok++;
+		    else if ( eventstat == epicsEventWaitError )
+			    Phasefidisreventerror++;
+
                     if (SUCCESS(camgo (&Phase_pkg_p)))
 		    {
                         Phasecamgud++;
