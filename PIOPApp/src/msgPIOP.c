@@ -97,7 +97,8 @@ long msgPIOPproc (struct subRecord *subr_p)
    ** Bit 14-8 -- MSG Number
    ** Bit 7-0  -- Optional Argument Data
    */
-   unsigned short piopword = subr_p->a;  /* PIOP msg word */
+   unsigned short piopword = subr_p->a;         /* PIOP msg word */
+   unsigned short prev_piopword = subr_p->val;  /* PIOP msg word */
    unsigned short msgnum;
    unsigned short msgdat = 0;
    /*--------------------------------------------*/
@@ -120,8 +121,15 @@ long msgPIOPproc (struct subRecord *subr_p)
    ** Don't log if same as last time else save new msg
    ** for next time.
    */
-   if (piopword == subr_p->val)
+   if (piopword == prev_piopword )
+   {
+      if (subr_p->b)
+        errlogPrintf("Record %s: %s: No change, data = %2.2x\n",
+                      subr_p->name, 
+		      msg_as[msgnum].msg_p, 
+                      piopword );
       goto egress;
+   }
    subr_p->val = piopword;     /* Save for next time */
    /*
    ** Log the new error/status.
