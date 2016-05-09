@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-3-6
+06-May-2016, K. Luchini (luchini)
+             check Piop camac status of message word for X,Q & BAR,
+             which indicates good data.
+
 PSCD_Camac-R3-3-5
 07-Dec-2015, S. Hoobler (sonya)
                PIOPApp/src/fidPHASE.c: Add timeout for fidIsrEvent wait.
