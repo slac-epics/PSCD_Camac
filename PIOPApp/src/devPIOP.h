@@ -70,6 +70,13 @@
 #define CONVERT                 (0)
 #define NO_CONVERT              (2)
 #define MAX_FUNC_STRING_LEN	(40)
+
+#ifndef OK
+#define OK                      (0)
+#endif
+#ifndef ERROR
+#define ERROR                   (-1)
+#endif
 /******************************************************************************************/
 
 /******************************************************************************************/
@@ -97,6 +104,17 @@ typedef enum EPICS_RECTYPE
 #define MAX_MODULES = MAX_CRATES * MAX_SLOTS
 #define MAX_PIOPS 9
 #define MAX_FTP_IDX 21
+
+
+/******************************************************************************************/
+/******************************************************************************************/
+/*********************                CAMAC                     ***************************/
+/*********************              Status Masks                ***************************/
+/*********************               see cctlw.h                ***************************/
+/******************************************************************************************/
+
+#define CAMAC_STAT_XQ_BAR            (MBCD_STAT__X | MBCD_STAT__Q | MBCD_STAT__BAR)
+#define PIOP_MSG_WORD_OK( status )   ( ((status) & 0x003F0000)) == CAMAC_STAT_XQ_BAR ? 1 : 0)
 
 /*
 ** Generic status/data structs
