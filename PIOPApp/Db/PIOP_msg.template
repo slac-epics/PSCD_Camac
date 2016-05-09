@@ -1,5 +1,14 @@
 # Records required to read the message word from each PIOP
 
+record(bo, "$(DEV):PIOP:MSG:DEBUG") {
+  field(DESC, "PIOP Debug Flag")
+  field(DTYP, "Raw Soft Channel")
+  field(PINI, "YES")
+  field(ZNAM, "Off")
+  field(ONAM, "On")
+  info(autosaveFields,"VAL")
+}
+
 # BI->fanout->longin for each PIOP to get msg word
 # The BI record does the Camac operation and the longin records 
 # get the result from that operation.
@@ -30,4 +39,6 @@ record(sub, "$(DEV1):PIOP_PROC:MSG1") {
   field(SCAN, "Passive")
   field(INAM, "msgPIOPinit")
   field(SNAM, "msgPIOPproc")
+  field(INPA, "$(DEV1):PIOP:MSG1")
+  field(INPB, "$(DEV1):PIOP:DEBUG")
 }
