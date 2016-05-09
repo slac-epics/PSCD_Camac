@@ -113,8 +113,8 @@ typedef enum EPICS_RECTYPE
 /*********************               see cctlw.h                ***************************/
 /******************************************************************************************/
 
-#define CAMAC_STAT_XQ_BAR            (MBCD_STAT__X | MBCD_STAT__Q | MBCD_STAT__BAR)
-#define PIOP_MSG_WORD_OK( status )   ( ((status) & 0x003F0000)) == CAMAC_STAT_XQ_BAR ? 1 : 0)
+#define CAMAC_STAT_XQ_BAR          (MBCD_STAT__X | MBCD_STAT__Q | MBCD_STAT__BAR)
+#define PIOP_MSG_WD_OK( status )   ( ((status) & 0x003F0000) == CAMAC_STAT_XQ_BAR ? 1 : 0)
 
 /*
 ** Generic status/data structs
