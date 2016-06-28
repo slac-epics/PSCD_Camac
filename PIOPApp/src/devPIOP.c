@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.16 2013/12/10 18:22:38 sonya Exp $
+ *   $Id: devPIOP.c,v 1.17 2016/05/09 22:30:17 luchini Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -526,7 +526,8 @@ static long Bi_read (struct biRecord *bir_p)
       }
       else
       {
-         bir_p->pact = TRUE;
+ 
+        bir_p->pact = TRUE;
          rtn = 0;     /* Return OK */
       }
    }
@@ -641,31 +642,25 @@ static long Li_read (struct longinRecord *lir_p)
    *
    */
    msgidx = atoi(&parm_p[3]);
-
+   
    /* should we check camac status? */
-   if (PIOP_DEV_DEBUG)
+   if (!PIOP_DEV_DEBUG) 
      lir_p->val = lir_p->val = Piop_Msgs_s[msgidx].data; 
-
    /* Check if camgo was successful */
-   else if (SUCCESS(pvt_p->status))
-   {
+   else 
+   {         
       /*
        * Check X, Q and BAR of camac status, lower byte only
        * The RMS software also checks crate online, but we don't here.
        */
        stat = Piop_Msgs_s[msgidx].stat;
-       if ( PIOP_MSG_WD_OK(stat) )
-         lir_p->val = Piop_Msgs_s[msgidx].data;
-       else if (PIOP_DRV_DEBUG)
-       {
-         sprintf(errmsg_c,"devLiPIOP MSG, status=0x%lx data=%hd",(long unsigned int)stat,Piop_Msgs_s[msgidx].data );
-         recGblRecordError(ERROR, (void *)lir_p, errmsg_c);
+       if ( PIOP_MSG_WD_OK(stat) ) {
+         if ((lir_p->val==Piop_Msgs_s[msgidx].data) && (PIOP_DEV_DEBUG==2))
+           epicsPrintf("devLiPIOP_MSG: %s  same fault as last time %d\n",lir_p->name,lir_p->val,(unsigned long int));
+         lir_p->val = Piop_Msgs_s[msgidx].data;  
        }
-   }
-   else if (PIOP_DRV_DEBUG) 
-   {
-      sprintf(errmsg_c,"devLiPIOP MSG, Camgo failed status=%lx",pvt_p->status);
-      recGblRecordError(ERROR , (void *)lir_p, errmsg_c);
+       else if (PIOP_DEV_DEBUG==2)
+         epicsPrintf(sprintf("devLiPIOP MSG, status=0x%lx data=%hd",(long unsigned int)stat,Piop_Msgs_s[msgidx].data );
    }
    return (rtn);
 }
