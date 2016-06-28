@@ -111,6 +111,12 @@ long msgPIOPproc (struct subRecord *subr_p)
    msgnum = (piopword &  0x7F00) >> 8;
    if (msgnum > LAST_MSG-1)
    {
+     if (subr_p->b)
+        errlogPrintf("Record %s: Illegal message %ud data=%2.2x  prev=%2.2x\n",
+                      subr_p->name, 
+		      msgnum, 
+		      piopword,
+	 	      prev_piopword );
       msgnum = piopword = LAST_MSG;  /* Set to illegal message index */
    }   
    else if ((piopword & 0x8000) != 0)
@@ -121,15 +127,8 @@ long msgPIOPproc (struct subRecord *subr_p)
    ** Don't log if same as last time else save new msg
    ** for next time.
    */
-   if (piopword == prev_piopword )
-   {
-      if (subr_p->b)
-        errlogPrintf("Record %s: %s: No change, data = %2.2x\n",
-                      subr_p->name, 
-		      msg_as[msgnum].msg_p, 
-                      piopword );
+   if (piopword == prev_piopword)
       goto egress;
-   }
    subr_p->val = piopword;     /* Save for next time */
    /*
    ** Log the new error/status.
