@@ -1,5 +1,5 @@
 /***************************************************************************\
- *   $Id: devPIOP.c,v 1.17 2016/05/09 22:30:17 luchini Exp $
+ *   $Id: devPIOP.c,v 1.18 2016/06/28 16:15:53 luchini Exp $
  *   File:		devPIOP.c
  *   Author:		Robert C. Sass
  *   Email:		bsassy@garlic.com
@@ -656,11 +656,11 @@ static long Li_read (struct longinRecord *lir_p)
        stat = Piop_Msgs_s[msgidx].stat;
        if ( PIOP_MSG_WD_OK(stat) ) {
          if ((lir_p->val==Piop_Msgs_s[msgidx].data) && (PIOP_DEV_DEBUG==2))
-           epicsPrintf("devLiPIOP_MSG: %s  same fault as last time %d\n",lir_p->name,lir_p->val,(unsigned long int));
-         lir_p->val = Piop_Msgs_s[msgidx].data;  
+           epicsPrintf("devLiPIOP_MSG: %s  same fault as last time %hd\n",lir_p->name,lir_p->val);
+           lir_p->val = Piop_Msgs_s[msgidx].data;  
        }
        else if (PIOP_DEV_DEBUG==2)
-         epicsPrintf(sprintf("devLiPIOP MSG, status=0x%lx data=%hd",(long unsigned int)stat,Piop_Msgs_s[msgidx].data );
+         epicsPrintf("devLiPIOP MSG: %s data=%hd  status=0x%lx",lir_p->name,Piop_Msgs_s[msgidx].data,(long unsigned int)stat );
    }
    return (rtn);
 }
