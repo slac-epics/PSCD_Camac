@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-4-0
+16-Aug-2016, Mike Zelazny (zelazny)
+             For CATER 95788 Job Number 23: upgrade to event-R4-2-5
+             (better BSA).
+
 PSCD_Camac-R3-3-6
 06-May-2016, K. Luchini (luchini)
              check Piop camac status of message word for X,Q & BAR,
