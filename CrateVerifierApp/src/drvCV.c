@@ -75,8 +75,10 @@
 
 -------------------------------------------------------------
   Mod:
-        dd-mmm-yyyy, First Lastname   (USERNAME):
-          comment
+        09-Nov-2016, K. Luchini       (LUCHINI):
+          CV_IsCrateOnline() - clear camac timeout and 
+          camac error in the camac status bitmask, 
+          reflected in the pv CAMC:<sector>:<crate>:STAT
 
 =============================================================
 */
@@ -3434,18 +3436,21 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
      if ( SUCCESS(iss) )
      {   
          /*
-	  * At least we don't have crate timeout on both reads.
-	  * Now check that the data is what we expect.
+	  * At least we don't have crate timeout or camac error on both reads.
+	  * Now check that the data is what we expect.So set the creat online
+	  * first and the clear the camac crate time-out and camac error bits
+	  * in the status bitmask.
 	  */
           epicsMutexMustLock(module_ps->crate_s.mlock );
           module_ps->crate_s.flag_e     = CV_CRATEON;
           module_ps->crate_s.stat_u._i |= CRATE_STATUS_ONLINE;
+          module_ps->crate_s.stat_u._i &= ~(CRATE_STATUS_CTO_ERR | CRATE_STATUS_CAM_ERR); 
           epicsMutexUnlock(module_ps->crate_s.mlock );
     
          /*
-          * Crate responds and verifier data but the
-          * doubly-read verifier data indicates power has been off
-          * so initialization is needed.  
+          * Get verifier data from doubly-read of crate verifier register.
+	  * If data doesn't matche expected pattern this indicates that the
+          * crate has been powered off and initialization is needed.  
           */
           data1 = statd_as[0].data & CV_DATA_MASK;  /* Get 1st read from DATA register */
 	  data2 = statd_as[1].data & CV_DATA_MASK;  /* Get 2nd read from DATA register */
@@ -3551,8 +3556,6 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
          */
          epicsMutexMustLock( module_ps->crate_s.mlock );
          module_ps->crate_s.flag_e    = CV_CRATEOFF;
-
-
          if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
 	   module_ps->crate_s.stat_u._i |= CRATE_STATUS_CTO_ERR;
          else
