@@ -17,10 +17,10 @@
          *   read_ai                  - read analog input
          *   get_ioint_info_ai        - Get I/O event list info
 
-         Binary Input Device Support:
+         Binary Output Device Support:
          -----------------------------
          *   init_bo                  - initialization
-         *   read_bo                  - read analog input
+         *   write_bo                 - write binary output
 
          Longinput Input Device Support:
          -----------------------------
