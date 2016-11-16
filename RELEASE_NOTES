@@ -17,6 +17,11 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-4-1
+16-Nov-2016, Kristi Luchini  (luchini):
+             Fix CV_IsCrateOnline() functio to clear crate timeout
+             in status summary after timetout is one.
+
 PSCD_Camac-R3-4-0
 16-Aug-2016, Mike Zelazny (zelazny)
              For CATER 95788 Job Number 23: upgrade to event-R4-2-5
