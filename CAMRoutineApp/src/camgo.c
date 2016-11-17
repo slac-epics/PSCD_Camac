@@ -73,6 +73,9 @@
 int MBCD_MODE = 0;   /* Global flag to disable crate/soft timeout msgs when in MBCD mode */
 int CAM_DRV_DEBUG = 0; /* Global flag to disable/enable messages; default is to disable */
 
+/* Diagnostic counter */
+volatile epicsUInt32 lamCnt = 0;
+
 epicsExportAddress(int, MBCD_MODE);
 
  static unsigned long cam_tdv_busy_count = 0,
@@ -174,9 +177,11 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
   if (!(wc & 1))
   {
     memcpy (ldest_p, lsrc_p, (wc << 1));  /* Even word count = memcpy */
+
   }
   else            /* Odd word count. For 1 word the memcpy is a NOP. */
   {
+
     memcpy (ldest_p, lsrc_p, ((wc-1) << 1)); /* Copy all but the last odd word */
     lsrc_p =  &(lsrc_p[wc-1]);    /* Point to the last words */
     ldest_p = &(ldest_p[wc-1]);
@@ -275,7 +280,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
      for (jp = 0;  jp < miop;  ++jp)
      {
          stadh_p = savep_p[jp].hrdw_p;
-         stadh_p->camst_dw = 0;
+         stadh_p->camst_dw = 0;         /* clear dp mem status word */
          if (savep_p[jp].user_p != NULL &&
             (CAMBLK_p->mbcd_pkt[jp].cctlw & (CCTLW__F16 | CCTLW__F8)) == CCTLW__F16)
          {
@@ -289,7 +294,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
                          CAMBLK_p->mbcd_pkt[jp].wc_max, TODP);
 #endif
              }
-             else
+             else 
                  unpk_bytes_to_w((unsigned char *) savep_p[jp].user_p + 4,
                                  stadh_p->dat_w, CAMBLK_p->mbcd_pkt[jp].wc_max);
          }
@@ -380,8 +385,8 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
      unsigned  miop = CAMBLK_p->hdr.iop;
      unsigned  jp;
      mbcd_savep_ts *savep_p = (void *) &CAMBLK_p->mbcd_pkt[CAMBLK_p->hdr.nops];
-     /*----------------------------------------------*/
 
+     /*----------------------------------------------*/
      /* For each packet, if we are buffering the operation, then  */
      /* copy the status longword from memory allocated by camadd, */
      /* and if the packet is a read, then copy the data too.      */
@@ -442,6 +447,7 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  
      for (j = 8;  j > 0 && !(eflagb & 1 << (j-1));  --j)
          ;
+ 
      return camerrcods[j];
  }                                               /* End local cam_get_errcod. */
  
@@ -469,12 +475,12 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
  static vmsstat_t camgo_spin_errs(unsigned miop, const mbcd_pkt_ts mbcd_pkt_p[],
                                   const mbcd_savep_ts savep_p[])
  { 
-     unsigned int    *mbcd_stat_p, mbcd_stat;
+     unsigned int    *mbcd_stat_p, mbcd_stat, mbcd_stat_orig;
      unsigned        jp; 
      unsigned char   eflag;
      unsigned int    parmdw[4];
      vmsstat_t       iss, issx;
- 
+              
                /*----------------------------------------------*/
  
      /* For each packet in the package test status.  Note that      */
@@ -486,8 +492,20 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
      for (jp = 0;  jp < miop;  ++jp)
      {
          mbcd_stat_p = savep_p[jp].hrdw_p;
-         mbcd_stat = *mbcd_stat_p;     /* Read status into local memory */
- 
+
+	 /* Save copy of mbcd_stat before modification for debug messages later */
+         mbcd_stat_orig = mbcd_stat = *mbcd_stat_p;     /* Read status into local memory */
+
+	 /* Mask out MBCD_STAT__LAM, which is LAM bit and not used by software.
+	  * lamCnt is a diagnostic counter for experts to check count, 
+	  * probably it can eventually be removed.
+	  */
+	 if ( mbcd_stat & MBCD_STAT__LAM ) {
+		lamCnt++;
+		mbcd_stat &= ~MBCD_STAT__LAM;
+		*mbcd_stat_p = mbcd_stat;
+	 }
+
          /* Assume package is complete.  Note that the PSCD         */
          /* stores the low-order status word (16 bits, including    */
          /* remaining wordcount) first, then the high-order word    */
@@ -517,49 +535,51 @@ void bewcpy (void *dest_p, void *src_p, size_t wc, unsigned char dir)
                {
                   case CAM_NO_Q:
                     errlogSevPrintf (errlogMinor,
-                   "Camgo: no Q response C %x N %x A %x F %x Stat=%x\n",
-                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                   "Camgo: no Q response C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     break;
                   case CAM_NO_X:
                     errlogSevPrintf (errlogMinor,
-                   "Camgo: no X response C %x N %x A %x F %x Stat=%x\n",
-                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                   "Camgo: no X response C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     break;
                   case CAM_NO_EOSTRM:
                     errlogSevPrintf (errlogMinor,
-                   "Camgo: failed to terminate on end of scan C %x N %x A %x F %x Stat=%x\n",
-                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                   "Camgo: failed to terminate on end of scan C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     break;
                   case CAM_NO_WCTERM:
                     errlogSevPrintf (errlogMinor,
-                   "Camgo: failed to exhaust word count C %x N %x A %x F %x Stat=%x\n",
-                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                   "Camgo: failed to exhaust word count C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     break;
                   case CAM_CRATE_TO:
                     if (!MBCD_MODE)
 		    {
                        errlogSevPrintf (errlogMinor,
-                      "Camgo: crate timeout C %x N %x A %x F %x Stat=%x\n",
-                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                      "Camgo: crate timeout C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     }
                     break;
                   case CAM_SOFT_TO:
                     if (!MBCD_MODE)
 		    {
                        errlogSevPrintf (errlogMinor,
-                      "Camgo: software timeout. No PSCD response C %x N %x A %x F %x Stat=%x\n",
-                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                      "Camgo: software timeout. No PSCD response C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                       parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
 		    }
                     break;
                   case CAM_MBCD_NFG:
                     errlogSevPrintf (errlogMinor,
-                   "Camgo: PSCD failure C %x N %x A %x F %x Stat=%x\n",
-                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat);
+                   "Camgo: PSCD failure C %i N %i A %i F %i Stat=0x%x OrigStat=0x%x emask 0x%x eflag 0x%x eflag&emask 0x%x issx 0x%x\n",
+                    parmdw[0], parmdw[1], parmdw[2], parmdw[3], mbcd_stat, mbcd_stat_orig, savep_p[jp].emask, eflag, eflag & savep_p[jp].emask, (unsigned int)issx);
                     break;
                }
+	       
 	   }
 
          }
+
          if (!SUCCESS(issx = cam_get_errcod(eflag & savep_p[jp].emask >> 8))  &&
              SUCCESS(iss))
          {
