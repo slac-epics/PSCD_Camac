@@ -75,6 +75,8 @@
 
 -------------------------------------------------------------
   Mod:
+        11-Feb-2017, K. Luchini       (LUCHINI):
+          add second argument, slot to isCrateOnline()
         09-Nov-2016, K. Luchini       (LUCHINI):
           CV_IsCrateOnline() - clear camac timeout and 
           camac error in the camac status bitmask, 
@@ -140,7 +142,7 @@ static void         CV_SetCrateStatus( CV_MODULE * const module_ps, unsigned sho
 
 
 /* Global functions */
-long         CV_Start( unsigned long crate_mask );
+long         CV_Start( unsigned long crate_mask, short n );
 CV_MODULE  * CV_AddModule( short b, short c, short n );
 void         CV_AsynThreadStop(void);
 
@@ -165,6 +167,7 @@ static  cv_thread_ts            threads_as[CV_NUM_THREADS] = {{NULL,0,0,NULL}, {
 /*====================================================
  
   Abs:  Initalization for all Crate Verifiers
+
   Name: CV_Start
  
   Args:  crate_mask             Bit mask of online crates 
@@ -173,6 +176,12 @@ static  cv_thread_ts            threads_as[CV_NUM_THREADS] = {{NULL,0,0,NULL}, {
           Acc:  read-only       bit3=crate3, etc.
           Mech: By value        
  
+        n                       Camac slot number (optional, default=1)
+          Type: value           Note: 1-24, if the slot is zero, or    
+          Use:  short           the argument is not supplied the 
+          Acc:  read-only       default is used.
+          Mech: By value
+
   Rem: This function is called from CV_Start, prior
        to iocInit to setup the linked list of modules
        and initalize the message queue id for each module 
@@ -214,25 +223,39 @@ static  cv_thread_ts            threads_as[CV_NUM_THREADS] = {{NULL,0,0,NULL}, {
   Ret:  None
  
 =======================================================*/
-long CV_Start( unsigned long crate_mask  )
+long CV_Start( unsigned long crate_mask, short n )
 {
     long                status     = OK;              /* status return     */
     short               bitNo      = 2;               /* bit number (1-15) */
     static const short  num        = MAX_CRATE_ADR;   /* no of crates      */
     static const short  branch     = 0;     /* branch number (0,1) ignored */
     short               crate      = 1;     /* crate number                */
-    static const short  slot       = 1;     /* slot number (always=1)      */
-    int            maxMsgs    = MAX_QUEUED_MSGS;
-    unsigned int   stackSize  = 20480;
-    cv_thread_ts  *thread_ps  = &threads_as[CV_OP_THREAD];
+    short               slot       = 1;     /* slot number (always=1)      */
+    int                 maxMsgs    = MAX_QUEUED_MSGS;
+    unsigned int        stackSize  = 20480;
+    cv_thread_ts       *thread_ps  = &threads_as[CV_OP_THREAD];
 
+
+    if (!n) 
+      slot = 1;
+
+    /* The serial crate controller uses the last 2-slots in the crate */
+    else if ( n>(MAX_CRATE_SLOT-2) ) 
+    {
+       printf("Invalid slot number, the Crate Verifier can only used slots 1-23\n");
+       status = ERROR;
+       return(status);
+    }
+    else
+      slot=n;
+    printf("Crate Verifier is expected in slot %hd\n",slot);
 
     /* Build module linked list for available crates */
     for (crate=1; crate<num; bitNo<<=1,crate++)
     {
       if ( bitNo & crate_mask )     
 	CV_AddModule(branch,crate,slot);
-    }/* End of FOR loop */
+    }/* End of FOR loop */   
 
     /*
      * Keep track of the number of modules at this point in case other
@@ -3041,7 +3064,8 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
        }
        else 
        {
-  	  module_ps->crate_s.idErr = epicsTrue;
+  
+	  module_ps->crate_s.idErr = epicsTrue;
           module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
         
 	  /* Check for a crate timeout */
@@ -3156,6 +3180,13 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
           Acc:  read-only
           Mech: By value
 
+        slot                      Camac slot number 
+          Type: value             Note: 1-24           
+          Use:  short 
+          Acc:  read-only
+          Mech: By value
+
+
   Rem:  The purpose of this function is to return the
         crate physical online status.
 
@@ -3169,11 +3200,10 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
                3  - Crate Online and initalized
 
 =======================================================*/
-long isCrateOnline( short crate )
+long isCrateOnline( short crate, short slot )
 {
   long               status = ERROR;  /* status return                 */
   static const short branch = 0;      /* branch, don't care            */
-  static const short slot   = 1;      /* verifier slot number always 1 */
   CV_MODULE         *module_ps = NULL;
 
   if ((crate>=MIN_CRATE_ADR) && (crate<=MAX_CRATE_ADR))
