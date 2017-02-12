@@ -21,7 +21,7 @@
 #ifndef _DRV_CV_PROTO_H_
 #define _DRV_CV_PROTO_H_
 
-long         IsCrateOnline( short c);;
+long         IsCrateOnline( short c);
 CV_MODULE  * CV_FindModuleByBCN(short b, short c, short n );
 void         CV_ClrMsgStatus( cv_message_status_ts * const msgstat_ps );
 long         CV_DeviceInit( cv_camac_func_te   func_e,
