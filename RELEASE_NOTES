@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-4-3
+11-Feb-2017, Kristi Luchini (luchini):
+             Add spear specific crate verify changes. 
+             Add CrateVerifier/Db/cv_spear.substitions and install db
+             Add second argument for slot in CV_Start() function in 
+             drvCV.c, since spear's standard slot for the cv is slot 22,
+             rather than slot 1 for lcls.
 PSCD_Camac-R3-4-2
 17-Nov-2016, Sonya Hoobler  (sonya):
 	     CAMRoutineApp/src/camgo.c: mask out LAM bit from MBCD
