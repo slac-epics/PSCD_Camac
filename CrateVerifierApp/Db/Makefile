@@ -30,6 +30,7 @@ include $(TOP)/configure/CONFIG
 #
 DB += cv_camac_crat_volts.db
 DB += cv.db
+DB += cv_spear.db
 
 # Soft pvs
 DB += camac_crat_profile.db
