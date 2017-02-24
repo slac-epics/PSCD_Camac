@@ -1073,10 +1073,10 @@ static long CV_RequestInit(dbCommon             * const rec_ps,
 	    }
             else if ((func_e==CAMAC_TST_CMD) && (wf_ps->nelm<num_a[CMDLINE]))
 	       errlogPrintf("Warning!! %s has %ld wf elements, expected %ld\n",
-			    rec_ps->name,wf_ps->nelm,num_a[CMDLINE]);
+			    rec_ps->name,(long int)wf_ps->nelm,num_a[CMDLINE]);
 	    else if (((func_e==CAMAC_TST_RW) || (func_e==CAMAC_TST_RW_PATTERN)) && (wf_ps->nelm<num_a[RWLINE]))
 	       errlogPrintf("Warning!! %s has %ld wf elements, expected %ld\n",
-			    rec_ps->name,wf_ps->nelm,num_a[RWLINE]);
+			    rec_ps->name,(long int)wf_ps->nelm,num_a[RWLINE]);
 
          default:
             /* Is this module in the list? If not, then add to the list. */
