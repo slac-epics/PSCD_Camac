@@ -28,7 +28,7 @@ include $(TOP)/configure/CONFIG
 # Create and install (or just install) into <top>/db
 # databases, templates, substitutions like this
 #
-DB += cv_camac_crat_volts.db
+DB += cv_camac_module.template
 DB += cv.db
 DB += cv_spear.db
 
