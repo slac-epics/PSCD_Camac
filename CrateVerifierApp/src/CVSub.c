@@ -713,10 +713,10 @@ static long CV_RWline(longSubRecord *sub_ps)
                  {
 	  	    sprintf(errmsg_c,
                             "\tCrate %.2ld R%ld Line Error - mask=0x%6.6lx  data=0x%6.6lx\n",
-                            sub_ps->f,line,mask,dpvt_ps->data_a[i_line]);
+                            (long int)sub_ps->f,line,mask,dpvt_ps->data_a[i_line]);
                     recGblRecordError(ERROR,(void *)sub_ps,errmsg_c); 
                     if (sub_ps->g)
-                        printf("\tCrate %.2ld R%ld Line Error (%ld)\n",sub_ps->f,line,nlines); 
+		      printf("\tCrate %.2ld R%ld Line Error (%ld)\n",(long int)sub_ps->f,line,nlines); 
 		 } /* severity and status check */
 	      }/* line test */
 	    }/* End of FOR loop */
