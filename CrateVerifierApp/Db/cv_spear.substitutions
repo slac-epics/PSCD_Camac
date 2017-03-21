@@ -34,40 +34,40 @@ file cv_camac_module.template
 # CAMAC Crate Analog Voltages
 file cv_camac_crat_volts.db
 {
-#                                    Branch  Crate   Slot 
-   pattern { DEV                   , B     , C     , N  }
-           { CAMC:$(MICR):$(CR)    , 0     , $(CR) , 22  }
+#            Branch  Crate   Slot 
+   pattern { B     , C     , N  }
+           { 0     , $(CR) , 22  }
 }
 
 # CAMAC Crate online status summary
 file cv_camac_crat_online_status.template
 {
-#                                                           Branch  Crate  Slot 
-   pattern { DEV                   , MODU                 , B     , C     , N   }
-           { CAMC:$(MICR):$(CR)    , MODU:$(MICR):$(CR)22 , 0     , $(CR) , 22  }  
+#                                  Branch  Crate  Slot 
+   pattern { MODU                 , B     , C     , N   }
+           { MODU:$(MICR):$(CR)22 , 0     , $(CR) , 22  }  
 }
 
 # CAMAC crate bus status summary
 file cv_camac_crat_bus_status.template
 {
-#                                    Branch  Crate  Slot    
-   pattern { DEV                   , B    ,  C     , N  } 
-           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 22  }
+#            Branch  Crate  Slot    
+   pattern { B    ,  C     , N  } 
+           { 0    ,  $(CR) , 22  }
 }
 
 file cv_camac_crat_bus_cmdline.template
 {
-#                                    Branch  Crate  Slot  
-   pattern { DEV                   , B    ,  C     , N  }
-           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 22  }
+#            Branch  Crate  Slot  
+   pattern { B    ,  C     , N   }
+           { 0    ,  $(CR) , 22  }
 }
 
 # R1-R24 Lines and W1-24 Lines (P24)
 file cv_camac_crat_bus_rwline.template
 {
-#                                    Branch  Crate  Slot  
-   pattern { DEV                   , B    ,  C     , N   } 
-           { CAMC:$(MICR):$(CR)    , 0    ,  $(CR) , 22  }
+#            Branch  Crate  Slot  
+   pattern { B    ,  C     , N   } 
+           { 0    ,  $(CR) , 22  }
 }
 
 # End of file
