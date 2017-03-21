@@ -12,14 +12,13 @@
 
 -------------------------------------------------------------
   Mod:
-        dd-mmm-yyyy, First Lastname   (USERNAME):
-          comment
+        24-Feb-2017, K. Luchini       (LUCHINI):
+          add CAM_MBCD_NFG_MSG
 
 =============================================================
 */
 #ifndef _DEV_CV_H_
 #define _DEV_CV_H_
-
 #define CV_DRV_VER_STRING       "CAMAC CV Driver V1.0"
 
 /*
@@ -67,7 +66,7 @@
 #include "slc_macros.h"            /* for vmsstat_t               */
 #include "cratdef.h"
 #include "camdef.h"
-#include <cctlwmasks.h>
+#include "cctlwmasks.h"
 
 #else
 #error "We need EPICS 3.14 or above to support OSI calls!"
@@ -133,7 +132,8 @@ extern "C" {
 #define CRAT_CREXERV_MSG        "Verifier in crate %.2d gave %s; test expected %s\n"
 
 /* Camac Error messages */
-#define CAM_SOFT_T_MSG          "CAMAC software timeout. No MBCD response.: Crate %.2d  N%.2d   A%ld  F%ld  status=0x%8.8X\n"
+#define CAM_SOFT_TO_MSG         "CAMAC software timeout. No MBCD response.: Crate %.2d  N%.2d   A%ld  F%ld  status=0x%8.8X\n"
+#define CAM_MBCD_NFG_MSG        "CAMAC MBCD Failure: Crate %.2d  N%.2d   A%ld  F%ld  status=0x%8.8X\n"
 #define CAM_CRATE_TO_MSG        "CAMAC crate timeout: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
 #define CAM_NO_Q_MSG            "CAMAC no Q respns: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
 #define CAM_NO_X_MSG            "CAMAC no X respns: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n"
@@ -562,6 +562,31 @@ typedef struct cv_asyn_types_s
 /******************************************************************************************/
 /*********************       CAMAC Status/Data Structures       ***************************/
 /******************************************************************************************/
+
+#ifndef CAMBLKSTRUC_HM
+/* cannot included both camblkstruc.h and cam_proto.h */
+typedef struct
+{   unsigned int  cctlw;         /* MBCD control word.               */
+     void          *stad_p;      /* pointer to status/data.          */
+     unsigned short wc_max,      /* Max wordcount.                   */
+                   notused;      /* So consistent with old docs      */
+} mbcd_pkt_ts;
+
+typedef struct
+{    unsigned short key,         /* Validation key.                   */
+                    nops,        /* Max # of packets.                */
+                    iop,         /* Current # of packets.            */
+                    tbytes,      /* ?? */
+                    bitsummary,
+                    spare;
+     void          *pkg_p;       /* pointer in dual ported mem to 1st packet. */
+} mbcd_pkghdr_ts;
+                          /*  Structure of an MBCD package.  */
+typedef struct
+{   mbcd_pkghdr_ts hdr;
+    mbcd_pkt_ts    mbcd_pkt[1];
+} mbcd_pkg_ts;
+#endif /* CAMBLKSTRUC_HM */
 
 typedef union
 {
