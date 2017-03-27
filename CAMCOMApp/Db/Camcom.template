@@ -1,39 +1,39 @@
 
-record(calc, "CAMC:$(LOCA):CV01:NEW_TOKEN") {
-  field(FLNK, "CAMC:$(LOCA):CV01:ACTIVE_SWITCH")
+record(calc, "$(DEV=CAMC:$(LOCA):CV01):NEW_TOKEN") {
+  field(FLNK, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_SWITCH")
   field(CALC, "A<1000?A+1:1")
-  field(INPA, "CAMC:$(LOCA):CV01:NEW_TOKEN")
+  field(INPA, "$(DEV=CAMC:$(LOCA):CV01):NEW_TOKEN")
 }
 
-record(calc, "CAMC:$(LOCA):CV01:ACTIVE_SWITCH") {
-  field(FLNK, "CAMC:$(LOCA):CV01:ACTIVE_TOKEN")
+record(calc, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_SWITCH") {
+  field(FLNK, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_TOKEN")
   field(CALC, "B<2?A:C")
-  field(INPA, "CAMC:$(LOCA):CV01:NEW_TOKEN")
-  field(INPB, "CAMC:$(LOCA):CV01:STATUS")
-  field(INPC, "CAMC:$(LOCA):CV01:ACTIVE_TOKEN")
+  field(INPA, "$(DEV=CAMC:$(LOCA):CV01):NEW_TOKEN")
+  field(INPB, "$(DEV=CAMC:$(LOCA):CV01):STATUS")
+  field(INPC, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_TOKEN")
 }
 
-record(longin, "CAMC:$(LOCA):CV01:ACTIVE_TOKEN") {
-  field(INP, "CAMC:$(LOCA):CV01:ACTIVE_SWITCH")
+record(longin, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_TOKEN") {
+  field(INP, "$(DEV=CAMC:$(LOCA):CV01):ACTIVE_SWITCH")
 }
 
-record(waveform, "CAMC:$(LOCA):CV01:INBUFF") {
+record(waveform, "$(DEV=CAMC:$(LOCA):CV01):INBUFF") {
   field(DTYP, "Soft Channel")
   field(PREC, "0")
   field(NELM, "16384")
   field(FTVL, "CHAR")
 }
 
-record(waveform, "CAMC:$(LOCA):CV01:OUTBUFF") {
+record(waveform, "$(DEV=CAMC:$(LOCA):CV01):OUTBUFF") {
   field(DTYP, "Soft Channel")
   field(PREC, "0")
   field(NELM, "16384")
   field(FTVL, "CHAR")
 }
-record(longin, "CAMC:$(LOCA):CV01:INBUFF_LEN") {
+record(longin, "$(DEV=CAMC:$(LOCA):CV01):INBUFF_LEN") {
 }
 
-record(mbbi, "CAMC:$(LOCA):CV01:STATUS") {
+record(mbbi, "$(DEV=CAMC:$(LOCA):CV01):STATUS") {
   field(DTYP, "Soft Channel")
   field(ZRVL, "0")
   field(ONVL, "1")
@@ -47,13 +47,13 @@ record(mbbi, "CAMC:$(LOCA):CV01:STATUS") {
   field(FRST, "Camcom Done")
 }
 
-record(stringin, "CAMC:$(LOCA):CV01:NOTE") {
+record(stringin, "$(DEV=CAMC:$(LOCA):CV01):NOTE") {
 }
 
-record(stringin, "CAMC:$(LOCA):CV01:SEQ_VER") {
+record(stringin, "$(DEV=CAMC:$(LOCA):CV01):SEQ_VER") {
 }
 
-record(waveform, "CAMC:$(LOCA):CV01:REALBUFF") {
+record(waveform, "$(DEV=CAMC:$(LOCA):CV01):REALBUFF") {
   field(DTYP,"CAMCOM")
   field(PREC, "0")
   field(NELM, "16384")
