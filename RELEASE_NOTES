@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-4-4
+27-Mar-2017, Kristi Luchini (luchini):
+             update cv_spear.substitutions
+             add debug messages to CrateVerifierApp/src/drvCV.c
+             modify CAMCOMApp/src/Camcom_seq.stt input macro to build pvs
+             add macros DEV with default for CAMCOMApp/Db/Camcom.template
+
 PSCD_Camac-R3-4-3
 11-Feb-2017, Kristi Luchini (luchini):
              Add spear specific crate verify changes. 
