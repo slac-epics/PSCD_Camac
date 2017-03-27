@@ -22,7 +22,7 @@ record(ai, "$(RECNAME)") {
   field(HSV,  "MINOR")
   field(LSV,  "MINOR")
   field(LLSV, "MAJOR")
-  field(TSE,  "-2")
+  field(TSE,  "$(TSE=-2)")
   field(INP,  "CAMAC_IO - #B$(BR)C$(CR) N$(S) A$(A) F5 @VOLTS")
   field(PINI,"YES")
 }
