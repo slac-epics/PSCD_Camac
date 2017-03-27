@@ -32,12 +32,18 @@ file cv_camac_module.template
 }
 
 # CAMAC Crate Analog Voltages
-file cv_camac_crat_volts.db
+file cv_camac_crat_volts_ai.template
 {
-#            Branch  Crate   Slot 
-   pattern { B     , C     , N  }
-           { 0     , $(CR) , 22  }
+#            PV Name           Description  Branch Crate   Slot Subadr Units  
+   pattern { RECNAME         , DESC         , BR  , CR   ,  S   , A  , EGU   , PREC, HIHI , LOLO , HIGH , LOW  , HOPR  , LOPR , MDEL  , TSE }
+           { $(DEV):V24      , "+24 Volts"  , 0   , $(C) ,  22  , 0  , Volts ,  3 ,  25   , 23   , 25   , 23   , 24    , 0    , 0.001 , 0   }
+           { $(DEV):V6       , "+6 Volts"   , 0   , $(C) ,  22  , 2  , Volts ,  3 ,  6.3  , 5.7  , 6.3  , 5.7  , 6     , 0    , 0.001 , 0   }
+           { $(DEV):VGND     , "Gnd Volts"  , 0   , $(C) ,  22  , 3  , Volts ,  3 ,  0.1  ,-0.1  , 0.1  ,-0.1  , 1.5   , 0    , 0.001 , 0   }
+           { $(DEV):V6MINUS  , "-6 Volts"   , 0   , $(C) ,  22  , 4  , Volts ,  3 , -5.7  ,-6.3  ,-5.7  ,-6.3  , 0     , -6   , 0.001 , 0   }
+           { $(DEV):V24MINUS , "-24 Volts"  , 0   , $(C) ,  22  , 6  , Volts ,  3 , -23   ,-25   ,-23   ,-25   , 0     , -24  , 0.001 , 0   }
+           { $(DEV):TEMP     , "Temerature" , 0   , $(C) ,  22  , 7  , degC  ,  2 ,  50   , 0    , 50   , 0    , 150   , 0    , 0.001 , 0   }
 }
+
 
 # CAMAC Crate online status summary
 file cv_camac_crat_online_status.template
