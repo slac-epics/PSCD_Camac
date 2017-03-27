@@ -236,11 +236,8 @@ long CV_Start( unsigned long crate_mask, short n )
     cv_thread_ts       *thread_ps  = &threads_as[CV_OP_THREAD];
 
 
-    if (!n) 
-      slot = 1;
-
     /* The serial crate controller uses the last 2-slots in the crate */
-    else if ( n>(MAX_CRATE_SLOT-2) ) 
+    if ( n && (n>(MAX_CRATE_SLOT-2)) ) 
     {
        printf("Invalid slot number, the Crate Verifier can only used slots 1-23\n");
        status = ERROR;
@@ -830,7 +827,9 @@ CV_MODULE * CV_FindModuleByBCN(short branch, short crate, short slot)
     }/* End of FOR looop */
 
     if (!found_ps && CV_DRV_DEBUG)
-      printf("Module NOT found CV[b=%hd c=%hd n=%hd]\n",branch,crate,slot); 
+      printf("CV Module was NOT found in b=%hd c=%hd n=%hd\n",branch,crate,slot); 
+    else if (CV_DRV_DEBUG)
+      printf("CV Module has been found in b=%hd c=%hd n=%hd\n",branch,crate,slot); 
     return( found_ps );
 }   
 
@@ -1948,7 +1947,7 @@ static vmsstat_t   CV_TestDatawayInit( short branch, short crate, short slot , c
      *     N,F1,F2,F4,F8,F16,A1,A2,A4,A8,C,Z,I
      */
     if (SUCCESS(iss))
-       iss = CV_CrateCmdLineInit(branch,crate,slot,&cam_ps->cmd_s);
+        iss = CV_CrateCmdLineInit(branch,crate,slot,&cam_ps->cmd_s);
 
     /* 
      * Setup Camac package to test the
@@ -3034,16 +3033,18 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 {
     vmsstat_t      iss    = CRAT_NOTVALID;
     campkg_ts     *cam_ps = NULL;
+    mbcd_pkg_ts   *campkg_ps = NULL;
     static const unsigned long  subadr = CCTLW__A3;
     static const unsigned long  func   = CCTLW__F4 >> CCTLW__F_shc;;
+    long int     f=0,a=0;
 
 
     /* Does module exist? */
     if (!module_ps->present) 
       goto egress;
 
-    module_ps->crate_s.idErr = epicsFalse;
-
+    module_ps->crate_s.idErr = epicsTrue;  /* Set error as default */
+ 
     /* Initialize camac package first time through */
     iss    = CRAT_OKOK;
     cam_ps = &module_ps->cam_s.rd_id_s;
@@ -3059,13 +3060,17 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
        if (SUCCESS(iss))
        {
           module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
-          if ( module_ps->c != module_ps->id ) 
-	    module_ps->crate_s.idErr = epicsTrue;
+          if ( module_ps->c == module_ps->id ) 
+            module_ps->crate_s.idErr = epicsFalse;
        }
        else 
        {
-  
-	  module_ps->crate_s.idErr = epicsTrue;
+          campkg_ps= module_ps->cam_s.rd_id_s.pkg_p;
+          if (campkg_ps && campkg_ps->hdr.nops)
+          {
+             a = campkg_ps->mbcd_pkt[0].cctlw & CCTLW__A;
+             f = (campkg_ps->mbcd_pkt[0].cctlw & CCTLW__F) >> CCTLW__F_shc;
+          }
           module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
         
 	  /* Check for a crate timeout */
@@ -3073,6 +3078,13 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 	  {
              module_ps->crate_s.stat_u._i |= CRATE_STATUS_CTO_ERR;
              module_ps->id = 0;
+
+	     if (CV_DRV_DEBUG && (iss==CAM_SOFT_TO))       
+               printf(CAM_SOFT_TO_MSG,(int)module_ps->c,(int)module_ps->n,a,f,cam_ps->statd_s.stat);
+	     else if (CV_DRV_DEBUG && (iss==CAM_CRATE_TO)) 
+               printf(CAM_CRATE_TO_MSG,module_ps->c,module_ps->n,a,f,cam_ps->statd_s.stat);
+	     else if (CV_DRV_DEBUG && (iss==CAM_MBCD_NFG)) 
+               printf(CAM_MBCD_NFG_MSG,(int)module_ps->c,(int)module_ps->n,a,f,cam_ps->statd_s.stat);
 	  }
 
 	  /* Check for Q=1. If we have a noq, log an error message. */
@@ -3084,8 +3096,13 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 
              /* Issue a message to the log if this error did not occur last time */
 	     if ( module_ps->mstat_as[CAMAC_RD_ID].lastErrCode!=iss )
+	     {
 	       errlogSevPrintf(errlogMinor,CAM_NO_Q_MSG,module_ps->c,module_ps->n,subadr,func,cam_ps->statd_s.stat);
-	  }
+	       if (CV_DRV_DEBUG) 
+		 printf(CAM_NO_Q_MSG,module_ps->c,module_ps->n,a,f,cam_ps->statd_s.stat);
+	     }
+	  }else if (CV_DRV_DEBUG)
+	    printf("CAMAC Error: Crate %.2d  N%.2d  A%ld  F%ld  status=0x%8.8X\n",(int)module_ps->c,(int)module_ps->n,a,f,cam_ps->statd_s.stat);
        }
     }
 
@@ -3098,7 +3115,7 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
 
 /*====================================================
  
-  Abs:  Read Data Register (doubl-read)
+  Abs:  Read Data Register (double-read)
  
   Name: CV_ReadData
  
@@ -3157,6 +3174,7 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
 	* cycled since our last check.
 	*/
        iss = CV_CheckReadData( module_ps,iss );
+       if (!SUCCESS(iss) && CV_DRV_DEBUG) printf("CAMAC Failed ReadData for Crate %.2d  N%.2d\n",module_ps->c,module_ps->n);
     }
     else
        module_ps->data = 0;
@@ -3174,16 +3192,16 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
  
   Name: isCrateOnline
  
-  Args: crate                Crate number
-          Type: integer      Note: range 1-16            
+  Args: crate                    Crate number
+          Type: integer          Note: range 1-16            
           Use:  short   
           Acc:  read-only
           Mech: By value
 
-        slot                      Camac slot number 
-          Type: value             Note: 1-24           
-          Use:  short 
-          Acc:  read-only
+        slot                     Slot number of crate 
+          Type: value            verifier module.           
+          Use:  short            (default=1)
+          Acc:  read-only 
           Mech: By value
 
 
@@ -3194,6 +3212,7 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
   
   Ret:  long 
             ERROR - Invalid crate number or crate not found.
+              -2  - Crate Verifier module not found
                0  - Crate Offline
                1  - Crate Online and not initialized
                2  - Illegal state
@@ -3202,16 +3221,27 @@ static long  CV_ReadData(CV_MODULE * const module_ps)
 =======================================================*/
 long isCrateOnline( short crate, short slot )
 {
+#define CV_NOMODU -2
   long               status = ERROR;  /* status return                 */
   static const short branch = 0;      /* branch, don't care            */
+  short              n = 1;           /* default for crate verifier    */
   CV_MODULE         *module_ps = NULL;
 
+  if (slot) n=slot;
   if ((crate>=MIN_CRATE_ADR) && (crate<=MAX_CRATE_ADR))
   {
      module_ps = CV_FindModuleByBCN( branch, crate, slot );
-     if (module_ps)
-       status =  module_ps->crate_s.stat_u._i & CRATE_STATUS_GOOD;
-  }
+     if (module_ps) {
+       status =  module_ps->crate_s.stat_u._i & CRATE_STATUS_GOOD;   
+     }
+     else
+     { 
+       printf(CV_NOMODU_MSG); 
+       status = CV_NOMODU;
+     }
+  }  
+  else
+    printf("Camac Crate number %hd is invalid, (%hd-%hd)\n",crate,MIN_CRATE_ADR,MAX_CRATE_ADR);
   return(status);
 }
 
@@ -3591,7 +3621,7 @@ static vmsstat_t CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status
          else
 	   module_ps->crate_s.stat_u._i |= CRATE_STATUS_CAM_ERR;
          epicsMutexUnlock( module_ps->crate_s.mlock );
-         
+
          /* Issue a message to the log if we're booting or the crate was previously online */
          if ( module_ps->crate_s.first_watch )
 	 {
@@ -3779,15 +3809,21 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        
        /* Pulse the C-Line to clear the registers on the bus */
        iss = camgo(&cam_ps->pulseC_s.pkg_p);
+       if (!SUCCESS(iss) && CV_DRV_DEBUG) 
+	 printf("CV[%hd %hd %hd] Pulse C-Line failed, status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->pulseC_s.stat);
 
        /* Clear the Inhibit Line on the bus */
        iss = camgo(&cam_ps->inhibit_s.pkg_p);
+       if (!SUCCESS(iss) && CV_DRV_DEBUG) 
+	 printf("CV[%hd %hd %hd] Clear Inhibit Line failed, status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->inhibit_s.stat);
 
        /* Check for a bad crate address (id) or a crate offline. */
        iss = camgo(&cam_ps->scc_s.pkg_p);    
        if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
        {
 	  cam_ps->timeout = epicsTrue;
+          if (CV_DRV_DEBUG) 
+	    printf("CV[%hd %hd %hd] Crate timeout, status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->scc_s.statd_s.stat);
           goto egress;
        }
 
@@ -3797,6 +3833,8 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        {
 	  cam_ps->Xstat_s.was_one = 1;  /* X-response returned "1" incorrectly */
           cam_ps->Xstat_s.err     = epicsTrue;
+          if (CV_DRV_DEBUG) 
+	    printf("CV[%hd %hd %hd] CAMAC crate timeoutm status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->scc_s.statd_s.stat);
        }
        
        /* Perform Camac Bus Command Line Test */
@@ -3807,7 +3845,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        /* Read the module Id register. Here we are checking for Q=1 */
        CV_ClrMsgStatus( &module_ps->mstat_as[CAMAC_RD_ID] );
        status = CV_ReadId(module_ps);
-       if ( !SUCCESS(iss) && (module_ps->mstat_as[CAMAC_RD_ID].errCode == CAM_NO_Q) )
+       if ( !SUCCESS(status) && (module_ps->mstat_as[CAMAC_RD_ID].errCode == CAM_NO_Q) )
        {
          cam_ps->Qstat_s.was_zero = 1;
          cam_ps->Qstat_s.err      = epicsTrue;
@@ -3937,12 +3975,19 @@ static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
     static const unsigned long  mask   = CMD_LINE_MASK; /* data mask                     */
     static const unsigned short inhibit_cmd = 11;       /* inhibit command index         */
     campkg_dataway_ts          *cam_ps = NULL;          /* pointer to camac package info */
+#define CMDL1_ERR_MSG "CV[%hd %hd %hd] failed Cmd Line Test #1\n"
+#define CMDL2_ERR_MSG "CV[%hd %hd %hd] failed Cmd Line Test #2\n"
 
 
     /* Perform command line test */
     cam_ps = &module_ps->cam_s.dataway_s;
-    iss = camgo(&cam_ps->cmd_s.pkg_p[0]);                     /* command line test pkg #1 */
-    if (SUCCESS(iss))  iss = camgo(&cam_ps->cmd_s.pkg_p[1]);  /* command line test pkg #2 */
+    iss = camgo(&cam_ps->cmd_s.pkg_p[0]);                    /* command line test pkg #1 */
+    if (!SUCCESS(iss) && CV_DRV_DEBUG) 
+      printf(CMDL1_ERR_MSG,module_ps->b,module_ps->c,module_ps->n);
+
+    if (SUCCESS(iss)) iss = camgo(&cam_ps->cmd_s.pkg_p[1]);  /* command line test pkg #2 */
+    if (!SUCCESS(iss) && CV_DRV_DEBUG) 
+      printf(CMDL2_ERR_MSG,module_ps->b,module_ps->c,module_ps->n); 
     if (!SUCCESS(iss)) goto egress;
 
     /* Get read data from command line test */
@@ -4036,7 +4081,7 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
     unsigned int       nelem      = RW_LINE_NUM;     /* number of elements in block transfer */
     unsigned int       nbits      = RW_LINE_NUM;     /* number of bits for read-write test   */
     cv_rwLine_type_te  type_e     = WALKING_ONE;     /* type of bit test                     */
-
+#define RWL1_ERR_MSG "CV[%hd %hd %hd] failed RW Line Test #1\n"
 
    /* 
     * Perform the Read Write  Line test #1 using walking one bit and P24
@@ -4050,6 +4095,11 @@ static vmsstat_t CV_CrateRWLine( CV_MODULE * const module_ps )
     dataway_ps = &module_ps->cam_s.dataway_s;
     cam_ps     = &dataway_ps->rwlines_s;
     iss        = camgo(&cam_ps->test1_s.pkg_p);
+    if (!SUCCESS(iss)) 
+    {
+       if (CV_DRV_DEBUG) printf(CMDL2_ERR_MSG,module_ps->b,module_ps->c,module_ps->n); 
+       goto egress;
+    }
 
     data_a  = cam_ps->test1_s.rd_statd_s.data_a;
     for (i_bit=0; i_bit<nbits; i_bit++)
