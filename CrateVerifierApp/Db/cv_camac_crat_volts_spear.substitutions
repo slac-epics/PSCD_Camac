@@ -1,0 +1,36 @@
+#==============================================================================
+#
+# Abs:  Spear CAMAC Crate Temperature and Voltages 
+#
+# Name: cv_camac_crat_volts_spear.substitutions
+#
+# Side: Must follow the Spear naming conventions.
+#
+# Facility: CAMAC Controls
+#
+# Auth: 08-Jul-2017, K. Luchini       (LUCHINI)
+# Rev : dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#-----------------------------------------------------------------------------
+# Mod:
+#       dd-mmm-yyyy, Reviewer's Name  (USERNAME)
+#          comment
+#
+#=============================================================================
+#
+# CAMAC Crate Analog Voltages
+file cv_camac_crat_volts_ai.template
+{
+#            PV Name           Description  Branch  Crate   Slot  Subadr Units  
+   pattern { RECNAME         , DESC         , BR   , C     ,  S  , A    , EGU , PREC, HOPR , LOPR , HIHI     ,  HIGH    , LOW  , LOLO  , HYST , MDEL , TSE }
+           { $(DEV):TEMP     , "Temerature" , $(B) , $(CR) , 22  , 7    , C   ,  0  , 40   , 10   , $(thihi) , $(thigh) , 10   , -128  , 1.5  ,  0   , 0   }
+           { $(DEV):V24      , "+24 Volts"  , $(B) , $(CR) , 22  , 0    , V   ,  2  , 25   ,  0   ,  25      ,  25      ,  23  , 23    ,  0   ,  0   , 0   }
+           { $(DEV):V24MINUS , "-24 Volts"  , $(B) , $(CR) , 22  , 6    , V   ,  2  ,  0   , -25  , -23      , -23      , -25  , -25   ,  0   ,  0   , 0   }
+           { $(DEV):V6       , "+6 Volts"   , $(B) , $(CR) , 22  , 2    , V   ,  2  , 10   ,  0   ,  6.3     ,   6.3    ,  5.6 ,  5.6  ,  0   ,  0   , 0   }
+           { $(DEV):V6MINUS  , "-6 Volts"   , $(B) , $(CR) , 22  , 4    , V   ,  2  ,  0   , -10  , -5.7     ,  -5.7    , -6.3 , -6.3  ,  0   ,  0   , 0   }
+           { $(DEV):VGND     , "Gnd Volts"  , $(B) , $(CR) , 22  , 3    , V   ,  2  , 1.5  ,  0   , 0.1      ,  0.1     , -0.1 , -0.1  ,  0   ,  0   , 0   }
+}
+
+# End of file
+
+
+ 
