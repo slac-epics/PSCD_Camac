@@ -12,6 +12,7 @@
 #  Mod:
 #        08-Jul-2017, K. Luchini (luchini)
 #          install cv_camac_crate_volts_ai.tepmlate
+#          install cv_camac_crat_volts_spear.db
 #
 #===========================================================
 #
@@ -29,6 +30,7 @@ include $(TOP)/configure/CONFIG
 # databases, templates, substitutions like this
 #
 DB += cv_camac_crat_volts.db
+DB += cv_camac_crat_volts_spear.db
 DB += cv.db
 DB += cv_spear.db
 DB += cv_camac_crat_volts_ai.template
