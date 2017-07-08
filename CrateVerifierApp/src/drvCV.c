@@ -237,12 +237,14 @@ long CV_Start( unsigned long crate_mask, short n )
 
 
     /* The serial crate controller uses the last 2-slots in the crate */
-    if ( n && (n>(MAX_CRATE_SLOT-2)) ) 
+    if ((n<0) || (n>(MAX_CRATE_SLOT-2))
     {
        printf("Invalid slot number, the Crate Verifier can only used slots 1-23\n");
        status = ERROR;
        return(status);
     }
+    else if (!n)
+      slot=1;  /* use default, slot 1 */
     else
       slot=n;
     printf("Crate Verifier is expected in slot %hd\n",slot);
