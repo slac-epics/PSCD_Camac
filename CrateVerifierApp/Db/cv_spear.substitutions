@@ -16,8 +16,9 @@
 #-----------------------------------------------------------------------------
 # Mod:
 #       08-Jul-2017, K. Luchini       (luchini)
-#         remove cv_camac_crat_volts_ai.template
-#         to allow for user to specifiy alarm limits
+#         change cv_camac_crat_volts_ai.template 
+#         substitutions to correspond to Spear EPICS
+#         application file EtherIoc/Db/camac_crate.db
 #
 #=============================================================================
 #
@@ -30,6 +31,15 @@ file cv_camac_module.template
 #                                    Branch  Crate   Slot 
    pattern { DEV                   , B     , C     , N   }
            { MODU:$(MICR):$(CR)22  , 0     , $(CR) , 22  }
+}
+
+# CAMAC Crate Analog Voltages
+# Note: macros thihi and thign need to be provided.
+file cv_camac_crat_volts_spear.db
+{
+#             Branch  Crate 
+   pattern {  B     , C      } 
+           {  0     , $(CR)  }
 }
 
 # CAMAC Crate online status summary
