@@ -13,6 +13,7 @@ record(ai, "$(RECNAME)") {
   field(HOPR, "$(HOPR)")
   field(LOPR, "$(LOPR)")
   field(MDEL, "$(MDEL)")
+  field(HYST, "$(HYST=0)")
   field(HIHI, "$(HIHI)")
   field(HIGH, "$(HIGH)")
   field(LOW,  "$(LOW)")
