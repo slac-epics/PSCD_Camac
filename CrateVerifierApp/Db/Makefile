@@ -10,8 +10,8 @@
 #  Rev:  dd-mmm-yyyy, First Lastname  (USERNAME)
 #--------------------------------------------------------------
 #  Mod:
-#        dd-mmm-yyyy, First Lastname  (USERNAME)
-#          comment
+#        08-Jul-2017, K. Luchini (luchini)
+#          install cv_camac_crate_volts_ai.tepmlate
 #
 #===========================================================
 #
@@ -31,6 +31,7 @@ include $(TOP)/configure/CONFIG
 DB += cv_camac_crat_volts.db
 DB += cv.db
 DB += cv_spear.db
+DB += cv_camac_crat_volts_ai.template
 
 # Soft pvs
 DB += camac_crat_profile.db
