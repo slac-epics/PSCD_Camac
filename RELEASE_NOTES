@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+PSCD_Camac-R3-4-5
+08-Jul-2017, Kristi Luchini (luchini):
+             CrateVerifierApp
+	       CV_Start() function to set slot to 1 if input argument is 0.
+               Add cv_camac_crat_volts_spear.substitions and install
+               Install cv_camac_crat_volts_ai.template
+
 PSCD_Camac-R3-4-4
 27-Mar-2017, Kristi Luchini (luchini):
              update cv_spear.substitutions
