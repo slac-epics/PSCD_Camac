@@ -4,7 +4,7 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #=============================
-
+USR_CFLAGS += -DUSE_TYPED_RSET  -DUSE_TYPED_DSET -DUSE_TYPED_DRVET
 #==================================================
 # build a support library
 
