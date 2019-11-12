@@ -4635,7 +4635,7 @@ static void  CV_SetCrateStatus( CV_MODULE * const module_ps, unsigned short stat
 }
 
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvCV);
 epicsRegisterFunction(isCrateOnline);
 epicsRegisterFunction(CV_Start);

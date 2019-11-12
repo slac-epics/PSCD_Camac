@@ -41,7 +41,7 @@
 #include <stddef.h>
 
 #include "epicsVersion.h"
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 #include "epicsExport.h"
 #include "dbFldTypes.h"            /* for DBF_ULONG               */
 #include "waveformRecord.h"        /* for struct waveform         */
