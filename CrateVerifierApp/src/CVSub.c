@@ -45,7 +45,7 @@
 #include "epicsExport.h"
 #include "dbFldTypes.h"            /* for DBF_ULONG               */
 #include "waveformRecord.h"        /* for struct waveform         */
-#include "genSubRecord.h"          /* for struct genSubRecord     */
+#include "aSubRecord.h"          /* for struct genSubRecord     */
 #include "longSubRecord.h"         /* for struct longSubRecord    */
 #include "devCV.h" 
 #include "registryFunction.h"    
@@ -58,13 +58,13 @@
 
 /* Static prototypes */
 static long CV_Init(dbCommon *sub_ps);
-static long CV_Bus_Data_Init(genSubRecord *sub_ps);
+static long CV_Bus_Data_Init(aSubRecord *sub_ps);
 static long CV_RWline_Init(longSubRecord *sub_ps);
 static long CV_Cmdline_Init(longSubRecord *sub_ps);
 
 static long CV_Stat(longSubRecord *sub_ps);
-static long CV_Limits(genSubRecord *sub_ps);
-static long CV_Bus_Data(genSubRecord *sub_ps);
+static long CV_Limits(aSubRecord *sub_ps);
+static long CV_Bus_Data(aSubRecord *sub_ps);
 static long CV_RWline(longSubRecord *sub_ps);
 static long CV_Cmdline(longSubRecord *sub_ps);
 
@@ -143,7 +143,7 @@ static long CV_Init(dbCommon *sub_ps)
 
 
 ==============================================================================*/
-static long CV_Bus_Data_Init(genSubRecord *sub_ps)
+static long CV_Bus_Data_Init(aSubRecord *sub_ps)
 {
   long            status  = ERROR;                                  /* return status       */
   unsigned long   type    = *(unsigned long *)sub_ps->c;            /* type of bus data    */
@@ -442,7 +442,7 @@ static long CV_Stat(longSubRecord *sub_ps)
           OK  - Alwasys
 
 ==============================================================================*/ 
-static long CV_Limits(genSubRecord *sub_ps)
+static long CV_Limits(aSubRecord *sub_ps)
 {
   long  status = OK;          /* return status */
    
@@ -520,7 +520,7 @@ static long CV_Limits(genSubRecord *sub_ps)
           OK  - Alwasys
 
 ==============================================================================*/ 
-static long CV_Bus_Data(genSubRecord *sub_ps)
+static long CV_Bus_Data(aSubRecord *sub_ps)
 {
   long           status  = OK;                               /* return status              */
   unsigned long  i       = 0;                                /* index counter              */
