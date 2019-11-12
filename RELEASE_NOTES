@@ -17,6 +17,13 @@
 #
 #==============================================================
 #
+#
+
+R3.5.0       Kukhee Kim (khkim)  11-12-2019
+               convert to GIT repo from CVS
+               use type-safe RSET and DRVET
+               fix epics version check to build with epics 7
+
 PSCD_Camac-R3-4-5
 08-Jul-2017, Kristi Luchini (luchini):
              CrateVerifierApp
