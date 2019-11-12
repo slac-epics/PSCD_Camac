@@ -30,7 +30,7 @@
 #include <stringinRecord.h>
 #include <epicsVersion.h>
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION >3
 #include <epicsExport.h>
 #endif
 
@@ -69,7 +69,7 @@ PSCD_DEV_SUP_SET devLiPSCD=   {6, NULL, NULL, init_li,  NULL, read_li,  NULL};
 PSCD_DEV_SUP_SET devSiPSCD=   {6, NULL, NULL, init_si,  NULL, read_si,  NULL};
 #endif
 
-#if	EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if	(EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION > 3
 epicsExportAddress(dset, devBiPSCD);
 epicsExportAddress(dset, devBoPSCD);
 epicsExportAddress(dset, devLiPSCD);

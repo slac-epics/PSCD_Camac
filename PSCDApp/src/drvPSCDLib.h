@@ -17,7 +17,7 @@ extern "C" {
 #include <ctype.h>
 
 #include <epicsVersion.h>
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION > 3
 
 #include <epicsMutex.h>
 #include <epicsThread.h>
