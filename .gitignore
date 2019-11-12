@@ -1,0 +1,16 @@
+*~
+O.*/
+*.log
+*.swp
+CVS/
+bin/
+db/
+dbd/
+html/
+include/
+lib/
+templates/
+cdCommands
+envPaths
+RELEASE_SITE
+tags
