@@ -61,7 +61,7 @@
 #include "longinRecord.h"          /* for longinRecord            */
 #include "mbbiDirectRecord.h"      /* for struct mbbiDirectRecord */
 #include "waveformRecord.h"        /* for struct waveform         */
-#include "genSubRecord.h"          /* for struct genSubRecord     */
+#include "aSubRecord.h"          /* for struct genSubRecord     */
 #include "drvCV_proto.h" 
 
 /* Local Prototypes */
