@@ -15,7 +15,7 @@ record(waveform, "$(DEV):CMDLINE") {
   field(FLNK, "$(DEV):CMDLINE_SUB")
 }
 
-record(genSub, "$(DEV):CMDLINE_SUB") {
+record(aSub, "$(DEV):CMDLINE_SUB") {
   field(DESC, "Distr Command line Data")
   field(INAM, "CV_Bus_Data_Init")
   field(SNAM, "CV_Bus_Data")
