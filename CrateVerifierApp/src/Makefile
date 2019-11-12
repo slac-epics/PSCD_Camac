@@ -18,7 +18,9 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #========================================
-#
+
+USR_CFLAGS += -DUSE_TYPED_RSET -DUSE_TYPE_DSET -DUSE_TYPED_DRVET
+
 # Build an IOC support library
 LIBRARY_IOC_RTEMS += CV
 

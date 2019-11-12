@@ -151,8 +151,12 @@ void         CV_AsynThreadStop(void);
 int     CV_DRV_DEBUG = 0;
 int     CV_DIAG_DISABLE = 1;
 extern  struct PSCD_CARD pscd_card;
-struct  drvet drvCV = {2, drvCV_Report, drvCV_Init};
 
+#ifndef USE_TYPED_DRVET
+struct  drvet drvCV = {2, drvCV_Report, drvCV_Init};
+#else
+const drvet drvCV = {2, drvCV_Report, drvCV_Init};
+#endif
 
 /* 
  * All Crate Verifier Camac transactions go thru one PSCD.
