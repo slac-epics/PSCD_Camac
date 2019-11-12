@@ -45,7 +45,7 @@ PPOM_DEV_SUP_SET devBoPPOM =  {6, NULL, NULL, init_bo, NULL, write_bo, NULL};
 PPOM_DEV_SUP_SET devMiDPPOM = {6, NULL, NULL, init_mid, NULL, read_mid, NULL};
 PPOM_DEV_SUP_SET devMoDPPOM = {6, NULL, NULL, init_mod, NULL, write_mod, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if     (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(dset, devBoPPOM);
 epicsExportAddress(dset, devMiDPPOM);
 epicsExportAddress(dset, devMoDPPOM);

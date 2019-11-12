@@ -397,11 +397,15 @@ typedef struct DAC_REQUEST
 static  long    DAC_EPICS_Init();
 static  long    DAC_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvDAC = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) DAC_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) DAC_EPICS_Init};   /* Driver Initialization Routine */
+#else
+drvet drvDAC = {2, DAC_EPICS_Report, DAC_EPICS_Init};
+#endif
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvDAC);
 #endif
 

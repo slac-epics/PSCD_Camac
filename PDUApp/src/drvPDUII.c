@@ -988,11 +988,15 @@ int PDUIIRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYP
 static  long    PDUII_EPICS_Init();
 static  long    PDUII_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvPDUII = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) PDUII_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) PDUII_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvPDUII = {2, PDUII_EPICS_Report, PDUII_EPICS_Init};
+#endif
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvPDUII);
 #endif
 

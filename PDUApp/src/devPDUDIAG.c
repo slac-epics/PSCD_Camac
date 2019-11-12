@@ -58,7 +58,7 @@ typedef struct {
 PDUDIAG_DEV_SUP_SET devLoPDUDIAG = {6, NULL, NULL, init_lo, NULL, write_lo, NULL};
 PDUDIAG_DEV_SUP_SET devWfPDUDIAG = {6, NULL, NULL, init_wf, NULL, read_wf,  NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if     (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(dset, devLoPDUDIAG);
 epicsExportAddress(dset, devWfPDUDIAG);
 #endif

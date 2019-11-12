@@ -45,7 +45,7 @@ IDOM_DEV_SUP_SET devBoIDOM =  {6, NULL, NULL, init_bo, NULL, write_bo, NULL};
 IDOM_DEV_SUP_SET devMiDIDOM = {6, NULL, NULL, init_mid, NULL, read_mid, NULL};
 IDOM_DEV_SUP_SET devMoDIDOM = {6, NULL, NULL, init_mod, NULL, write_mod, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if     (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(dset, devBoIDOM);
 epicsExportAddress(dset, devMiDIDOM);
 epicsExportAddress(dset, devMoDIDOM);

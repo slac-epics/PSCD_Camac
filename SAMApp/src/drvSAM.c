@@ -541,11 +541,15 @@ typedef struct SAM_REQUEST
 static  long    SAM_EPICS_Init();
 static  long    SAM_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvSAM = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) SAM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) SAM_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvSAM = {2, SAM_EPICS_Report, SAM_EPICS_Init};
+#endif
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvSAM);
 #endif
 

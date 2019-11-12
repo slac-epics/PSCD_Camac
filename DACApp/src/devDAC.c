@@ -48,7 +48,7 @@ DAC_DRV_SUP_SET devAiDAC = {6, NULL, NULL, init_ai, NULL, read_ai, ai_lincvt};
 DAC_DRV_SUP_SET devAoDAC = {6, NULL, NULL, init_ao, NULL, write_ao, ao_lincvt};
 DAC_DRV_SUP_SET devLiDAC = {6, NULL, NULL, init_li, NULL, read_li, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if     (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(dset, devAiDAC);
 epicsExportAddress(dset, devAoDAC);
 epicsExportAddress(dset, devLiDAC);

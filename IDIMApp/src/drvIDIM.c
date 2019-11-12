@@ -268,11 +268,15 @@ int IDIMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 static  long    IDIM_EPICS_Init();
 static  long    IDIM_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvIDIM = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) IDIM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) IDIM_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvIDIM = {2, IDIM_EPICS_Report, IDIM_EPICS_Init};
+#endif
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvIDIM);
 #endif
 

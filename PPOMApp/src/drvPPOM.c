@@ -372,11 +372,15 @@ int PPOMRequestInit(dbCommon * pRecord, struct camacio inout, enum EPICS_RECTYPE
 static  long    PPOM_EPICS_Init();
 static  long    PPOM_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvPPOM = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) PPOM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) PPOM_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvPPOM = {2, PPOM_EPICS_Report, PPOM_EPICS_Init};
+#endif
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if (EPICS_VERSION>=3 && EPICS_REVISION>=14) || EPICS_VERSION>3
 epicsExportAddress(drvet,drvPPOM);
 #endif
 
