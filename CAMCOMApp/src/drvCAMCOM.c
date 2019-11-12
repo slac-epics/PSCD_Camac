@@ -26,9 +26,13 @@ epicsMessageQueueId camcom_msgQId;
 static  long    CAMCOM_EPICS_Init();
 static  long    CAMCOM_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvCAMCOM = {2,                             /*2 Table Entries */
                              (DRVSUPFUN) CAMCOM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) CAMCOM_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvCAMCOM = {2, CAMCOM_EPICS_Report, CAMCOM_EPICS_Init};
+#endif
 
 epicsExportAddress(drvet,drvCAMCOM);
 
