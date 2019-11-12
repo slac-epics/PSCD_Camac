@@ -30,8 +30,7 @@ char *LOCA;
 char *DEV;
 
 /* Local Process variables */
-string LOCA;
-string DEV;
+
 short  last_active_token;
 short  active_token;        assign active_token       to "";  string active_token_pv;  monitor active_token;
 short  in_buff_len;         assign in_buff_len        to "";  string in_buff_len_pv;
