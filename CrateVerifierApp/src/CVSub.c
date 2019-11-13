@@ -68,12 +68,6 @@ static long CV_Bus_Data(aSubRecord *sub_ps);
 static long CV_RWline(longSubRecord *sub_ps);
 static long CV_Cmdline(longSubRecord *sub_ps);
 
-#ifndef dbGetPdbAddrFromLink
-#define dbGetPdbAddrFromLink(PLNK) \
-( ( (PLNK)->type != DB_LINK ) \
-? 0 \
-: ( ( (struct dbAddr *)( (PLNK)->value.pv_link.pvt) ) ) )
-#endif
 
 /* Global variables */ 
 int CV_SUB_DEBUG=0;
@@ -220,25 +214,31 @@ static long CV_RWline_Init(longSubRecord *sub_ps)
 {
   long               status  = ERROR;
   cv_rwline_info_ts *dpvt_ps = NULL;
-  DBADDR            *addr_ps = NULL;
-  DBADDR            *eaddr_ps = NULL;
+  long               a_nelem, b_nelem;
+  unsigned long     *data_a;
+  unsigned long     *edata_a;
 
 
-  addr_ps    = dbGetPdbAddrFromLink(&sub_ps->inpa);
-  eaddr_ps   = dbGetPdbAddrFromLink(&sub_ps->inpb);
-  if (!addr_ps || !eaddr_ps) return(ERROR);
-  if ((addr_ps->no_elements<RW_LINE_NUM) || (eaddr_ps->no_elements<RW_LINE_NUM)) 
+  if (dbIsLinkConnected(&sub_ps->inpa) || dbIsLinkConnected(&sub_ps->inpb)) return(ERROR);
+
+  dbGetNelements(&sub_ps->inpa, &a_nelem);
+  dbGetNelements(&sub_ps->inpb, &b_nelem);
+
+  if ((a_nelem<RW_LINE_NUM) || (b_nelem<RW_LINE_NUM))
     return(status);
   
   /* Create pointer for private device information to be used when record is processed */
   dpvt_ps = (cv_rwline_info_ts *)calloc(sizeof(cv_rwline_info_ts),1);
+  data_a  = (unsigned long *)calloc(sizeof(unsigned long), a_nelem);
+  edata_a = (unsigned long *)calloc(sizeof(unsigned long), b_nelem);
+
   if (!dpvt_ps) 
       recGblRecordError(S_rec_outMem,(void *)sub_ps,"CV_RWline_Init: failed");
   else
   {
      dpvt_ps->mlock = epicsMutexMustCreate();
-     dpvt_ps->data_a  = (unsigned long *)addr_ps->pfield;
-     dpvt_ps->edata_a = (unsigned long *)eaddr_ps->pfield;
+     dpvt_ps->data_a  = data_a;
+     dpvt_ps->edata_a = edata_a;
      sub_ps->dpvt = dpvt_ps;
      status= OK;
   }
@@ -276,22 +276,24 @@ static long CV_Cmdline_Init(longSubRecord *sub_ps)
 {
   long               status  = ERROR;
   cv_cmdline_info_ts *dpvt_ps = NULL;
-  DBADDR             *addr_ps = NULL;
+  long               a_nelem;
+  unsigned long      *data_a;
 
 
-  addr_ps = dbGetPdbAddrFromLink(&sub_ps->inpa);
-  if (!addr_ps) return(ERROR);
-  if ((addr_ps->no_elements<CMD_LINE_NUM) || (addr_ps->field_type !=  DBF_ULONG)) 
+  if (dbIsLinkConnected(&sub_ps->inpa)) return(ERROR);
+  dbGetNelements(&sub_ps->inpa, &a_nelem);
+  if ((a_nelem<CMD_LINE_NUM) || (dbGetLinkDBFtype(&sub_ps->inpa) !=  DBF_ULONG))
     return(status);
   
   /* Create pointer for private device information to be used when record is processed */
   dpvt_ps = (cv_cmdline_info_ts *)calloc(sizeof(cv_cmdline_info_ts),1);
+  data_a  = (unsigned long *)     calloc(sizeof(unsigned long), a_nelem);
   if (!dpvt_ps) 
       recGblRecordError(S_rec_outMem,(void *)sub_ps,"CV_Cmdline_Init: failed");
   else
   {
      dpvt_ps->mlock  = epicsMutexMustCreate();
-     dpvt_ps->data_a = (unsigned long *)addr_ps->pfield;
+     dpvt_ps->data_a = data_a;
      sub_ps->dpvt = dpvt_ps;
      status= OK;
   }
@@ -661,6 +663,14 @@ static long CV_RWline(longSubRecord *sub_ps)
      sub_ps->llsv = NO_ALARM;
      sub_ps->hsv  = NO_ALARM;
      sub_ps->lsv  = NO_ALARM;
+
+     /* get the input link values for INPA and INPB */
+     long nRequest;
+     dbGetNelements(&sub_ps->inpa, &nRequest);
+     status = dbGetLink(&sub_ps->inpa, DBR_ULONG, dpvt_ps->data_a, 0, &nRequest);
+     dbGetNelements(&sub_ps->inpb, &nRequest);
+     status = dbGetLink(&sub_ps->inpb, DBR_ULONG, dpvt_ps->edata_a, 0, &nRequest);
+
     
      /* Set the val field */
      epicsMutexMustLock(dpvt_ps->mlock);
@@ -856,6 +866,11 @@ static long CV_Cmdline(longSubRecord *sub_ps)
      sub_ps->llsv = NO_ALARM;
      sub_ps->hsv  = NO_ALARM;
      sub_ps->lsv  = NO_ALARM;
+
+     /* get the input link values for INPA and INPB */
+     long nRequest;
+     dbGetNelements(&sub_ps->inpa, &nRequest);
+     status = dbGetLink(&sub_ps->inpa, DBR_ULONG, dpvt_ps->data_a, 0, &nRequest);
     
      /* Set the val field */
      epicsMutexMustLock(dpvt_ps->mlock);
