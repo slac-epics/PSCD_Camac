@@ -24,6 +24,7 @@ R3.5.0       Kukhee Kim (khkim)  11-12-2019
                use type-safe RSET and DRVET
                use aSub instead of genSub
                fix epics version check to build with epics 7
+               put a workaround for dbGetPdbAddrFromLink
                build with:
                    seq/R2.2.4-1.2
                    event/R4.4.1

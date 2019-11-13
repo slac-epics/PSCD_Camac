@@ -68,6 +68,12 @@ static long CV_Bus_Data(aSubRecord *sub_ps);
 static long CV_RWline(longSubRecord *sub_ps);
 static long CV_Cmdline(longSubRecord *sub_ps);
 
+#ifndef dbGetPdbAddrFromLink
+#define dbGetPdbAddrFromLink(PLNK) \
+( ( (PLNK)->type != DB_LINK ) \
+? 0 \
+: ( ( (struct dbAddr *)( (PLNK)->value.pv_link.pvt) ) ) )
+#endif
 
 /* Global variables */ 
 int CV_SUB_DEBUG=0;
