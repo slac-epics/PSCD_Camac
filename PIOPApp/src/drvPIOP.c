@@ -33,9 +33,13 @@ epicsMessageQueueId sbi_msgQId;
 static  long    PIOP_EPICS_Init();
 static  long    PIOP_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvPIOP = {2,                             /*2 Table Entries */
                              (DRVSUPFUN) PIOP_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) PIOP_EPICS_Init};   /* Driver Initialization Routine */
+#else
+const drvet drvPIOP = {2, PIOP_EPICS_Report, PIOP_EPICS_Init};
+#endif
 
 epicsExportAddress(drvet,drvPIOP);
 

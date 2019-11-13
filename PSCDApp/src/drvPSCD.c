@@ -223,9 +223,13 @@ int branchOfCrate(unsigned short c)
 static  long    PSCD_EPICS_Init();
 static  long    PSCD_EPICS_Report(int level);
 
+#ifndef USE_TYPED_DRVET
 const struct drvet drvPSCD = {2,                              /*2 Table Entries */
                              (DRVSUPFUN) PSCD_EPICS_Report,      /* Driver Report Routine */
                              (DRVSUPFUN) PSCD_EPICS_Init};       /* Driver Initialization Routine */
+#else
+const drvet drvPSCD = {2, PSCD_EPICS_Report, PSCD_EPICS_Init};
+#endif
 
 #if     EPICS_VERSION>=3 && EPICS_REVISION>=14
 epicsExportAddress(drvet,drvPSCD);
