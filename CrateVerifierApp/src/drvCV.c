@@ -135,7 +135,7 @@ static vmsstat_t    CV_CrateCmdLine( CV_MODULE * const module_ps );
 static vmsstat_t    CV_CrateRWLine( CV_MODULE * const module_ps );
 
 static vmsstat_t    CV_CheckReadData( CV_MODULE * const module_ps, vmsstat_t status );
-static vmsstat_t    CV_CrateInit(     CV_MODULE * const module_ps, epicsBoolean pulzeZ_e );
+static vmsstat_t    CV_CrateInit(     CV_MODULE * const module_ps, bool  pulzeZ_e );
 static vmsstat_t    CV_CrateInitInit( CV_MODULE * const module_ps );
 static vmsstat_t    CV_SetBusStatus(  CV_MODULE * const module_ps );
 static void         CV_SetCrateStatus( CV_MODULE * const module_ps, unsigned short stat, unsigned short mask );
@@ -406,7 +406,7 @@ static void CV_OpThread(void)
    }
 
    /* Indicate that this thread is active!*/
-   thread_ps->active = epicsTrue;
+   thread_ps->active = true;
    errlogSevPrintf( errlogInfo,CV_THREADSTART_MSG,"CV_OP",thread_ps->tid_ps );
 
    /* 
@@ -421,7 +421,7 @@ static void CV_OpThread(void)
       {
           /* We should never time out, so something wrong */
   	  errlogSevPrintf(errlogMajor,CV_QTMO_MSG,epicsThreadGetNameSelf(),msgQstat);
-	  thread_ps->stop = epicsTrue;
+	  thread_ps->stop = true;
       } 
       else 
       {           
@@ -429,7 +429,7 @@ static void CV_OpThread(void)
       }
    } /* End of while statement */
 
-   thread_ps->active = epicsFalse;
+   thread_ps->active = false;
    epicsMessageQueueDestroy( thread_ps->msgQId_ps );
    thread_ps->msgQId_ps = NULL;
 
@@ -459,12 +459,12 @@ static void  CV_AsynThread(void)
   static const float      nsec         = 10.0;                  /* delay in seconds            */ 
   float                   max_interval = 60.0;                  /* maximum time interval       */
   float                   total        = 0;                     /* interval, 0=5sec 1=60sec    */
-  epicsBoolean            first_pass   = epicsTrue;             /* first pass sending asyn msg */
+  bool                    first_pass   = true;                  /* first pass sending asyn msg */
   cv_thread_ts           *thread_ps    = &threads_as[CV_ASYN_THREAD];
  
 
   /* Indicate that this thread is active!*/
-  thread_ps->active = epicsTrue;
+  thread_ps->active = true;
   errlogSevPrintf(errlogInfo,CV_THREADSTART_MSG,"CV_ASYN",thread_ps->tid_ps );
       
 
@@ -500,7 +500,7 @@ static void  CV_AsynThread(void)
          if (first_pass)
 	 {
             CV_SendMsgs( &asynMsgList_as[CV_60SEC] );
-	    first_pass = epicsFalse;
+	    first_pass = false;
          }
 
          /* wait for 5 seconds before sending next */
@@ -539,7 +539,7 @@ static void  CV_AsynThread(void)
 void  CV_AsynThreadStop(void)
 {
   cv_thread_ts     *thread_ps = &threads_as[CV_ASYN_THREAD];
-  thread_ps->stop = epicsTrue;
+  thread_ps->stop = true;
   return;
 }
 
@@ -1070,7 +1070,7 @@ CV_MODULE * CV_AddModule( short branch, short crate, short slot )
     module_ps->n         = slot  & CAMAC_SLOT_MASK;
     module_ps->ctlw      = (crate << CCTLW__C_shc) | (slot << CCTLW__M_shc);
     module_ps->pattern   = CV_DATA_PATTERN;
-    module_ps->present   = epicsTrue;  
+    module_ps->present   = true;  
     module_ps->crate_s.mlock   = epicsMutexMustCreate();    /* used to lock flag_e and stat_u */
     module_ps->cmdLine_s.mlock = epicsMutexMustCreate();    /* cmdLine_s */
     module_ps->rwLine_s.mlock  = epicsMutexMustCreate();    /* rwLine_s  */
@@ -1695,7 +1695,7 @@ static vmsstat_t  CV_WriteDataInit( short branch, short crate, short slot, campk
                CV_CrateInitInit()
 
 =======================================================*/ 
-static vmsstat_t  CV_CrateInit( CV_MODULE * const module_ps,epicsBoolean pulseZ_e  )
+static vmsstat_t  CV_CrateInit( CV_MODULE * const module_ps, bool  pulseZ_e  )
 {
    vmsstat_t  iss = CRAT_OKOK;
 
@@ -1707,10 +1707,10 @@ static vmsstat_t  CV_CrateInit( CV_MODULE * const module_ps,epicsBoolean pulseZ_
       if (pulseZ_e) 
       {
          printf("Z-Line On\n");
-         module_ps->crate_s.z_off = epicsFalse;
+         module_ps->crate_s.z_off = false;
       }
       else	
-         module_ps->crate_s.z_off = epicsTrue;
+         module_ps->crate_s.z_off = true;
 
       /* Initialize crate after crate power on or boot */
       iss = CV_CrateInitInit(module_ps);
@@ -1966,7 +1966,7 @@ static vmsstat_t   CV_TestDatawayInit( short branch, short crate, short slot , c
        iss = CV_CrateRWLineInit(branch,crate,slot,cam_ps);
 
     if (SUCCESS(iss))
-      cam_ps->init = epicsTrue;
+      cam_ps->init = true;
      
     return(iss);
 }
@@ -3049,7 +3049,7 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
     if (!module_ps->present) 
       goto egress;
 
-    module_ps->crate_s.idErr = epicsTrue;  /* Set error as default */
+    module_ps->crate_s.idErr = true;  /* Set error as default */
  
     /* Initialize camac package first time through */
     iss    = CRAT_OKOK;
@@ -3067,7 +3067,7 @@ static long  CV_ReadId(CV_MODULE * const module_ps )
        {
           module_ps->id = cam_ps->statd_s.data & CV_ID_MASK;
           if ( module_ps->c == module_ps->id ) 
-            module_ps->crate_s.idErr = epicsFalse;
+            module_ps->crate_s.idErr = false;
        }
        else 
        {
@@ -3353,10 +3353,10 @@ static long CV_IsCrateOnline( CV_MODULE * const module_ps )
 	  */
          readErr = module_ps->crate_s.stat_u._i & mask;
 	 if ( module_ps->crate_s.first_watch && readErr ) 
-            iss = CV_CrateInit(module_ps,epicsTrue);
+            iss = CV_CrateInit(module_ps,true);
 	 else if (!module_ps->crate_s.first_watch && 
                   !(module_ps->crate_s.stat_u._i & CRATE_STATUS_INIT)  )        
-	    iss = CV_CrateInit(module_ps,epicsFalse); 
+	    iss = CV_CrateInit(module_ps,false); 
        }
        
       /*
@@ -3686,7 +3686,7 @@ static long  CV_WriteData(CV_MODULE * const module_ps, unsigned long data )
     static const unsigned short max_trys = 6;
     static const unsigned short i_wt     = 0;
     static const unsigned short i_rbk    = 1;
-    epicsBoolean                crateOn  = epicsFalse;
+    bool                        crateOn  = false;
     cv_crate_flag_te            flag_e   = CV_CRATEOFF;
     campkg_data_ts             *cam_ps   = NULL;;
 
@@ -3725,7 +3725,7 @@ static long  CV_WriteData(CV_MODULE * const module_ps, unsigned long data )
 	     rbk_data = cam_ps->statd_as[i_rbk].data & CV_DATA_MASK;
              if (cam_ps->statd_as[i_wt].data==rbk_data)
 	     {
-	        crateOn = epicsTrue;
+	        crateOn = true;
                 flag_e  = CV_CRATEON;
 	     }
              else
@@ -3827,7 +3827,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        iss = camgo(&cam_ps->scc_s.pkg_p);    
        if ((iss==CAM_MBCD_NFG) || (iss==CAM_SOFT_TO) || (iss==CAM_CRATE_TO)) 
        {
-	  cam_ps->timeout = epicsTrue;
+	  cam_ps->timeout = true;
           if (CV_DRV_DEBUG) 
 	    printf("CV[%hd %hd %hd] Crate timeout, status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->scc_s.statd_s.stat);
           goto egress;
@@ -3838,7 +3838,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        if ((stat & MBCD_STAT__X)==MBCD_STAT__X)
        {
 	  cam_ps->Xstat_s.was_one = 1;  /* X-response returned "1" incorrectly */
-          cam_ps->Xstat_s.err     = epicsTrue;
+          cam_ps->Xstat_s.err     = true;
           if (CV_DRV_DEBUG) 
 	    printf("CV[%hd %hd %hd] CAMAC crate timeoutm status=0x%8.8X\n",module_ps->b, module_ps->c, module_ps->n,cam_ps->scc_s.statd_s.stat);
        }
@@ -3854,7 +3854,7 @@ static long  CV_TestDataway(CV_MODULE * const module_ps)
        if ( !SUCCESS(status) && (module_ps->mstat_as[CAMAC_RD_ID].errCode == CAM_NO_Q) )
        {
          cam_ps->Qstat_s.was_zero = 1;
-         cam_ps->Qstat_s.err      = epicsTrue;
+         cam_ps->Qstat_s.err      = true;
        }
       
        /* Perform Camac Bus Read-Write Line Test */
@@ -4006,7 +4006,7 @@ static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
         * command line error.
         */
        if (data!=cmdLineOk_a[i] && (i!=inhibit_cmd))
-	 cam_ps->cmdLineErr = epicsTrue;
+	 cam_ps->cmdLineErr = true;
 
        /* save the data */
        module_ps->cmdLine_s.data_a[i] = data;
@@ -4024,13 +4024,13 @@ static vmsstat_t CV_CrateCmdLine( CV_MODULE * const module_ps )
     if ((stat & MBCD_STAT__X)==0)
     {
        cam_ps->Xstat_s.was_zero = 1;
-       cam_ps->Xstat_s.err = epicsTrue;
+       cam_ps->Xstat_s.err = true;
     }
     /* Check Q-response */
     if (stat & MBCD_STAT__Q)
     {
        cam_ps->Qstat_s.was_one = 1;
-       cam_ps->Qstat_s.err = epicsTrue;
+       cam_ps->Qstat_s.err = true;
     }
 
 egress:
@@ -4494,9 +4494,9 @@ static void CV_DatawayInitData( CV_MODULE * const module_ps)
     */
    memset(&cam_ps->Xstat_s,0,sizeof(cam_ps->Xstat_s));
    memset(&cam_ps->Qstat_s,0,sizeof(cam_ps->Qstat_s));
-   cam_ps->cmdLineErr = epicsFalse;
+   cam_ps->cmdLineErr = false;
    cam_ps->rwLineErr  = 0;
-   cam_ps->timeout    = epicsFalse;
+   cam_ps->timeout    = false;
    return;
  }
 

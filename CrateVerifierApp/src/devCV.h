@@ -24,6 +24,7 @@
 /*
 ** Include all of the standard C stuff needed by device & driver support
 */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -217,7 +218,7 @@ typedef struct camac_xq_status_s
 { 
   unsigned long was_one;
   unsigned long was_zero;
-  epicsBoolean  err;
+  bool          err;
 }camac_xq_status_ts;
 
 /******************************************************************************************/
@@ -444,8 +445,8 @@ typedef enum cv_interval_e
 typedef struct cv_thread_s
  {        
    epicsThreadId         tid_ps;      /* task id                              */
-   epicsBoolean          active;      /* indicate task active                 */
-   epicsBoolean          stop;        /* indicate task should exit gracefully */
+   bool                  active;      /* indicate task active                 */
+   bool                  stop;        /* indicate task should exit gracefully */
    epicsMessageQueueId   msgQId_ps;   /* message queue id                     */
    epicsEventId          evtId_ps;    /* event id                             */
 } cv_thread_ts; 
@@ -810,12 +811,12 @@ typedef struct campkg_dataway_s
   campkg_cmd_ts            cmd_s;         /* command line package          */
   campkg_rwlines_ts        rwlines_s;     /* Read Write lines test         */
 
-  epicsBoolean             init;          /* flag all packages initalized  */
+  bool                     init;          /* flag all packages initalized  */
   camac_xq_status_ts       Xstat_s;       /* X-response status             */
   camac_xq_status_ts       Qstat_s;       /* Q-response status             */
-  epicsBoolean             cmdLineErr;    /* Command Line test status      */
+  bool                     cmdLineErr;    /* Command Line test status      */
   unsigned short           rwLineErr;     /* Read-Write Line test status   */
-  epicsBoolean             timeout;       /* CAMAC crate timeout           */
+  bool                     timeout;       /* CAMAC crate timeout           */
 } campkg_dataway_ts;
 
 typedef struct 
@@ -1031,9 +1032,9 @@ typedef enum cv_crate_flag_e
  
 typedef struct cv_crate_online_status_s
 {
-       epicsBoolean             z_off;
+       bool                     z_off;
        cv_crate_flag_te         flag_e;  
-       epicsBoolean             idErr;   
+       bool                     idErr;   
 
        unsigned short           first_watch;
        unsigned short           reinit;
