@@ -24,6 +24,7 @@ R3.5.2       Kristi Luchini (luchini) 09-Apr-2020
                rename configure/RELEASE to configure/RELEASE.local
                update configure/RELEASE
                replace configure/CONFIG_APP with configure/CONFIG_SITE
+               build for epics base R7.0.3.1-1.0
 
 R3.5.1       Kukhee Kim (khkim)  11-13-2019
                remove workaround for dbGetPdbAddrFromLink, and use dbGet() API
