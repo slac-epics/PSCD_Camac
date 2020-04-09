@@ -39,7 +39,7 @@ TIMINGAPI=$(EPICS_MODULES)/timingApi/$(TIMINGAPI_MODULE_VERSION)
 # Define EPICS_BASE
 # EPICS_BASE usually appears last so other apps can override stuff:
 # =================================================================
-EPICS_BASE=$(BASE_SITE_TOP)/$(BASE_MODULE_VERSION)
+EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 
 # Check for undefined EPICS_BASE
 -include $(TOP)/../../EPICS_BASE.check
