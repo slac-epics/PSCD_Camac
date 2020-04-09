@@ -17,8 +17,9 @@
 #
 #==============================================================
 #
-R3.4.5-2.branch  K. Luchini (luchini)
-09-Apr-2020,  CAMCOMApp/src/Camcom_seq.stt
+R3.4.5-1.0.0  K. Luchini (luchini)
+09-Apr-2020,  This is on branch R3.4.5-1.branch
+              CAMCOMApp/src/Camcom_seq.stt
                replace LOCA input argument with DEV
  
 PSCD_Camac-R3-4-5
