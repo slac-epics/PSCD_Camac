@@ -1,50 +1,17 @@
-#RELEASE Location of external products
+# RELEASE
+# Defines location of external products
 # Run "gnumake clean uninstall install" in the application
 # top directory each time this file is changed.
-#
-# NOTE: The build does not check dependancies on files
-# external to this application. Thus you should run
-# "gnumake clean uninstall install" in the top directory
-# each time EPICS_BASE, SNCSEQ, or any other external
-# module defined in the RELEASE file is rebuilt.
-# This is where EPICS lives at your site.
-include $(TOP)/RELEASE_SITE
+-include $(TOP)/configure/RELEASE.local
 
-TEMPLATE_TOP=$(BASE_SITE_TOP)/$(EPICS_BASE_VER)/templates/makeBaseApp/top
+# Check for valid macro definitions for module release directories
+# You can add tests here to make sure RELEASE.local defined valid
+# macros for all the module dependencies
+#ifeq ($(wildcard $(EPICS_BASE)/include),)
+#$(error Invalid EPICS_BASE: $(EPICS_BASE))
+#endif
+#ifeq ($(wildcard $(ASYN)/include),)
+#$(error Invalid ASYN: $(ASYN))
+#endif
+#...
 
-#=============================================================
-# Define the top of the EPICS tree for your site.
-# We will build some tools/scripts that allow us to
-# change this easily when relocating software.
-# =============================================================
-EPICS_MODULES=$(MODULES_SITE_TOP)
-BASE_MODULE_VERSION=$(EPICS_BASE_VER)
-
-# ==============================================================
-# Define the version of EPICS BASE that you will use
-# =============================================================
-BASE_MODULE_VERSION=$(EPICS_BASE_VER)
-
-# =============================================================
-# Define the version of modules needed by
-# IOC apps or other Support apps
-# =============================================================
-SEQ_MODULE_VERSION=R2.2.4-1.2
-EVENT_MODULE_VERSION=R4.4.1
-MISCUTILS_MODULE_VERSION=R2.2.5
-TIMINGAPI_MODULE_VERSION=R0.6
-
-#If using the sequencer, point SNCSEQ at its top directory:
-SNCSEQ=$(EPICS_MODULES)/seq/$(SEQ_MODULE_VERSION)
-EVENT=$(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
-MISCUTILS=$(EPICS_MODULES)/miscUtils/$(MISCUTILS_MODULE_VERSION)
-TIMINGAPI=$(EPICS_MODULES)/timingApi/$(TIMINGAPI_MODULE_VERSION)
-
-
-# =================================================================
-# Define EPICS_BASE
-# EPICS_BASE usually appears last so other apps can override stuff:
-# =================================================================
-EPICS_BASE=$(BASE_SITE_TOP)/$(BASE_MODULE_VERSION)
-
-# End of file
