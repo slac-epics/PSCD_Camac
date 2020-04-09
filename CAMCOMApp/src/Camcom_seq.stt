@@ -1,6 +1,5 @@
 /*
- * program Camcom("DEV=116-IOCCAMAC")
- * program Camcom("LOCA=LI21")
+ * program Camcom("DEV=CAMC:LI21:CV01")
  */
 program Camcom
 
@@ -23,65 +22,28 @@ option -r;
 %%#define CAMCOM_DONE 4
 
 /* required macro:
- * macro used LCLS to buid standard device name CAMC:<loca>:CV01  
- * macro used by SPEAR, device name uses different pattern than LCLS 
+ * LCLS standard device name is CAMC:<loca>:CV01  
+ * SPEAR standard device name is 116-IOCCAMAC
  */
-char *LOCA;
-char *DEV;
+char *device_c;    /* Device name */
 
 /* Local Process variables */
-string LOCA;
-string DEV;
+
 short  last_active_token;
-short  active_token;        assign active_token       to "";  string active_token_pv;  monitor active_token;
-short  in_buff_len;         assign in_buff_len        to "";  string in_buff_len_pv;
-char   real_buff[16348];    assign real_buff          to "";  string real_buff_pv;
-char   in_buff[16348];      assign in_buff            to "";  string in_buff_pv;
-short  camcom_status;       assign camcom_status      to "";  string camcom_status_pv;  monitor camcom_status;
-string camcom_reservation;  assign camcom_reservation to "";  string camcom_reservation_pv;
-string camcom_seq_ver;      assign camcom_seq_ver     to "";  string camcom_seq_ver_pv;
-
-entry {
-
-  /* fill and check macros */
-   LOCA = macValueGet("LOCA");
-   /* Are we using LCLS device name standard? */
-   if (LOCA)
-     sprintf(DEV,"CAMC:%s:CV01:",LOCA);
-   else
-   /* Nope, allow a more generic device name to be used -- spear */
-     DEV = macValueGet("DEV");  
-   printf("\nCamcom: SNL program started\n");
-   printf("Camcom: using device name %s\n",DEV);
-
-  /* setup epics process variables */
-  sprintf(camcom_seq_ver_pv, "%sSEQ_VER",DEV);
-  pvAssign(camcom_seq_ver, camcom_seq_ver_pv);
-
-  sprintf(camcom_reservation_pv, "%sNOTE",DEV);
-  pvAssign(camcom_reservation, camcom_reservation_pv);
-
-  sprintf(camcom_status_pv, "%sSTATUS",DEV);
-  pvAssign(camcom_status, camcom_status_pv);
-
-  sprintf(in_buff_pv, "%sINBUFF",DEV);
-  pvAssign(in_buff, in_buff_pv);
-
-  sprintf(real_buff_pv, "%sREALBUFF",DEV);
-  pvAssign(real_buff, real_buff_pv);
-
-  sprintf(in_buff_len_pv, "%sINBUFF_LEN",DEV);
-  pvAssign(in_buff_len, in_buff_len_pv);
-
-  sprintf(active_token_pv, "%sACTIVE_TOKEN",DEV);
-  pvAssign(active_token, active_token_pv);
-  
-  } /* entry */
+short  active_token;        assign active_token       to "${DEV}:ACTIVE_TOKEN";  string active_token_pv;  monitor active_token;
+short  in_buff_len;         assign in_buff_len        to "${DEV):INBUFF_LEN";    string in_buff_len_pv;
+char   real_buff[16348];    assign real_buff          to "${DEV}:REALBUFF";       string real_buff_pv;
+char   in_buff[16348];      assign in_buff            to "${DEV}:INBUFF";        string in_buff_pv;
+short  camcom_status;       assign camcom_status      to "${DEV}:STATUS";        string camcom_status_pv;  monitor camcom_status;
+string camcom_reservation;  assign camcom_reservation to "${DEV}:NOTE";          string camcom_reservation_pv;
+string camcom_seq_ver;      assign camcom_seq_ver     to "${DEV}:SEQ_VER";       string camcom_seq_ver_pv;
 
 
 ss DOcamcom {
     state init {
 	when (1) {
+          strcpy(device_c,macValueGet("DEV"));
+          printf("\nCamcom: SNL program started for %s\n",device_c);
           sprintf(camcom_seq_ver,"%s : %s",comp_date,comp_comment);
           pvPut(camcom_seq_ver);
           camcom_status=CAMCOM_FREE; pvPut(camcom_status);
