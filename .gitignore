@@ -1,8 +1,9 @@
 *~
-O.*/
+O.*
 *.log
 *.swp
-CVS/
+archive/
+autosave/
 bin/
 db/
 dbd/
@@ -10,6 +11,7 @@ html/
 include/
 lib/
 templates/
+restore/
 cdCommands
 envPaths
 RELEASE_SITE
