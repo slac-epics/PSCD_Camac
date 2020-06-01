@@ -25,7 +25,7 @@ option -r;
  * LCLS standard device name is CAMC:<loca>:CV01  
  * SPEAR standard device name is 116-IOCCAMAC
  */
-char *device_c;    /* Device name */
+char device_c[80];    /* Device name */
 
 /* Local Process variables */
 
