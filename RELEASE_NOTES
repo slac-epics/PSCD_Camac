@@ -18,6 +18,15 @@
 #==============================================================
 #
 #
+
+R3.5.4  S. Hoobler (sonya) 20-Oct-2020 
+           PIOPApp/src/fidPHASE.c:
+             To support new LCLS multiple destinations,
+               change how to determine when to measure phase.
+               Before it was to check the MOD5_BEAMFULL_MASK
+               was set in timing pattern modifier 5.
+               Now we check that POCKCEL_PERM is set in modifier 3.
+
 R3.5.3       Kristi Luchini (luchini) 05-Jun-2020
                Chg device_c from ptr to array in Camcom_seq.stt
 
