@@ -17,6 +17,12 @@
 #
 #==============================================================
 #
+
+Create branch R3.4.5-br from tag R3.4.5-1.0.1
+19-Oct-2020, S. Hoobler (sonya)
+Suspect this is supposed to be a branch but I could not find
+one in the repo.
+
 R3.4.5-1.0.0  K. Luchini (luchini)
 09-Apr-2020,  This is on branch R3.4.5-1.branch
               CAMCOMApp/src/Camcom_seq.stt
