@@ -52,7 +52,7 @@ volatile unsigned long Phasecamgud  = 0;
 volatile unsigned long Phasefidphaseevent = 0;
 volatile unsigned long Phaseeventok = 0;
 volatile unsigned long Phasepipepatternok = 0;
-volatile unsigned long Phasemod5beam = 0;
+volatile unsigned long Phasemod3beam = 0;
 volatile unsigned long Phasetimerstart = 0;
 volatile unsigned long Phasefidisreventtimeout = 0;
 volatile unsigned long Phasefidisreventok = 0;
@@ -165,10 +165,10 @@ static int fidPHASETask(void * parg)
             {
 		Phasepipepatternok++;
 		if (FIDPHASE_DEBUG >= 3) 
-		    errlogPrintf("fidPhase: MOD5_BEAMFULL_MASK 0x%x, modifier_a[MOD5_IDX] 0x%x, & %i\n", MOD5_BEAMFULL_MASK, modifier_a[MOD5_IDX], MOD5_BEAMFULL_MASK & modifier_a[MOD5_IDX]);
-                if (MOD5_BEAMFULL_MASK & modifier_a[MOD5_IDX])
+		    errlogPrintf("fidPhase: POCKCEL_PERM 0x%x, modifier_a[MOD3_IDX] 0x%x, & %i\n", POCKCEL_PERM, modifier_a[MOD3_IDX], POCKCEL_PERM & modifier_a[MOD3_IDX]);
+                if (POCKCEL_PERM & modifier_a[MOD3_IDX])
  	        {
-		    Phasemod5beam++;
+		    Phasemod3beam++;
                     /*
  		    ** We have beam. The beam will arrive in ~1ms & it takes the PIOP ~.5ms to
                     ** store its phase so wait ~2ms before we read it out.
