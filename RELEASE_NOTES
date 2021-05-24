@@ -18,6 +18,9 @@
 #==============================================================
 #
 
+R3.4.5-1.1.1  S. Condamoor (scondam) 
+24-May-2021, SPEAR: Sync up CrateVerifierApp/Db/cv_spear.substitutions 
+
 R3.4.5-1.1.0  S. Hoobler (sonya) 
 19-Oct-2020, PIOPApp/src/fidPHASE.c:
              To support new LCLS multiple destinations,

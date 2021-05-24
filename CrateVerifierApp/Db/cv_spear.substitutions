@@ -38,8 +38,8 @@ file cv_camac_module.template
 file cv_camac_crat_volts_spear.db
 {
 #             Branch  Crate 
-   pattern {  B     , C      } 
-           {  0     , $(CR)  }
+   pattern {  B     , C     ,  HIGH   ,    HIHI       } 
+           {  0     , $(CR)  $(THIGH),   $(THIHI)     }
 }
 
 # CAMAC Crate online status summary
