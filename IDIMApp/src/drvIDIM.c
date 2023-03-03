@@ -272,7 +272,7 @@ const struct drvet drvIDIM = {2,                              /*2 Table Entries 
                              (DRVSUPFUN) IDIM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) IDIM_EPICS_Init};   /* Driver Initialization Routine */
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(drvet,drvIDIM);
 #endif
 

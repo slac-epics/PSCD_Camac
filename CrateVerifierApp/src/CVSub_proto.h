@@ -12,8 +12,8 @@
 
 -------------------------------------------------------------
   Mod:
-        dd-mmm-yyyy, First Lastname   (USERNAME):
-          comment
+        27-Feb-2024, K. Luchini       (LUCHINI):
+         chg genSubRecord to aSubRecord
 
 =============================================================
 */
@@ -22,8 +22,8 @@
 #define _CVSUB_PROTO_H_
 
 
-vmsstat_t CV_Init( genSubRecord *sub_ps);
-vmsstat_t CV_STAT( genSubRecord *sub_ps);
+vmsstat_t CV_Init( aSubRecord *sub_ps);
+vmsstat_t CV_STAT( aSubRecord *sub_ps);
 
 #endif /*_CVSUB_PROTO_H_ */
 

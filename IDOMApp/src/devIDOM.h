@@ -22,12 +22,13 @@
 #include "string.h"
 
 #include <epicsVersion.h>
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 #include <epicsExport.h>
 #include <alarm.h>
 #include <dbCommon.h>
-#include <dbDefs.h>
-#include <dbAccess.h>
+#include <dbAccessDefs.h>
+#include <dbLock.h>
+//#include <dbAccess.h>
 #include <dbScan.h>
 #include <recSup.h>
 #include <recGbl.h>
@@ -55,7 +56,7 @@
 #error "We need EPICS 3.14 or above to support OSI calls!"
 #endif
 
-#include "genType.h"
+#include "genType.h"       /* for UINT16  */
 #include "drvPSCDLib.h"
 
 #include "slc_macros.h"
@@ -84,7 +85,7 @@ typedef struct IDOM_MODULE
     UINT16			c;	/* crate */
     UINT16			n;	/* node = slot */
 
-/*    epicsTimeStamp		lastReadTime;
+/*   epicsTimeStamp		lastReadTime;
     UINT16			data[2];
     UINT32			lastErrCode;
 
@@ -133,7 +134,7 @@ typedef struct IDOM_REQUEST
 {
     ELLNODE             node;   /* Link List Node */
 
-    IDOM_MODULE          *pIDOMModule;
+    IDOM_MODULE         *pIDOMModule;
     dbCommon            *pRecord;
 
     UINT16		a;

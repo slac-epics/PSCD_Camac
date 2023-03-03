@@ -37,7 +37,7 @@ typedef struct {
 
 LDIM_DEV_SUP_SET devMiDLDIM = {6, NULL, NULL, init_mid, NULL, read_mid, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(dset, devMiDLDIM);
 #endif
 

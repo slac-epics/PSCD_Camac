@@ -402,7 +402,7 @@ record(waveform, "$(DEV):RWLINE_PATTERN") {
   field(FLNK, "$(DEV):RWLINE_PATTERN_SUB")
 }
 
-record(genSub, "$(DEV):RWLINE_PATTERN_SUB") {
+record(aSub, "$(DEV):RWLINE_PATTERN_SUB") {
   field(DESC, "Rd-Wt line patter data")
   field(INAM, "CV_Bus_Data_Init")
   field(SNAM, "CV_Bus_Data")
@@ -462,7 +462,7 @@ record(genSub, "$(DEV):RWLINE_PATTERN_SUB") {
   field(FLNK, "$(DEV):RWLINE_PATTERN_SUB2")
 }
 
-record(genSub, "$(DEV):RWLINE_PATTERN_SUB2") {
+record(aSub, "$(DEV):RWLINE_PATTERN_SUB2") {
   field(DESC, "Get Rd-Wt line expected data")
   field(INAM, "CV_Bus_Data_Init")
   field(SNAM, "CV_Bus_Data")

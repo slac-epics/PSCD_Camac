@@ -42,7 +42,7 @@ typedef struct {
 SAM_DRV_SUP_SET devAiSAM = {6, NULL, NULL, init_ai, NULL, read_ai, NULL};
 SAM_DRV_SUP_SET devBoSAM = {6, NULL, NULL, init_bo, NULL, write_bo, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(dset, devAiSAM);
 epicsExportAddress(dset, devBoSAM);
 #endif

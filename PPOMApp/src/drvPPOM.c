@@ -376,7 +376,7 @@ const struct drvet drvPPOM = {2,                              /*2 Table Entries 
                              (DRVSUPFUN) PPOM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) PPOM_EPICS_Init};   /* Driver Initialization Routine */
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(drvet,drvPPOM);
 #endif
 

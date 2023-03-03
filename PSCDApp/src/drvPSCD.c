@@ -227,7 +227,7 @@ const struct drvet drvPSCD = {2,                              /*2 Table Entries 
                              (DRVSUPFUN) PSCD_EPICS_Report,      /* Driver Report Routine */
                              (DRVSUPFUN) PSCD_EPICS_Init};       /* Driver Initialization Routine */
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(drvet,drvPSCD);
 #endif
 

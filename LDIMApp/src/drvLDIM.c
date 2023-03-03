@@ -274,7 +274,7 @@ const struct drvet drvLDIM = {2,                              /*2 Table Entries 
                              (DRVSUPFUN) LDIM_EPICS_Report,  /* Driver Report Routine */
                              (DRVSUPFUN) LDIM_EPICS_Init};   /* Driver Initialization Routine */
 
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(drvet,drvLDIM);
 #endif
 

@@ -19,7 +19,7 @@
          CV_RWline             Read/Write Line data (extracted from waveform)
          CV_Cmdline            Command Line data (extracted from wavefo
 
-         The genSubRecord places the return status into the VAL field
+         The aSubRecord places the return status into the VAL field
 
   Side:  Place all functions called by PVs into the file CV.dbd
 
@@ -29,8 +29,8 @@
   Rev:   dd-mmm-yyyy, Reviewer's Name    (USERNAME)
 --------------------------------------------------------------
   Mod:
-         dd-mmm-yyyy, First Last Name    (USERNAME)
-           comment
+         19-Jan-2023, K. Luchini         (LUCHINI):
+          Replace genSubRecord.h with aSubRecord.h
 
 ==============================================================*/
 
@@ -41,30 +41,40 @@
 #include <stddef.h>
 
 #include "epicsVersion.h"
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 #include "epicsExport.h"
+#include "dbAddr.h"                /* for DBADDR                  */
+#include "dbLink.h"                /* for dbfType                 */
 #include "dbFldTypes.h"            /* for DBF_ULONG               */
 #include "waveformRecord.h"        /* for struct waveform         */
-#include "genSubRecord.h"          /* for struct genSubRecord     */
+#include "aSubRecord.h"            /* for struct aSubRecord       */
 #include "longSubRecord.h"         /* for struct longSubRecord    */
 #include "devCV.h" 
-#include "registryFunction.h"    
+#include "registryFunction.h"  
+
+// mdunning 8/3/17: define macro dbGetPdbAddrFromLink below, due to its removal in base 3.15
+#define dbGetPdbAddrFromLink(PLNK) \
+    ( ( (PLNK)->type != DB_LINK ) \
+      ? 0 \
+: ( ( (struct dbAddr *)( (PLNK)->value.pv_link.pvt) ) ) )
+
 #else
 #error "We need EPICS 3.14 or above to support OSI calls!"
 #endif
 
-/* Maximum number of outputs in a genSubRecord */
+
+/* Maximum number of outputs in a aSubRecord */
 #define MAX_ARGS 21 
 
 /* Static prototypes */
 static long CV_Init(dbCommon *sub_ps);
-static long CV_Bus_Data_Init(genSubRecord *sub_ps);
+static long CV_Bus_Data_Init(aSubRecord *sub_ps);
 static long CV_RWline_Init(longSubRecord *sub_ps);
 static long CV_Cmdline_Init(longSubRecord *sub_ps);
 
 static long CV_Stat(longSubRecord *sub_ps);
-static long CV_Limits(genSubRecord *sub_ps);
-static long CV_Bus_Data(genSubRecord *sub_ps);
+static long CV_Limits(aSubRecord *sub_ps);
+static long CV_Bus_Data(aSubRecord *sub_ps);
 static long CV_RWline(longSubRecord *sub_ps);
 static long CV_Cmdline(longSubRecord *sub_ps);
 
@@ -111,12 +121,12 @@ static long CV_Init(dbCommon *sub_ps)
 
   Args: Type                Name        Access     Description
         ------------------- ----------- ---------- ----------------------------
-        genSubRecord *     sub_ps       read/write  pointer to record
+        aSubRecord *        sub_ps       read/write  pointer to record
 
 
   Rem: This is a general purpose initialization required since all subroutine records
        require a non-NULL init routine even if no initialization is required.
-       Note that most genSubRecords in this file use this routine as an init
+       Note that most aSubRecords in this file use this routine as an init
        function.  If init logic is needed for a specific subroutine, create a
        new routine
 
@@ -143,7 +153,7 @@ static long CV_Init(dbCommon *sub_ps)
 
 
 ==============================================================================*/
-static long CV_Bus_Data_Init(genSubRecord *sub_ps)
+static long CV_Bus_Data_Init(aSubRecord *sub_ps)
 {
   long            status  = ERROR;                                  /* return status       */
   unsigned long   type    = *(unsigned long *)sub_ps->c;            /* type of bus data    */
@@ -418,7 +428,7 @@ static long CV_Stat(longSubRecord *sub_ps)
 
   Args: Type                Name        Access     Description
         ------------------- ----------- ---------- ----------------------------
-        genSubRecord *      sub_ps      read/write pointer to subroutine record
+        aSubRecord *        sub_ps      read/write pointer to subroutine record
 
   Rem:
         
@@ -442,7 +452,7 @@ static long CV_Stat(longSubRecord *sub_ps)
           OK  - Alwasys
 
 ==============================================================================*/ 
-static long CV_Limits(genSubRecord *sub_ps)
+static long CV_Limits(aSubRecord *sub_ps)
 {
   long  status = OK;          /* return status */
    
@@ -466,7 +476,7 @@ static long CV_Limits(genSubRecord *sub_ps)
 
   Args: Type                Name        Access     Description
         ------------------- ----------- ---------- ----------------------------
-        genSubRecord *      sub_ps      read/write pointer to subroutine record
+        aSubRecord *        sub_ps      read/write pointer to subroutine record
 
   Rem: 
         Input: from CV_DatawayTest()
@@ -520,7 +530,7 @@ static long CV_Limits(genSubRecord *sub_ps)
           OK  - Alwasys
 
 ==============================================================================*/ 
-static long CV_Bus_Data(genSubRecord *sub_ps)
+static long CV_Bus_Data(aSubRecord *sub_ps)
 {
   long           status  = OK;                               /* return status              */
   unsigned long  i       = 0;                                /* index counter              */

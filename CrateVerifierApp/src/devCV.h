@@ -12,6 +12,11 @@
 
 -------------------------------------------------------------
   Mod:
+        20-Jan-2023, K. Luchini       (LUCHINI):
+          changed epicsBoolean to epicsBOOLEAN because
+          epicsBoolean was deprecated epicsV7 from epicsTypes.h
+          comment out dbAccess.h
+          add dbDefs.h and dbFldTypes.h
         24-Feb-2017, K. Luchini       (LUCHINI):
           add CAM_MBCD_NFG_MSG
 
@@ -28,17 +33,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <ctype.h>
 
 /*
 ** Get all of the EPICS includes we might need.
 */
 #include "epicsVersion.h"
-#if EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 #include "epicsExport.h"
+#include "iocsh.h"
 #include "alarm.h"
 #include "dbCommon.h"
 #include "dbDefs.h"
-#include "dbAccess.h"
+#include "dbFldTypes.h"         /* for dbfType  */
 #include "dbScan.h"
 #include "recSup.h"
 #include "recGbl.h"
@@ -60,6 +67,8 @@
 #include "cvtTable.h"
 #include "menuConvert.h"
 #include "registryFunction.h"
+//#included "basicIops.h"
+
 /*
 ** We'll preserve/use VMS status words to pass back so we need the SUCCESS macro
 */
@@ -213,11 +222,18 @@ extern "C" {
 #define M30            0x00000F00
 #define P24            0x04000000
 
+
+typedef enum {
+  epicsFALSE=0,
+  epicsTRUE=1
+} epicsBOOLEAN;
+
+
 typedef struct camac_xq_status_s
 { 
   unsigned long was_one;
   unsigned long was_zero;
-  epicsBoolean  err;
+  epicsBOOLEAN  err;
 }camac_xq_status_ts;
 
 /******************************************************************************************/
@@ -444,8 +460,8 @@ typedef enum cv_interval_e
 typedef struct cv_thread_s
  {        
    epicsThreadId         tid_ps;      /* task id                              */
-   epicsBoolean          active;      /* indicate task active                 */
-   epicsBoolean          stop;        /* indicate task should exit gracefully */
+   epicsBOOLEAN          active;      /* indicate task active                 */
+   epicsBOOLEAN          stop;        /* indicate task should exit gracefully */
    epicsMessageQueueId   msgQId_ps;   /* message queue id                     */
    epicsEventId          evtId_ps;    /* event id                             */
 } cv_thread_ts; 
@@ -810,12 +826,12 @@ typedef struct campkg_dataway_s
   campkg_cmd_ts            cmd_s;         /* command line package          */
   campkg_rwlines_ts        rwlines_s;     /* Read Write lines test         */
 
-  epicsBoolean             init;          /* flag all packages initalized  */
+  epicsBOOLEAN             init;          /* flag all packages initalized  */
   camac_xq_status_ts       Xstat_s;       /* X-response status             */
   camac_xq_status_ts       Qstat_s;       /* Q-response status             */
-  epicsBoolean             cmdLineErr;    /* Command Line test status      */
+  epicsBOOLEAN             cmdLineErr;    /* Command Line test status      */
   unsigned short           rwLineErr;     /* Read-Write Line test status   */
-  epicsBoolean             timeout;       /* CAMAC crate timeout           */
+  epicsBOOLEAN             timeout;       /* CAMAC crate timeout           */
 } campkg_dataway_ts;
 
 typedef struct 
@@ -1031,9 +1047,9 @@ typedef enum cv_crate_flag_e
  
 typedef struct cv_crate_online_status_s
 {
-       epicsBoolean             z_off;
+       epicsBOOLEAN             z_off;
        cv_crate_flag_te         flag_e;  
-       epicsBoolean             idErr;   
+       epicsBOOLEAN             idErr;   
 
        unsigned short           first_watch;
        unsigned short           reinit;

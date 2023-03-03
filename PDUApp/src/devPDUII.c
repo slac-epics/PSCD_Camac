@@ -63,7 +63,7 @@ PDUII_DEV_SUP_SET devLiPDUII =  {6, NULL, NULL, init_li, NULL, read_li, NULL};
 PDUII_DEV_SUP_SET devLoPDUII =  {6, NULL, NULL, init_lo, NULL, write_lo, NULL};
 PDUII_DEV_SUP_SET devWfPDUII = {6, NULL, NULL, init_wf, NULL, write_wf, NULL};
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if EPICS_VERSION>3 || (EPICS_VERSION==3 && EPICS_REVISION>=14)
 epicsExportAddress(dset, devBoPDUII);
 epicsExportAddress(dset, devMiDPDUII);
 epicsExportAddress(dset, devMiPDUII);
