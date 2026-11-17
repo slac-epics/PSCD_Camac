@@ -231,7 +231,7 @@ const struct drvet drvPSCD = {2,                              /*2 Table Entries 
 const drvet drvPSCD = {2, PSCD_EPICS_Report, PSCD_EPICS_Init};
 #endif
 
-#if     EPICS_VERSION>=3 && EPICS_REVISION>=14
+#if     EPICS_VERSION>=3 && EPICS_REVISION>=14 || EPICS_VERSION > 3
 epicsExportAddress(drvet,drvPSCD);
 #endif
 
