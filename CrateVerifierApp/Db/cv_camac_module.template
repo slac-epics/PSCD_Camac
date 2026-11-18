@@ -7,7 +7,7 @@
 record(longin, "$(DEV):ID") {
   field(DESC, "Crate $(C) Module Id")
   field(DTYP, "Crate Verifier")
-  field(INP,  "CAMAC_IO - #B$(B) C$(C) N$(N) A3 F4 @ID")
+  field(INP,  "#B$(B) C$(C) N$(N) A3 F4 @ID")
   field(SCAN, "I/O Intr")
   field(HOPR, "16")
   field(LOPR, "1")
@@ -19,7 +19,7 @@ record(longin, "$(DEV):DATA") {
   field(DESC, "Crate $(C) Data Pattern")
   field(DTYP, "Crate Verifier")
   field(SCAN, "I/O Intr")
-  field(INP,  "CAMAC_IO - #B$(B) C$(C) N$(N) A0 F4 @DATA")
+  field(INP,  "#B$(B) C$(C) N$(N) A0 F4 @DATA")
   field(HIHI, "86")
   field(LOLO, "84")
   field(HIGH, "86")
@@ -36,5 +36,5 @@ record(bo, "$(DEV):VERIFY") {
   field(DTYP, "Crate Verifier")
   field(ZNAM, "DONE")
   field(ONAM, "BUSY")
-  field(OUT, "CAMAC_IO - #B$(B) C$(C) N$(N) A0 F0 @VERIFY")
+  field(OUT, "#B$(B) C$(C) N$(N) A0 F0 @VERIFY")
 }

@@ -9,7 +9,7 @@ record(mbbiDirect, "$(DEV):STAT") {
   field(DESC, "Crate $(C) Online Status")
   field(DTYP, "Crate Verifier")
   field(SCAN, "I/O Intr")
-  field(INP,  "CAMAC_IO - #B$(B) C$(C) N$(N) A0 F0 @STAT")
+  field(INP,  "#B$(B) C$(C) N$(N) A0 F0 @STAT")
   field(NOBT, "16")
   field(PINI, "YES")
   field(FLNK, "$(DEV):STAT_SEQ")
