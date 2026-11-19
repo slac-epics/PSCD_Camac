@@ -33,7 +33,7 @@ record(longout, "$(RECNAME):HWSET") {
 record(mbboDirect, "$(RECNAME):HWSETMB") {
   field(DESC, "IDOM Set HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F18@LEVEL_SELECT")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F18 @LEVEL_SELECT")
   field(DOL,  "$(RECNAME):HWSET")
   field(OMSL, "closed_loop")
 }
@@ -57,7 +57,7 @@ record(longout, "$(RECNAME):HWCLEAR") {
 record(mbboDirect, "$(RECNAME):HWCLEARMB") {
   field(DESC, "IDOM Clear HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F21@LEVEL_SELECT")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(PORT) F21 @LEVEL_SELECT")
   field(DOL,  "$(RECNAME):HWCLEAR")
   field(OMSL, "closed_loop")
 }

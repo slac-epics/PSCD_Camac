@@ -15,7 +15,7 @@ record(longout,"$(NAME):CRATE_SELECT") {
   field(LOPR, "2")
   field(HOPR, "$(DRVH)")
   field(OMSL, "supervisory")
-  field(OUT,  "#B0 C0 N0 A0 F0@CRATE")
+  field(OUT,  "#B0 C0 N0 A0 F0 @CRATE")
 }
 
 record(longout,"$(NAME):CHAN_SELECT") {
@@ -27,7 +27,7 @@ record(longout,"$(NAME):CHAN_SELECT") {
   field(DRVL, "0")
   field(LOPR, "0")
   field(OMSL, "supervisory")
-  field(OUT,  "#B0 C0 N0 A0 F0@CHANL")
+  field(OUT,  "#B0 C0 N0 A0 F0 @CHANL")
 }
 
 record(longout,"$(IOC):PDU360_DELAY") {
@@ -38,7 +38,7 @@ record(longout,"$(IOC):PDU360_DELAY") {
   field(DRVL, "0")
   field(EGU,  "us")
   field(OMSL, "supervisory")
-  field(OUT,  "#B0 C0 N0 A0 F0@DELAY")
+  field(OUT,  "#B0 C0 N0 A0 F0 @DELAY")
   field(PINI, "YES")
   info(autosaveFields,"VAL")
 }
