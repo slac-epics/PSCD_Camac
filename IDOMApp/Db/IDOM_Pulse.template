@@ -31,7 +31,7 @@ record(longout, "$(RECNAME):HWPULSE") {
 record(mbboDirect, "$(RECNAME):HWPULSEMB") {
   field(DESC, "IDOM Pulse HW")
   field(DTYP, "IDOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F17@PULSE")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F17 @PULSE")
   field(DOL,  "$(RECNAME):HWPULSE")
   field(OMSL, "closed_loop")
 }

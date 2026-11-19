@@ -16,7 +16,7 @@ record(stringout, "$(DEV):IMG:DWNLD") {
   field(OMSL, "supervisory")
   field(VAL, "$(IMAGENAME)")
   field(DTYP, "PIOP")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @IPL")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @IPL")
   field(FLNK, "$(DEV):PAD:UPDATE.PROC")
 }
 

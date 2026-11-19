@@ -8,7 +8,7 @@ record(waveform, "$(DEV):CMDLINE") {
   field(DESC, "Crate $(C) Cmd Line")
   field(SCAN, "I/O Intr")
   field(DTYP, "Crate Verifier")
-  field(INP, "CAMAC_IO - #B$(B) C$(C) N$(N) A0 F0 @CMD")
+  field(INP, "#B$(B) C$(C) N$(N) A0 F0 @CMD")
   field(NELM, "13")
   field(FTVL, "ULONG")
   field(PINI, "YES")

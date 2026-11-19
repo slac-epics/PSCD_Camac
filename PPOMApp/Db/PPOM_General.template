@@ -1,7 +1,7 @@
 record(bo, "$(PPOMMOD):Reset") {
   field(DESC, "PPOM Reset")
   field(DTYP, "PPOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F9@RESET")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F9 @RESET")
   field(ZNAM, "Reset")
   field(ONAM, "Reset")
 }
@@ -12,7 +12,7 @@ record(mbbiDirect, "$(PPOMMOD):LastCmd") {
   field(DESC, "PPOM Last Cmd")
   field(SCAN, "$(SCAN)")
   field(DTYP, "PPOM")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0@DATA")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @DATA")
 }
 
 record(longout, "$(PPOMMOD):HWPULSE") {
@@ -23,7 +23,7 @@ record(longout, "$(PPOMMOD):HWPULSE") {
 record(mbboDirect, "$(PPOMMOD):HWPULSEMB") {
   field(DESC, "PPOM Pulse HW")
   field(DTYP, "PPOM")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F16@DATA")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A0 F16 @DATA")
   field(DOL,  "$(PPOMMOD):HWPULSE")
   field(OMSL, "closed_loop")
 }

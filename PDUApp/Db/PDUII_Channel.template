@@ -2,7 +2,7 @@ record(mbbi,"$(CHNLNAME):ModeGet") {
   field(DESC, "PDUII CHNL Mode")
   field(SCAN, "$(SCAN)")
   field(DTYP, "PDUII")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F1@MODEGET")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F1 @MODEGET")
   field(NOBT, "3")
   field(SHFT, "12")
   field(ZRVL, "0x1")
@@ -18,7 +18,7 @@ record(mbbi,"$(CHNLNAME):ModeGet") {
 record(mbbo, "$(CHNLNAME):ModeSet") {
   field(DESC, "PDUII CHNL Mode")
   field(DTYP, "PDUII")
-  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F17@MODESET")
+  field(OUT,  "#B0 C$(CRATE) N$(SLOT) A$(CH) F17 @MODESET")
   field(NOBT, "3")
   field(ZRVL, "0x1")
   field(ONVL, "0x3")

@@ -6,7 +6,7 @@
 record(mbbiDirect, "$(DEV):BUSSTAT") {
   field(DESC, "Crate $(C) Bus Status")
   field(DTYP, "Crate Verifier")
-  field(INP,  "CAMAC_IO - #B$(B) C$(C) N$(N) A0 F0 @BUS")
+  field(INP,  "#B$(B) C$(C) N$(N) A0 F0 @BUS")
   field(SCAN, "I/O Intr")
   field(NOBT, "16")
   field(PINI, "YES")

@@ -24,7 +24,7 @@ record (mbbi, "$(DEV):STATUS") {
   field(SVSV,"NO_ALARM")
   field(EISV,"NO_ALARM")
   field(DTYP, "SBI")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @STS")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @STS")
   field(PINI, "YES")
 }
 
@@ -33,6 +33,6 @@ record (longout, "$(DEV):DELAY") {
   field(DESC, "Write SBI delay and PSK enable")
   field(SCAN, "Passive")
   field(DTYP, "SBI")
-  field(INP,  "#B0 C$(CRATE) N$(SLOT) F0 A0 @DELAY")
+  field(INP,  "#B0 C$(CRATE) N$(SLOT) A0 F0 @DELAY")
 }
 
